@@ -18,27 +18,23 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { getOpportunityStatusOptions } from "@/api/metadata"; // Import the API function
-import { toast } from "sonner"; // Import toast for notifications
+} from "@/components/ui/select"; // Import Select components
 
 interface GridListProps {
   items: Item[];
   onUpdateItem: (id: string, field: string, value: string | number) => void;
   onViewDetails: (item: Item) => void;
-  // Removed: opportunityStatusOptions: string[];
+  opportunityStatusOptions: string[]; // New prop for status options
 }
 
 const GridList: React.FC<GridListProps> = ({
   items,
   onUpdateItem,
   onViewDetails,
-  // Removed: opportunityStatusOptions,
+  opportunityStatusOptions,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
-  const [statusOptions, setStatusOptions] = useState<string[]>([]); // Local state for status options
-  const [isLoadingStatusOptions, setIsLoadingStatusOptions] = useState(false); // Loading state
 
   // Determine all unique keys from the items to use as columns
   const allKeys = useMemo(() => {
@@ -67,21 +63,6 @@ const GridList: React.FC<GridListProps> = ({
       direction = "desc";
     }
     setSortConfig({ key, direction });
-  };
-
-  const handleOpenStatusSelect = async (open: boolean) => {
-    if (open && statusOptions.length === 0 && !isLoadingStatusOptions) {
-      setIsLoadingStatusOptions(true);
-      try {
-        const options = await getOpportunityStatusOptions();
-        setStatusOptions(options);
-      } catch (error) {
-        console.error("Failed to fetch opportunity status options:", error);
-        toast.error("Failed to load status options.");
-      } finally {
-        setIsLoadingStatusOptions(false);
-      }
-    }
   };
 
   const filteredAndSortedItems = useMemo(() => {
@@ -174,28 +155,20 @@ const GridList: React.FC<GridListProps> = ({
               </TableCell>
               {allKeys.map((key) => (
                 <TableCell key={`${item.id}-${key}`}>
-                  {key === "Status" ? (
+                  {key === "Status" && opportunityStatusOptions.length > 0 ? (
                     <Select
                       value={String(item[key])}
                       onValueChange={(value) => onUpdateItem(item.id, key, value)}
-                      onOpenChange={handleOpenStatusSelect} // Fetch options when opened
-                      disabled={isLoadingStatusOptions} // Disable while loading
                     >
                       <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder={isLoadingStatusOptions ? "Loading..." : "Select Status"} />
+                        <SelectValue placeholder="Select Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        {statusOptions.length > 0 ? (
-                          statusOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="loading" disabled>
-                            Loading options...
+                        {opportunityStatusOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
                           </SelectItem>
-                        )}
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (

@@ -17,9 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { getOpportunityStatusOptions } from "@/api/metadata"; // Import the API function
-import { toast } from "sonner"; // Import toast for notifications
+} from "@/components/ui/select"; // Import Select components
 
 interface DetailDialogProps {
   item: Item | null;
@@ -27,7 +25,7 @@ interface DetailDialogProps {
   onClose: () => void;
   onSave: (item: Item) => void;
   isAddingNewItem: boolean;
-  // Removed: opportunityStatusOptions: string[];
+  opportunityStatusOptions: string[]; // New prop for status options
 }
 
 const DetailDialog: React.FC<DetailDialogProps> = ({
@@ -36,11 +34,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   onClose,
   onSave,
   isAddingNewItem,
-  // Removed: opportunityStatusOptions,
+  opportunityStatusOptions,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
-  const [statusOptions, setStatusOptions] = useState<string[]>([]); // Local state for status options
-  const [isLoadingStatusOptions, setIsLoadingStatusOptions] = useState(false); // Loading state
 
   useEffect(() => {
     if (isAddingNewItem) {
@@ -67,21 +63,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     if (editedItem) {
       onSave(editedItem);
       onClose();
-    }
-  };
-
-  const handleOpenStatusSelect = async (open: boolean) => {
-    if (open && statusOptions.length === 0 && !isLoadingStatusOptions) {
-      setIsLoadingStatusOptions(true);
-      try {
-        const options = await getOpportunityStatusOptions();
-        setStatusOptions(options);
-      } catch (error) {
-        console.error("Failed to fetch opportunity status options:", error);
-        toast.error("Failed to load status options.");
-      } finally {
-        setIsLoadingStatusOptions(false);
-      }
     }
   };
 
@@ -126,28 +107,20 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Label htmlFor={key} className="text-right capitalize">
                 {key.replace(/([A-Z])/g, ' $1').trim()} {/* Make it more readable */}
               </Label>
-              {key === "Status" ? (
+              {key === "Status" && opportunityStatusOptions.length > 0 ? (
                 <Select
                   value={String(editedItem[key])}
                   onValueChange={(value) => handleChange(key, value)}
-                  onOpenChange={handleOpenStatusSelect} // Fetch options when opened
-                  disabled={isLoadingStatusOptions} // Disable while loading
                 >
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder={isLoadingStatusOptions ? "Loading..." : "Select Status"} />
+                    <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {statusOptions.length > 0 ? (
-                      statusOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))
-                    ) : (
-                      <SelectItem value="loading" disabled>
-                        Loading options...
+                    {opportunityStatusOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
                       </SelectItem>
-                    )}
+                    ))}
                   </SelectContent>
                 </Select>
               ) : (
