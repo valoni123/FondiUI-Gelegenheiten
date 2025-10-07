@@ -6,6 +6,7 @@ import { Item } from "@/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
+import { createItem } from "@/api/items"; // Import the new API function
 
 const Index = () => {
   const [items, setItems] = useState<Item[]>([
@@ -17,7 +18,7 @@ const Index = () => {
   ]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
-  const [isAddingNewItem, setIsAddingNewItem] = useState(false); // New state to track if adding new item
+  const [isAddingNewItem, setIsAddingNewItem] = useState(false);
 
   const handleUpdateItem = (
     id: string,
@@ -34,17 +35,22 @@ const Index = () => {
 
   const handleViewDetails = (item: Item) => {
     setSelectedItem(item);
-    setIsAddingNewItem(false); // Not adding a new item when viewing details
+    setIsAddingNewItem(false);
     setIsDetailDialogOpen(true);
   };
 
-  const handleSaveDetailChanges = (updatedItem: Item) => {
+  const handleSaveDetailChanges = async (updatedItem: Item) => {
     if (isAddingNewItem) {
-      // Generate a new ID for the new item
-      const newId = (Math.max(0, ...items.map(item => parseInt(item.id))) + 1).toString();
-      const newItemWithId = { ...updatedItem, id: newId };
-      setItems((prevItems) => [...prevItems, newItemWithId]);
-      toast.success("New item added!");
+      const loadingToastId = toast.loading("Adding new item...");
+      try {
+        // Call the simulated API to create the item
+        const newItem = await createItem(updatedItem);
+        setItems((prevItems) => [...prevItems, newItem]);
+        toast.success("New item added!", { id: loadingToastId });
+      } catch (error) {
+        console.error("Failed to add new item:", error);
+        toast.error("Failed to add item.", { id: loadingToastId });
+      }
     } else {
       setItems((prevItems) =>
         prevItems.map((item) => (item.id === updatedItem.id ? updatedItem : item))
@@ -54,7 +60,7 @@ const Index = () => {
   };
 
   const handleAddItem = () => {
-    setSelectedItem(null); // Indicate a new item
+    setSelectedItem(null);
     setIsAddingNewItem(true);
     setIsDetailDialogOpen(true);
   };
@@ -83,7 +89,7 @@ const Index = () => {
           isOpen={isDetailDialogOpen}
           onClose={() => setIsDetailDialogOpen(false)}
           onSave={handleSaveDetailChanges}
-          isAddingNewItem={isAddingNewItem} // Pass this prop to DetailDialog
+          isAddingNewItem={isAddingNewItem}
         />
       </div>
       <MadeWithDyad />
