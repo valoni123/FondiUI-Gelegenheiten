@@ -43,8 +43,10 @@ const Index = () => {
     if (isAddingNewItem) {
       const loadingToastId = toast.loading("Adding new item...");
       try {
-        // Call the simulated API to create the item
-        const newItem = await createItem(updatedItem);
+        // For new items, we should not send the client-side generated/empty ID.
+        // The OData API will generate the ID.
+        const { id, ...itemDataWithoutId } = updatedItem;
+        const newItem = await createItem(itemDataWithoutId);
         setItems((prevItems) => [...prevItems, newItem]);
         toast.success("New item added!", { id: loadingToastId });
       } catch (error) {
