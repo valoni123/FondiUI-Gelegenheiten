@@ -17,6 +17,7 @@ const Index = () => {
   ]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
+  const [isAddingNewItem, setIsAddingNewItem] = useState(false); // New state to track if adding new item
 
   const handleUpdateItem = (
     id: string,
@@ -33,26 +34,29 @@ const Index = () => {
 
   const handleViewDetails = (item: Item) => {
     setSelectedItem(item);
+    setIsAddingNewItem(false); // Not adding a new item when viewing details
     setIsDetailDialogOpen(true);
   };
 
   const handleSaveDetailChanges = (updatedItem: Item) => {
-    setItems((prevItems) =>
-      prevItems.map((item) => (item.id === updatedItem.id ? updatedItem : item))
-    );
-    toast.success("Item details saved!");
+    if (isAddingNewItem) {
+      // Generate a new ID for the new item
+      const newId = (Math.max(0, ...items.map(item => parseInt(item.id))) + 1).toString();
+      const newItemWithId = { ...updatedItem, id: newId };
+      setItems((prevItems) => [...prevItems, newItemWithId]);
+      toast.success("New item added!");
+    } else {
+      setItems((prevItems) =>
+        prevItems.map((item) => (item.id === updatedItem.id ? updatedItem : item))
+      );
+      toast.success("Item details saved!");
+    }
   };
 
   const handleAddItem = () => {
-    const newId = (items.length + 1).toString();
-    const newItem: Item = {
-      id: newId,
-      name: `New Item ${newId}`,
-      description: "Description for new item",
-      quantity: 1,
-    };
-    setItems((prevItems) => [...prevItems, newItem]);
-    toast.success("New item added!");
+    setSelectedItem(null); // Indicate a new item
+    setIsAddingNewItem(true);
+    setIsDetailDialogOpen(true);
   };
 
   return (
@@ -79,6 +83,7 @@ const Index = () => {
           isOpen={isDetailDialogOpen}
           onClose={() => setIsDetailDialogOpen(false)}
           onSave={handleSaveDetailChanges}
+          isAddingNewItem={isAddingNewItem} // Pass this prop to DetailDialog
         />
       </div>
       <MadeWithDyad />
