@@ -24,7 +24,6 @@ const GridList: React.FC<GridListProps> = ({
   onUpdateItem,
   onViewDetails,
 }) => {
-  const [idFilter, setIdFilter] = useState<string>(""); // New state for ID filter
   const [nameFilter, setNameFilter] = useState<string>("");
   const [descriptionFilter, setDescriptionFilter] = useState<string>("");
   const [quantityFilter, setQuantityFilter] = useState<string>("");
@@ -41,9 +40,6 @@ const GridList: React.FC<GridListProps> = ({
   };
 
   const filteredItems = items.filter((item) => {
-    const matchesId = item.id
-      .toLowerCase()
-      .includes(idFilter.toLowerCase()); // Filter by ID
     const matchesName = item.name
       .toLowerCase()
       .includes(nameFilter.toLowerCase());
@@ -53,7 +49,7 @@ const GridList: React.FC<GridListProps> = ({
     const matchesQuantity = item.quantity
       .toString()
       .includes(quantityFilter.toLowerCase());
-    return matchesId && matchesName && matchesDescription && matchesQuantity; // Include ID filter
+    return matchesName && matchesDescription && matchesQuantity;
   });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -78,32 +74,24 @@ const GridList: React.FC<GridListProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px] text-center"></TableHead>
-            <TableHead className="w-[100px]"> {/* Adjusted width for filter */}
-              <div className="flex flex-col space-y-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleSort("id")}
-                  className="flex items-center gap-1 justify-start px-2"
-                >
-                  Gelegenheit {/* Changed label to Gelegenheit */}
-                  {sortKey === "id" && (
-                    <ArrowDownUp
-                      className={cn(
-                        "h-3 w-3",
-                        sortDirection === "desc" ? "rotate-180" : ""
-                      )}
-                    />
-                  )}
-                </Button>
-                <Input
-                  placeholder="Filter Gelegenheit..." {/* Placeholder for ID filter */}
-                  value={idFilter}
-                  onChange={(e) => setIdFilter(e.target.value)}
-                  className="h-8 text-xs"
-                />
-              </div>
+            <TableHead className="w-[50px] text-center"></TableHead> {/* Removed "Details" label */}
+            <TableHead className="w-[50px]">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSort("id")}
+                className="flex items-center gap-1"
+              >
+                ID
+                {sortKey === "id" && (
+                  <ArrowDownUp
+                    className={cn(
+                      "h-3 w-3",
+                      sortDirection === "desc" ? "rotate-180" : ""
+                    )}
+                  />
+                )}
+              </Button>
             </TableHead>
             <TableHead>
               <div className="flex flex-col space-y-1">
