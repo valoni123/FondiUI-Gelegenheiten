@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowDownUp } from "lucide-react";
+import { ArrowRight, ArrowDownUp } from "lucide-react"; // Added ArrowRight here
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 
