@@ -24,7 +24,7 @@ const GridList: React.FC<GridListProps> = ({
   onUpdateItem,
   onViewDetails,
 }) => {
-  const [idFilter, setIdFilter] = useState<string>(""); // New state for ID filter
+  const [idFilter, setIdFilter] = useState<string>("");
   const [nameFilter, setNameFilter] = useState<string>("");
   const [descriptionFilter, setDescriptionFilter] = useState<string>("");
   const [quantityFilter, setQuantityFilter] = useState<string>("");
@@ -43,7 +43,7 @@ const GridList: React.FC<GridListProps> = ({
   const filteredItems = items.filter((item) => {
     const matchesId = item.id
       .toLowerCase()
-      .includes(idFilter.toLowerCase()); // Include ID filter
+      .includes(idFilter.toLowerCase());
     const matchesName = item.name
       .toLowerCase()
       .includes(nameFilter.toLowerCase());
@@ -53,7 +53,7 @@ const GridList: React.FC<GridListProps> = ({
     const matchesQuantity = item.quantity
       .toString()
       .includes(quantityFilter.toLowerCase());
-    return matchesId && matchesName && matchesDescription && matchesQuantity; // Update filter condition
+    return matchesId && matchesName && matchesDescription && matchesQuantity;
   });
 
   const sortedItems = [...filteredItems].sort((a, b) => {
@@ -79,7 +79,7 @@ const GridList: React.FC<GridListProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px] text-center"></TableHead>
-            <TableHead className="w-[100px]"> {/* Adjusted width for filter */}
+            <TableHead className="w-[100px]">
               <div className="flex flex-col space-y-1">
                 <Button
                   variant="ghost"
@@ -87,7 +87,7 @@ const GridList: React.FC<GridListProps> = ({
                   onClick={() => handleSort("id")}
                   className="flex items-center gap-1 justify-start px-2"
                 >
-                  Gelegenheit {/* Changed label to Gelegenheit */}
+                  Gelegenheit
                   {sortKey === "id" && (
                     <ArrowDownUp
                       className={cn(
@@ -98,7 +98,6 @@ const GridList: React.FC<GridListProps> = ({
                   )}
                 </Button>
                 <Input
-                  placeholder="Filter Gelegenheit..."
                   value={idFilter}
                   onChange={(e) => setIdFilter(e.target.value)}
                   className="h-8 text-xs"
@@ -124,7 +123,6 @@ const GridList: React.FC<GridListProps> = ({
                   )}
                 </Button>
                 <Input
-                  placeholder="Filter name..."
                   value={nameFilter}
                   onChange={(e) => setNameFilter(e.target.value)}
                   className="h-8 text-xs"
@@ -150,7 +148,6 @@ const GridList: React.FC<GridListProps> = ({
                   )}
                 </Button>
                 <Input
-                  placeholder="Filter description..."
                   value={descriptionFilter}
                   onChange={(e) => setDescriptionFilter(e.target.value)}
                   className="h-8 text-xs"
@@ -176,7 +173,6 @@ const GridList: React.FC<GridListProps> = ({
                   )}
                 </Button>
                 <Input
-                  placeholder="Filter quantity..."
                   value={quantityFilter}
                   onChange={(e) => setQuantityFilter(e.target.value)}
                   className="h-8 text-xs"
