@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Item } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select components
 
 interface DetailDialogProps {
   item: Item | null;
@@ -18,6 +25,7 @@ interface DetailDialogProps {
   onClose: () => void;
   onSave: (item: Item) => void;
   isAddingNewItem: boolean;
+  opportunityStatusOptions: string[]; // New prop for status options
 }
 
 const DetailDialog: React.FC<DetailDialogProps> = ({
@@ -26,6 +34,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   onClose,
   onSave,
   isAddingNewItem,
+  opportunityStatusOptions,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
 
@@ -98,24 +107,41 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Label htmlFor={key} className="text-right capitalize">
                 {key.replace(/([A-Z])/g, ' $1').trim()} {/* Make it more readable */}
               </Label>
-              <Input
-                id={key}
-                type={typeof editedItem[key] === "number" ? "number" : "text"}
-                value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
-                onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
-                className="col-span-3"
-                placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-                // Disable editing for system-generated/read-only fields
-                disabled={
-                  key === "Opportunity" ||
-                  key === "Guid" ||
-                  key === "CreationDate" ||
-                  key === "LastTransactionDate" ||
-                  key === "CreatedBy" ||
-                  key === "LastModifiedBy" ||
-                  key === "Status" // Assuming Status might be read-only
-                }
-              />
+              {key === "Status" && opportunityStatusOptions.length > 0 ? (
+                <Select
+                  value={String(editedItem[key])}
+                  onValueChange={(value) => handleChange(key, value)}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opportunityStatusOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id={key}
+                  type={typeof editedItem[key] === "number" ? "number" : "text"}
+                  value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
+                  onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
+                  className="col-span-3"
+                  placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                  // Disable editing for system-generated/read-only fields
+                  disabled={
+                    key === "Opportunity" ||
+                    key === "Guid" ||
+                    key === "CreationDate" ||
+                    key === "LastTransactionDate" ||
+                    key === "CreatedBy" ||
+                    key === "LastModifiedBy"
+                  }
+                />
+              )}
             </div>
           ))}
         </div>

@@ -12,17 +12,26 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownUp } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"; // Import Select components
 
 interface GridListProps {
   items: Item[];
   onUpdateItem: (id: string, field: string, value: string | number) => void;
   onViewDetails: (item: Item) => void;
+  opportunityStatusOptions: string[]; // New prop for status options
 }
 
 const GridList: React.FC<GridListProps> = ({
   items,
   onUpdateItem,
   onViewDetails,
+  opportunityStatusOptions,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -146,28 +155,45 @@ const GridList: React.FC<GridListProps> = ({
               </TableCell>
               {allKeys.map((key) => (
                 <TableCell key={`${item.id}-${key}`}>
-                  <Input
-                    value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
-                    onChange={(e) =>
-                      onUpdateItem(
-                        item.id,
-                        key,
-                        typeof item[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value
-                      )
-                    }
-                    className="w-full"
-                    // Disable editing for ID and other system-generated/read-only fields
-                    disabled={
-                      key === "id" ||
-                      key === "Opportunity" ||
-                      key === "Guid" ||
-                      key === "CreationDate" ||
-                      key === "LastTransactionDate" ||
-                      key === "CreatedBy" ||
-                      key === "LastModifiedBy" ||
-                      key === "Status" // Assuming Status might be read-only
-                    }
-                  />
+                  {key === "Status" && opportunityStatusOptions.length > 0 ? (
+                    <Select
+                      value={String(item[key])}
+                      onValueChange={(value) => onUpdateItem(item.id, key, value)}
+                    >
+                      <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectValue placeholder="Select Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {opportunityStatusOptions.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
+                      onChange={(e) =>
+                        onUpdateItem(
+                          item.id,
+                          key,
+                          typeof item[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value
+                        )
+                      }
+                      className="w-full"
+                      // Disable editing for ID and other system-generated/read-only fields
+                      disabled={
+                        key === "id" ||
+                        key === "Opportunity" ||
+                        key === "Guid" ||
+                        key === "CreationDate" ||
+                        key === "LastTransactionDate" ||
+                        key === "CreatedBy" ||
+                        key === "LastModifiedBy"
+                      }
+                    />
+                  )}
                 </TableCell>
               ))}
             </TableRow>
