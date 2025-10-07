@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, List } from "lucide-react";
 import { toast } from "sonner";
 import { createItem, getOpportunities } from "@/api/items";
-import { getOpportunityStatusOptions } from "@/api/metadata"; // Import the new API function
+// Removed: import { getOpportunityStatusOptions } from "@/api/metadata";
 
 const Index = () => {
   const [localItems, setLocalItems] = useState<Item[]>([
@@ -22,20 +22,21 @@ const Index = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
-  const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]); // New state for status options
+  // Removed: const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
 
-  useEffect(() => {
-    const fetchStatusOptions = async () => {
-      try {
-        const options = await getOpportunityStatusOptions();
-        setOpportunityStatusOptions(options);
-      } catch (error) {
-        console.error("Failed to fetch opportunity status options:", error);
-        toast.error("Failed to load status options.");
-      }
-    };
-    fetchStatusOptions();
-  }, []);
+  // Removed: useEffect to fetch status options on mount
+  // useEffect(() => {
+  //   const fetchStatusOptions = async () => {
+  //     try {
+  //       const options = await getOpportunityStatusOptions();
+  //       setOpportunityStatusOptions(options);
+  //     } catch (error) {
+  //       console.error("Failed to fetch opportunity status options:", error);
+  //       toast.error("Failed to load status options.");
+  //     }
+  //   };
+  //   fetchStatusOptions();
+  // }, []);
 
   const handleUpdateItem = (
     id: string,
@@ -118,7 +119,7 @@ const Index = () => {
           items={localItems}
           onUpdateItem={handleUpdateItem}
           onViewDetails={handleViewDetails}
-          opportunityStatusOptions={opportunityStatusOptions} // Pass options
+          // Removed: opportunityStatusOptions={opportunityStatusOptions}
         />
 
         {opportunities.length > 0 && (
@@ -128,7 +129,7 @@ const Index = () => {
               items={opportunities}
               onUpdateItem={() => toast.info("Opportunities from API are read-only in this view.")} // Opportunities are read-only for now
               onViewDetails={handleViewDetails} // Can still view details
-              opportunityStatusOptions={opportunityStatusOptions} // Pass options
+              // Removed: opportunityStatusOptions={opportunityStatusOptions}
             />
           </>
         )}
@@ -139,7 +140,7 @@ const Index = () => {
           onClose={() => setIsDetailDialogOpen(false)}
           onSave={handleSaveDetailChanges}
           isAddingNewItem={isAddingNewItem}
-          opportunityStatusOptions={opportunityStatusOptions} // Pass options
+          // Removed: opportunityStatusOptions={opportunityStatusOptions}
         />
       </div>
       <MadeWithDyad />
