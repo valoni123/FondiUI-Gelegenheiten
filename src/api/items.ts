@@ -9,14 +9,27 @@ const OPPORTUNITIES_FETCH_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/T
 
 // IMPORTANT: The Authorization token below is sensitive and should NOT be hardcoded in production.
 // It should be managed securely (e.g., fetched from a backend, environment variable, or authentication flow).
-const AUTH_TOKEN = "eyJraWQiOiJrZzpiYTU0NTFhOS0wMzIxLTRlYjUtOGUzNS0wNTM3OTFlMTBkMmUiLCJhbGciOiJSUzI1NiJ9.eyJUZW5hbnQiOiJUVEZNUlc5UVdSNDdWTDc4X0RFTSIsIklkZW50aXR5MiI6ImJmNTY5ZTNlLTkzMjUtNGQzNi1iZjU2LWQzMjRkYjA0Y2ZmMiIsIlNTT1Nlc3Npb25JRCI6IlRURk1SVzlRV1I0N1ZMNzhfREVNfmVjMjJlOTI2LWYxOWUtNGRkOS1iMzBkLTVlYzRiMjhlNzY0YSIsInNjb3BlIjoib3BlbmlkIiwiSUZTQXV0aGVudGljYXRpb25Nb2RlIjoiQ0xPVURfSURFTlRJVElFUyIsIkVuZm9yY2VTY29wZXNGb3JDbGllbnQiOiIwIiwiZ3JhbnRfaWQiOiIxZGNiZDU4NC0yNGRhLTQzNTctOWYzZS04NTFlMTdiN2M3ZDciLCJJbmZvclNUU0lzc3VlZFR5cGUiOiJBUyIsImNsaWVudF9pZCI6ImluZm9yfmtFRHg4TmxMeUtyU1lSWlR0NGFwb2JjSzQyMEJDZldhNDFyMXJwX3V5RndfT0lEQyIsImp0aSI6IjRhMmE0YzMxLTk4NzktNDU0YS05NTMzLTFmZjNjOTM0ZTg2OCIsImlhdCI6MTc1OTg3MTAzNywibmJmIjoxNzU5ODcxMDM3LCJleHAiOjE3NTk4NzgyMzcsImlzcyI6Imh0dHBzOi8vbWluZ2xlLXNzby5ldTEuaW5mb3JjbG91ZHN1aXRlLmNvbTo0NDMiLCJhdWQiOiJodHRwczovL21pbmdsZS1pb25hcGkuZXUxLmluZm9yY2xvdWRzdWl0ZS5jb20ifQ.WVM0XjF9HpjiXfzsisvWqdhRgBlvdm7_I_uSZrnW5hqnoKUSHm_yBNNpx44766Z26JHEkL0bTBSRw2Xvy1NNHJ_OVwSt7kze4015Ddyp3g0_jzrN6Pg7wr7kJVdP3qPXrjE6bSuDGXNRAG-eNWaeOqf3ftkSf9KKSSVC7jdIIs7DloAiojoFmgkMtEYvNMRt1oLdzOUoEkY6lEszlGxoqGMEL1rn-kRiATiMFa8V2GS_I7b2YteJkTG7QSLClqRE5iazo4FxX8VRtYjA4tep057dmKIKXs8i23tyMHEdSiL8P7IVoQbvNjAzzRO8zx-GQ54qi4ui9iAT4UddInHg3Q";
+// PLEASE REPLACE THIS WITH A FRESH, VALID TOKEN.
+const AUTH_TOKEN = "YOUR_NEW_VALID_AUTH_TOKEN_HERE";
 
 
 export const createItem = async (
-  itemData: Omit<Item, "id">
+  itemData: Item // Now accepts full Item, including dynamic fields
 ): Promise<Item> => {
   try {
-    // The endpoint for creating a new Opportunity in OData is typically the collection name.
+    const payload: Record<string, any> = {
+      OpportunityName: itemData.name,
+      Description: itemData.description,
+      Quantity: itemData.quantity,
+    };
+
+    // Add other dynamic fields from itemData to the payload, excluding 'id' and internal OData keys
+    for (const key in itemData) {
+      if (key !== "id" && key !== "name" && key !== "description" && key !== "quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+        payload[key] = itemData[key];
+      }
+    }
+
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
       method: "POST",
       headers: {
@@ -26,14 +39,7 @@ export const createItem = async (
         "X-Infor-LnCompany": "1000", // As per your curl command
         "Authorization": `Bearer ${AUTH_TOKEN}`, // Your provided Bearer token
       },
-      // Map your Item data to the expected OData entity structure for Opportunities.
-      // Assuming properties like OpportunityName, Description, Quantity.
-      body: JSON.stringify({
-        OpportunityName: itemData.name,
-        Description: itemData.description,
-        Quantity: itemData.quantity, // Assuming 'Quantity' is a valid field for an Opportunity
-        // Add other OData entity properties as required by your API
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -44,14 +50,20 @@ export const createItem = async (
     const odataResponse = await response.json();
     console.log("API: Item created successfully", odataResponse);
 
-    // Map the OData response back to your Item interface.
-    // Assuming the OData service returns an 'Id' field and the properties you sent.
+    // Map the OData response back to your Item interface, including all dynamic fields.
     const newItem: Item = {
-      id: odataResponse.Id || odataResponse.OpportunityId || String(Math.random() * 100000), // Fallback ID if not returned
-      name: odataResponse.OpportunityName || itemData.name,
-      description: odataResponse.Description || itemData.description,
-      quantity: odataResponse.Quantity || itemData.quantity,
+      id: odataResponse.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
+      name: odataResponse.Name || odataResponse.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
+      description: odataResponse.Description || "No description", // Map 'Description' to 'description'
+      quantity: odataResponse.Quantity || 0, // Keep quantity, if it exists in OData, otherwise default to 0
     };
+
+    // Dynamically add all other properties from OData response
+    for (const key in odataResponse) {
+      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "Quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+        newItem[key] = odataResponse[key];
+      }
+    }
     return newItem;
   } catch (error) {
     console.error("API Error: Failed to create item", error);
@@ -80,12 +92,22 @@ export const getOpportunities = async (): Promise<Item[]> => {
     console.log("API: Opportunities fetched successfully", odataResponse);
 
     // OData responses for collections typically have a 'value' array.
-    const opportunities: Item[] = odataResponse.value.map((odataItem: any) => ({
-      id: odataItem.Id || odataItem.OpportunityId || String(Math.random() * 100000), // Use OpportunityId or Id, fallback to random
-      name: odataItem.OpportunityName || "N/A",
-      description: odataItem.Description || "No description",
-      quantity: odataItem.Quantity || 0, // Assuming Quantity exists
-    }));
+    const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
+      const mappedItem: Item = {
+        id: odataItem.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
+        name: odataItem.Name || odataItem.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
+        description: odataItem.Description || "No description", // Map 'Description' to 'description'
+        quantity: odataItem.Quantity || 0, // Keep quantity, if it exists in OData, otherwise default to 0
+      };
+
+      // Dynamically add all other properties from OData response
+      for (const key in odataItem) {
+        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "Quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+          mappedItem[key] = odataItem[key];
+        }
+      }
+      return mappedItem;
+    });
     return opportunities;
   } catch (error) {
     console.error("API Error: Failed to fetch opportunities", error);

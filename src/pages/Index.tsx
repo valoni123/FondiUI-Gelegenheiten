@@ -4,9 +4,9 @@ import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, List } from "lucide-react"; // Import List icon
+import { PlusCircle, List } from "lucide-react";
 import { toast } from "sonner";
-import { createItem, getOpportunities } from "@/api/items"; // Import both API functions
+import { createItem, getOpportunities } from "@/api/items";
 
 const Index = () => {
   const [localItems, setLocalItems] = useState<Item[]>([
@@ -24,7 +24,7 @@ const Index = () => {
 
   const handleUpdateItem = (
     id: string,
-    field: keyof Item,
+    field: string, // field is now a string
     value: string | number
   ) => {
     setLocalItems((prevItems) =>
@@ -45,8 +45,8 @@ const Index = () => {
     if (isAddingNewItem) {
       const loadingToastId = toast.loading("Adding new item...");
       try {
-        const { id, ...itemDataWithoutId } = updatedItem;
-        const newItem = await createItem(itemDataWithoutId);
+        // createItem now accepts the full Item object, which includes dynamic fields
+        const newItem = await createItem(updatedItem);
         setLocalItems((prevItems) => [...prevItems, newItem]);
         toast.success("New item added!", { id: loadingToastId });
       } catch (error) {
