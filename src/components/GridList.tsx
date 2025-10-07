@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp } from "lucide-react"; // Added ArrowRight here
+import { ArrowRight, ArrowDownUp } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +74,7 @@ const GridList: React.FC<GridListProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-[50px] text-center">Details</TableHead> {/* New TableHead for details */}
             <TableHead className="w-[50px]">
               <Button
                 variant="ghost"
@@ -94,12 +95,6 @@ const GridList: React.FC<GridListProps> = ({
             </TableHead>
             <TableHead>
               <div className="flex flex-col space-y-1">
-                <Input
-                  placeholder="Filter name..."
-                  value={nameFilter}
-                  onChange={(e) => setNameFilter(e.target.value)}
-                  className="h-8 text-xs"
-                />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -116,16 +111,16 @@ const GridList: React.FC<GridListProps> = ({
                     />
                   )}
                 </Button>
+                <Input
+                  placeholder="Filter name..."
+                  value={nameFilter}
+                  onChange={(e) => setNameFilter(e.target.value)}
+                  className="h-8 text-xs"
+                />
               </div>
             </TableHead>
             <TableHead>
               <div className="flex flex-col space-y-1">
-                <Input
-                  placeholder="Filter description..."
-                  value={descriptionFilter}
-                  onChange={(e) => setDescriptionFilter(e.target.value)}
-                  className="h-8 text-xs"
-                />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -142,16 +137,16 @@ const GridList: React.FC<GridListProps> = ({
                     />
                   )}
                 </Button>
+                <Input
+                  placeholder="Filter description..."
+                  value={descriptionFilter}
+                  onChange={(e) => setDescriptionFilter(e.target.value)}
+                  className="h-8 text-xs"
+                />
               </div>
             </TableHead>
             <TableHead className="w-[100px]">
               <div className="flex flex-col space-y-1">
-                <Input
-                  placeholder="Filter quantity..."
-                  value={quantityFilter}
-                  onChange={(e) => setQuantityFilter(e.target.value)}
-                  className="h-8 text-xs"
-                />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -168,14 +163,28 @@ const GridList: React.FC<GridListProps> = ({
                     />
                   )}
                 </Button>
+                <Input
+                  placeholder="Filter quantity..."
+                  value={quantityFilter}
+                  onChange={(e) => setQuantityFilter(e.target.value)}
+                  className="h-8 text-xs"
+                />
               </div>
             </TableHead>
-            <TableHead className="text-right w-[50px]">Details</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedItems.map((item) => (
             <TableRow key={item.id}>
+              <TableCell className="text-center"> {/* Moved to the start */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onViewDetails(item)}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </TableCell>
               <TableCell className="font-medium">{item.id}</TableCell>
               <TableCell>
                 <Input
@@ -204,15 +213,6 @@ const GridList: React.FC<GridListProps> = ({
                   }
                   className="w-full"
                 />
-              </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onViewDetails(item)}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
               </TableCell>
             </TableRow>
           ))}
