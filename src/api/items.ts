@@ -4,13 +4,17 @@ import { Item } from "@/types";
 // This is derived from your curl command, excluding the collection and query parameters.
 const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp";
 
+// The full URL for fetching opportunities, including query parameters.
+const OPPORTUNITIES_FETCH_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp/Opportunities?$top=10&$select=*";
+
+// IMPORTANT: The Authorization token below is sensitive and should NOT be hardcoded in production.
+// It should be managed securely (e.g., fetched from a backend, environment variable, or authentication flow).
+const AUTH_TOKEN = "eyJraWQiOiJrZzpiYTU0NTFhOS0wMzIxLTRlYjUtOGUzNS0wNTM3OTFlMTBkMmUiLCJhbGciOiJSUzI1NiJ9.eyJUZW5hbnQiOiJUVEZNUlc5UVdSNDdWTDc4X0RFTSIsIklkZW50aXR5MiI6ImJmNTY5ZTNlLTkzMzUtNGQzNi1iZjU2LWQzMjRkYjA0Y2ZmMiIsIlNTT1Nlc3Npb25JRCI6IlRURk1SVzlRV1I0N1ZMNzhfREVNfmVjMjJlOTI2LWYxOWUtNGRkOS1iMzBkLTVlYzRiMjhlNzY0YSIsInNjb3BlIjoib3BlbmlkIiwiSUZTQXV0aGVudGljYXRpb25Nb2RlIjoiQ0xPVURfSURFTlRJVElFUyIsIkVuZm9yY2VTY29wZXNGb3JDbGllbnQiOiIwIiwiZ3JhbnRfaWQiOiIxZGNiZDU4NC0yNGRhLTQzNTctOWYzZS04NTFlMTdiN2M3ZDciLCJJbmZvclNUU0lzc3VlZFR5cGUiOiJBUyIsImNsaWVudF9pZCI6ImluZm9yfmtFRHg4TmxMeUtyU1lSWlR0NGFwb2JjSzQyMEJDZldhNDFyMXJwX3V5RndfT0lEQyIsImp0aSI6IjRhMmE0YzMxLTk4NzktNDU0YS05NTMzLTFmZjNjOTM0ZTg2OCIsImlhdCI6MTc1OTg3MTAzNywibmJmIjoxNzU5ODcxMDM3LCJleHAiOjE3NTk4NzgyMzcsImlzcyI6Imh0dHBzOi8vbWluZ2xlLXNzby5ldTEuaW5mb3JjbG91ZHN1aXRlLmNvbTo0NDMiLCJhdWQiOiJodHRwczovL21pbmdsZS1pb25hcGkuZXUxLmluZm9yY2xvdWRzdWl0ZS5jb20ifQ.WVM0XjF9HpjiXfzsisvWqdhRgBlvdm7_I_uSZrnW5hqnoKUSHm_yBNNpx44766Z26JHEkL0bTBSRw2Xvy1NNHJ_OVwSt7kze4015Ddyp3g0_jzrN6Pg7wr7kJVdP3qPXrjE6bSuDGXNRAG-eNWaeOqf3ftkSf9KKSSVC7jdIIs7DloAiojoFmgkMtEYvNMRt1oLdzOUoEkY6lEszlGxoqGMEL1rn-kRiATiMFa8V2GS_I7b2YteJkTG7QSLClqRE5iazo4FxX8VRtYjA4tep057dmKIKXs8i23tyMHEdSiL8P7IVoQbvNjAzzRO8zx-GQ54qi3ui9iAT4UddInHg3Q";
+
+
 export const createItem = async (
   itemData: Omit<Item, "id">
 ): Promise<Item> => {
-  // IMPORTANT: The Authorization token below is sensitive and should NOT be hardcoded in production.
-  // It should be managed securely (e.g., fetched from a backend, environment variable, or authentication flow).
-  const AUTH_TOKEN = "eyJraWQiOiJrZzpiYTU0NTFhOS0wMzIxLTRlYjUtOGUzNS0wNTM3OTFlMTBkMmUiLCJhbGciOiJSUzI1NiJ9.eyJUZW5hbnQiOiJUVEZNUlc5UVdSNDdWTDc4X0RFTSIsIklkZW50aXR5MiI6ImJmNTY5ZTNlLTkzMjUtNGQzNi1iZjU2LWQzMjRkYjA0Y2ZmMiIsIlNTT1Nlc3Npb25JRCI6IlRURk1SVzlRV1I0N1ZMNzhfREVNfmVjMjJlOTI2LWYxOWUtNGRkOS1iMzBkLTVlYzRiMjhlNzY0YSIsInNjb3BlIjoib3BlbmlkIiwiSUZTQXV0aGVudGljYXRpb25Nb2RlIjoiQ0xPVURfSURFTlRJVElFUyIsIkVuZm9yY2VTY29wZXNGb3JDbGllbnQiOiIwIiwiZ3JhbnRfaWQiOiIxZGNiZDU4NC0yNGRhLTQzNTctOWYzZS04NTFlMTdiN2M3ZDciLCJJbmZvclNUU0lzc3VlZFR5cGUiOiJBUyIsImNsaWVudF9pZCI6ImluZm9yfmtFRHg4TmxMeUtyU1lSWlR0NGFwb2JjSzQyMEJDZldhNDFyMXJwX3V5RndfT0lEQyIsImp0aSI6IjRhMmE0YzMxLTk4NzktNDU0YS05NTMzLTFmZjNjOTM0ZTg2OCIsImlhdCI6MTc1OTg3MTAzNywibmJmIjoxNzU5ODcxMDM3LCJleHAiOjE3NTk4NzgyMzcsImlzcyI6Imh0dHBzOi8vbWingleLXNzby5ldTEuaW5mb3JjbG91ZHN1aXRlLmNvbTo0NDMiLCJhdWQiOiJodHRwczovL21pbmdsZS1pb25hcGkuZXUxLmluZm9yY2xvdWRzdWl0ZS5jb20ifQ.WVM0XjF9HpjiXfzsisvWqdhRgBlvdm7_I_uSZrnW5hqnoKUSHm_yBNNpx44766Z26JHEkL0bTBSRw2Xvy1NNHJ_OVwSt7kze4015Ddyp3g0_jzrN6Pg7wr7kJVdP3qPXrjE6bSuDGXNRAG-eNWaeOqf3ftkSf9KKSSVC7jdIIs7DloAiojoFmgkMtEYvNMRt1oLdzOUoEkY6lEszlGxoqGMEL1rn-kRiATiMFa8V2GS_I7b2YteJkTG7QSLClqRE5iazo4FxX8VRtYjA4tep057dmKIKXs8i23tyMHEdSiL8P7IVoQbvNjAzzRO8zx-GQ54qi3ui9iAT4UddInHg3Q";
-
   try {
     // The endpoint for creating a new Opportunity in OData is typically the collection name.
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
@@ -55,13 +59,9 @@ export const createItem = async (
   }
 };
 
-// You would add similar functions for other CRUD operations (GET, PUT, DELETE)
-// For example, a function to fetch all items:
-/*
-export const getItems = async (): Promise<Item[]> => {
-  const AUTH_TOKEN = "YOUR_SECURELY_MANAGED_AUTH_TOKEN"; // Use a securely managed token
+export const getOpportunities = async (): Promise<Item[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/Opportunities?$top=10&$select=*`, { // Example GET with query params
+    const response = await fetch(OPPORTUNITIES_FETCH_URL, {
       method: "GET",
       headers: {
         "Accept": "application/json",
@@ -70,22 +70,25 @@ export const getItems = async (): Promise<Item[]> => {
         "Authorization": `Bearer ${AUTH_TOKEN}`,
       },
     });
+
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch items from the server.");
+      throw new Error(errorData.message || `Failed to fetch opportunities: ${response.statusText}`);
     }
+
     const odataResponse = await response.json();
-    // OData responses often have a 'value' array for collections
-    const items: Item[] = odataResponse.value.map((odataItem: any) => ({
-      id: odataItem.Id || odataItem.OpportunityId,
-      name: odataItem.OpportunityName,
-      description: odataItem.Description,
-      quantity: odataItem.Quantity,
+    console.log("API: Opportunities fetched successfully", odataResponse);
+
+    // OData responses for collections typically have a 'value' array.
+    const opportunities: Item[] = odataResponse.value.map((odataItem: any) => ({
+      id: odataItem.Id || odataItem.OpportunityId || String(Math.random() * 100000), // Use OpportunityId or Id, fallback to random
+      name: odataItem.OpportunityName || "N/A",
+      description: odataItem.Description || "No description",
+      quantity: odataItem.Quantity || 0, // Assuming Quantity exists
     }));
-    return items;
+    return opportunities;
   } catch (error) {
-    console.error("API Error: Failed to fetch items", error);
+    console.error("API Error: Failed to fetch opportunities", error);
     throw error;
   }
 };
-*/
