@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] overflow-y-auto"> {/* Added lg:min-w-[1200px] */}
           {/* Custom Header Area */}
           <div className="flex items-center justify-between border-b pb-4 mb-4">
             <div className="flex items-center gap-2 text-xl font-bold">
