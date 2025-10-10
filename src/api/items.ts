@@ -17,7 +17,7 @@ export const createItem = async (
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Type: itemData.Type || "", // Ensure type is always a string
+      // Type: itemData.Type || "", // Removed as it's not a mappable property
       Source: itemData.Source || "", // Ensure source is always a string
       SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
       Phase: itemData.Phase || "", // Ensure phase is always a string
@@ -38,7 +38,8 @@ export const createItem = async (
       "SoldtoBusinessPartnerCountry",
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "Type", // Exclude 'Type' from dynamic addition as well
+      "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
@@ -113,7 +114,7 @@ export const updateItem = async (
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Type: itemData.Type || "", // Ensure type is always a string
+      // Type: itemData.Type || "", // Removed as it's not a mappable property
       Source: itemData.Source || "", // Ensure source is always a string
       SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
       Phase: itemData.Phase || "", // Ensure phase is always a string
@@ -134,7 +135,8 @@ export const updateItem = async (
       "SoldtoBusinessPartnerCountry",
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "Type", // Exclude 'Type' from dynamic addition as well
+      "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
