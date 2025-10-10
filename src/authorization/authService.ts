@@ -21,6 +21,9 @@ export const getAccessToken = async (): Promise<string> => {
     params.append('username', USERNAME);
     params.append('password', PASSWORD);
 
+    console.log("Attempting to fetch access token from:", ACCESS_TOKEN_URL);
+    console.log("Request body params:", params.toString());
+
     const response = await fetch(ACCESS_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -30,8 +33,16 @@ export const getAccessToken = async (): Promise<string> => {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error_description || `Failed to retrieve access token: ${response.statusText}`);
+      const errorText = await response.text(); // Get raw text to avoid JSON parsing errors on non-JSON responses
+      console.error(`Authentication request failed with status: ${response.status} ${response.statusText}`);
+      console.error("Authentication error response body:", errorText);
+      try {
+        const errorData = JSON.parse(errorText); // Try parsing as JSON if it looks like JSON
+        throw new Error(errorData.error_description || `Failed to retrieve access token: ${response.statusText}`);
+      } catch (jsonError) {
+        // If it's not JSON, just throw the raw text error
+        throw new Error(`Failed to retrieve access token: ${response.statusText} - ${errorText}`);
+      }
     }
 
     const data = await response.json();
