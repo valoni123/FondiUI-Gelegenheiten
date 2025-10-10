@@ -23,7 +23,7 @@ export const createItem = async (
       Reason: itemData.Reason || "", // Ensure reason is always a string
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
       // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
-      ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
+      // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
       ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
 
@@ -38,8 +38,8 @@ export const createItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", // Exclude 'FirstContactDate' from dynamic addition as well
-      "ExpectedCompletionDate", "ActualCompletionDate",
+      "FirstContactDate", "ExpectedCompletionDate", // Exclude 'FirstContactDate' and 'ExpectedCompletionDate' from dynamic addition as well
+      "ActualCompletionDate",
       // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
@@ -119,7 +119,7 @@ export const updateItem = async (
       Reason: itemData.Reason || "", // Ensure reason is always a string
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
       // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
-      ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
+      // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
       ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
 
@@ -134,8 +134,8 @@ export const updateItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", // Exclude 'FirstContactDate' from dynamic addition as well
-      "ExpectedCompletionDate", "ActualCompletionDate",
+      "FirstContactDate", "ExpectedCompletionDate", // Exclude 'FirstContactDate' and 'ExpectedCompletionDate' from dynamic addition as well
+      "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
