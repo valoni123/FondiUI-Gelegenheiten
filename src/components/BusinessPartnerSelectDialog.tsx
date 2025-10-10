@@ -16,7 +16,7 @@ import { toast } from "sonner";
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (businessPartnerId: string) => void;
+  onSelect: (businessPartner: BusinessPartner) => void; // Changed to return full object
   authToken: string;
 }
 
@@ -56,8 +56,8 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
       partner.Name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleSelectPartner = (partnerId: string) => {
-    onSelect(partnerId);
+  const handleSelectPartner = (partner: BusinessPartner) => { // Changed to accept full object
+    onSelect(partner);
     onClose();
   };
 
@@ -95,7 +95,7 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleSelectPartner(partner.BusinessPartner)}
+                        onClick={() => handleSelectPartner(partner)} // Pass full object
                       >
                         <ArrowRight className="h-4 w-4" />
                       </Button>

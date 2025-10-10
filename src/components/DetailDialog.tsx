@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search } from "lucide-react"; // Import Search icon
-import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog"; // Import the new component
+import { Search } from "lucide-react";
+import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
+import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners"; // Import BusinessPartner type and new API function
 
 interface DetailDialogProps {
   item: Item | null;
@@ -28,7 +29,7 @@ interface DetailDialogProps {
   onSave: (item: Item) => void;
   isAddingNewItem: boolean;
   opportunityStatusOptions: string[];
-  authToken: string; // New prop to pass auth token
+  authToken: string;
 }
 
 const DetailDialog: React.FC<DetailDialogProps> = ({
@@ -38,10 +39,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   onSave,
   isAddingNewItem,
   opportunityStatusOptions,
-  authToken, // Destructure authToken
+  authToken,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
-  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false); // State for BP select dialog
+  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
+  const [soldToBpName, setSoldToBpName] = useState<string | null>(null); // State to store BP name
 
   useEffect(() => {
     if (isAddingNewItem) {
@@ -50,11 +52,28 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         name: "",
         description: "",
         quantity: 0,
+        SoldtoBusinessPartner: "", // Initialize if adding new
       });
+      setSoldToBpName(null); // Clear name for new item
     } else {
       setEditedItem(item);
+      // If item has SoldtoBusinessPartner, fetch its name
+      if (item?.SoldtoBusinessPartner && authToken) {
+        const fetchBpName = async () => {
+          try {
+            const bp = await getBusinessPartnerById(authToken, item.SoldtoBusinessPartner);
+            setSoldToBpName(bp?.Name || null);
+          } catch (error) {
+            console.error("Failed to fetch business partner name:", error);
+            setSoldToBpName(null);
+          }
+        };
+        fetchBpName();
+      } else {
+        setSoldToBpName(null);
+      }
     }
-  }, [item, isAddingNewItem]);
+  }, [item, isAddingNewItem, authToken]); // Add authToken to dependencies
 
   const handleChange = (field: string, value: string | number) => {
     if (editedItem) {
@@ -69,8 +88,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     }
   };
 
-  const handleSelectBusinessPartner = (bpId: string) => {
-    handleChange("SoldtoBusinessPartner", bpId); // Ensure this matches the key in the item object
+  const handleSelectBusinessPartner = (bp: BusinessPartner) => {
+    handleChange("SoldtoBusinessPartner", bp.BusinessPartner);
+    setSoldToBpName(bp.Name); // Set the name when selected
   };
 
   if (!editedItem) return null;
@@ -112,32 +132,41 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             ))}
           </SelectContent>
         </Select>
-      ) : key === "SoldtoBusinessPartner" ? ( // Changed to "SoldtoBusinessPartner"
-        <div className="flex items-center gap-2">
-          <Input
-            id={key}
-            type="text"
-            value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
-            onChange={(e) => handleChange(key, e.target.value)}
-            className="flex-grow"
-            placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-            disabled={
-              key === "Opportunity" ||
-              key === "Guid" ||
-              key === "CreationDate" ||
-              key === "LastTransactionDate" ||
-              key === "CreatedBy" ||
-              key === "LastModifiedBy"
-            }
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setIsBpSelectDialogOpen(true)}
-            aria-label="Select Business Partner"
-          >
-            <Search className="h-4 w-4" />
-          </Button>
+      ) : key === "SoldtoBusinessPartner" ? (
+        <div className="flex items-center gap-2"> {/* Container for input group and name */}
+          <div className="relative flex-grow"> {/* Container for input and search button */}
+            <Input
+              id={key}
+              type="text"
+              value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
+              onChange={(e) => {
+                handleChange(key, e.target.value);
+                setSoldToBpName(null); // Clear name if user types manually
+              }}
+              className="pr-10 w-full" // Add padding-right for the button
+              placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+              disabled={
+                key === "Opportunity" ||
+                key === "Guid" ||
+                key === "CreationDate" ||
+                key === "LastTransactionDate" ||
+                key === "CreatedBy" ||
+                key === "LastModifiedBy"
+              }
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsBpSelectDialogOpen(true)}
+              aria-label="Select Business Partner"
+              className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0" // Position button inside
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+          {soldToBpName && editedItem[key] && ( // Conditionally display name
+            <p className="text-sm text-muted-foreground whitespace-nowrap">{soldToBpName}</p>
+          )}
         </div>
       ) : (
         <Input
