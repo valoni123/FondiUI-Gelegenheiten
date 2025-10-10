@@ -132,20 +132,14 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px]"> {/* Adjusted width for more columns */}
         <DialogHeader>
-          <DialogTitle>{isAddingNewItem ? "Add New Item" : "Edit Item Details"}</DialogTitle>
+          <DialogTitle>
+            {isAddingNewItem ? "Add New Item" : `Edit Item Details (ID: ${editedItem.id})`}
+          </DialogTitle>
           <DialogDescription>
             {isAddingNewItem ? "Enter details for the new item." : "Make changes to your item here. Click save when you're done."}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-6"> {/* Main content wrapper with spacing between grid sections */}
-          {/* ID field always first and disabled, spanning all columns */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 items-center gap-4">
-            <Label htmlFor="id" className="text-right">
-              ID
-            </Label>
-            <Input id="id" value={editedItem.id} className="lg:col-span-3 w-full" disabled={true} placeholder={isAddingNewItem ? "Auto-generated on save" : ""} />
-          </div>
-
           {/* First group of fields (up to 12) in a 4-column layout */}
           {firstGroupKeys.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-4">
