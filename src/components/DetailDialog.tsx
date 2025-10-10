@@ -145,7 +145,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     ],
     forecast: [
       { key: "IncludeInForecast", label: "In Prognose berücksichtigen", type: "checkbox" },
-      { key: "ExpectedRevenue", label: "Erwartete Erlöse", type: "number", hasSearch: true, suffix: "EUR", isRequired: true },
+      { key: "ExpectedRevenue", label: "Erwartete Erlöse", type: "number", hasSearch: false, suffix: "EUR", isRequired: true }, // hasSearch changed to false
       { key: "WeightedRevenue", label: "Gewichteter Erlös", type: "number", disabled: true, suffix: "EUR" },
       { key: "ItemRevenue", label: "Artikelerlös", type: "number", disabled: true, suffix: "EUR" },
     ],
@@ -289,21 +289,32 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           </div>
         );
       case "number":
+        return (
+          <div className="flex items-center gap-2"> {/* This div aligns the input and suffix */}
+            <Input
+              {...commonInputProps}
+              type="number"
+              value={String(value)}
+              onChange={(e) => handleChange(key, parseFloat(e.target.value) || 0)}
+              className="w-40" // Apply a fixed width here
+            />
+            {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
+          </div>
+        );
       case "text":
       default:
         return (
           <div className="flex items-center gap-2 relative">
             <Input
               {...commonInputProps}
-              type={type === "number" ? "number" : "text"}
+              type="text"
               value={String(value)}
-              onChange={(e) => handleChange(key, type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+              onChange={(e) => handleChange(key, e.target.value)}
               className={cn(
-                (hasSearch || suffix || displaySuffix) && "pr-10", // Adjust padding for icons/suffixes
-                suffix && "pr-12" // More padding if there's a suffix
+                (hasSearch || displaySuffix) && "pr-10", // Adjust padding for icons/suffixes
+                displaySuffix && "pr-12" // More padding if there's a suffix
               )}
             />
-            {suffix && <span className="text-sm text-muted-foreground absolute right-2">{suffix}</span>}
             {displaySuffix && <span className="text-sm text-muted-foreground whitespace-nowrap">{displaySuffix}</span>}
             {hasSearch && (
               <Button
