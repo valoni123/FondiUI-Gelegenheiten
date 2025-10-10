@@ -31,6 +31,7 @@ export interface Item {
   CreationDate?: string;
   LastModifiedBy?: string;
   LastTransactionDate?: string;
+  "tdsmi110.text"?: string; // Added for API payload consistency
 
   // Allow for any other properties that might come from the API
   [key: string]: any;

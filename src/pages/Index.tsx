@@ -96,6 +96,12 @@ const Index = () => {
     }
 
     let updatedItem = { ...itemToUpdate, [field]: value };
+
+    // IMPORTANT: Ensure tdsmi110.text is updated from description if description is the field being changed
+    if (field === "description") {
+      updatedItem["tdsmi110.text"] = String(value);
+    }
+
     const loadingToastId = toast.loading(`Updating item ${field}...`);
 
     try {
@@ -149,6 +155,9 @@ const Index = () => {
       toast.error("Authentication token not available. Please refresh the page.");
       return;
     }
+
+    // IMPORTANT: Ensure tdsmi110.text is updated from description before saving
+    updatedItem["tdsmi110.text"] = updatedItem.description;
 
     const loadingToastId = toast.loading(isAddingNewItem ? "Adding new item..." : "Saving item changes...");
     try {

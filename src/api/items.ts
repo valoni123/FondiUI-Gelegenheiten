@@ -7,9 +7,6 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {}; // Start with an empty payload
 
-  // Explicitly map description to tdsmi110.text
-  payload["tdsmi110.text"] = String(itemData.description || "");
-
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
   if (itemData.name) payload.Name = String(itemData.name);
   if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
@@ -47,8 +44,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    // Exclude tdsmi110.text from dynamic loop as it's handled explicitly
-    "tdsmi110.text",
+    // "tdsmi110.text" is now handled by the generic loop if present in itemData
   ]);
 
   for (const key in itemData) {
