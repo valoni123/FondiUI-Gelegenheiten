@@ -58,8 +58,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       setEditedItem({
         id: "",
         name: "",
-        description: "", // This is now a separate 'Beschreibung' field
-        "tdsmi110.text": "", // This is now 'Allgemeine Daten'
+        description: "", // This is now for 'Allgemeine Daten'
+        "tdsmi110.text": "", // Read-only, but initialized
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",
@@ -175,8 +175,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      { key: "tdsmi110.text", label: "Allgemeine Daten", type: "textarea" }, // This is now the 'Opportunity Text'
-      { key: "description", label: "Beschreibung", type: "textarea" }, // This is the separate 'Description' field
+      { key: "description", label: "Allgemeine Daten", type: "textarea" }, // This is now the editable 'Opportunity Text'
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
       { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true }, // New
       { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true }, // New
@@ -227,7 +226,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     key !== "id" &&
     key !== "name" &&
     key !== "@odata.etag" &&
-    key !== "@odata.context"
+    key !== "@odata.context" &&
+    key !== "Description" // Exclude API's Description as it's mapped to our 'description'
   ).sort();
 
   const renderField = (fieldConfig: typeof structuredFields.general[0]) => {
