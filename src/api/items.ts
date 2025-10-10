@@ -45,6 +45,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
       }
     }
   }
+  console.log("Final payload before JSON.stringify:", payload); // Added for debugging
   return payload;
 };
 
