@@ -370,20 +370,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
-              <Input
-                value={editedItem.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                className="w-auto text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => console.log("Search Opportunity Name")}
-                aria-label="Search Opportunity Name"
-                className="h-8 w-8 p-0"
-              >
-                <Search className="h-4 w-4" />
-              </Button>
+              <span className="text-xl font-bold">{editedItem.name}</span> {/* Display name as bold text */}
             </div>
             {/* Placeholder for top-right icon if needed */}
             <div>
