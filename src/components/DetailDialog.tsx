@@ -47,9 +47,16 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
-  const [soldToBpName, setSoldToBpName] = useState<string | null>(null);
+  // Removed [soldToBpName, setSoldToBpName] state
 
+  // Effect to initialize editedItem when the dialog opens or item/isAddingNewItem changes
   useEffect(() => {
+    if (!isOpen) {
+      // Reset editedItem when dialog closes
+      setEditedItem(null);
+      return;
+    }
+
     if (isAddingNewItem) {
       setEditedItem({
         id: "",
@@ -58,18 +65,18 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         quantity: 0,
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
-        SoldtoBusinessPartnerStreet: "", // New
-        SoldtoBusinessPartnerHouseNumber: "", // New
-        SoldtoBusinessPartnerZIPCodePostalCode: "", // New
-        SoldtoBusinessPartnerCountry: "", // New
-        BusinessPartnerStatus: "Active", // Default for new item
+        SoldtoBusinessPartnerStreet: "",
+        SoldtoBusinessPartnerHouseNumber: "",
+        SoldtoBusinessPartnerZIPCodePostalCode: "",
+        SoldtoBusinessPartnerCountry: "",
+        BusinessPartnerStatus: "Active",
         AssignedTo: "",
-        Type: "100", // Default for new item as per screenshot
+        Type: "100",
         Source: "",
         FirstContactDate: "",
         ExpectedCompletionDate: "",
         ActualCompletionDate: "",
-        Status: opportunityStatusOptions.length > 0 ? opportunityStatusOptions[0] : "", // Default status
+        Status: opportunityStatusOptions.length > 0 ? opportunityStatusOptions[0] : "",
         SalesProcess: "",
         Phase: "",
         ProbabilityPercentage: 0,
@@ -83,60 +90,68 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         LastModifiedBy: "",
         LastTransactionDate: "",
       });
-      setSoldToBpName(null);
-    } else {
+    } else if (item) {
+      // Initialize with existing item data
       setEditedItem(item);
-      if (item?.SoldtoBusinessPartner && authToken) {
-        const fetchBpNameAndAddress = async () => { // Renamed function
-          try {
-            const bp = await getBusinessPartnerById(authToken, item.SoldtoBusinessPartner);
-            setSoldToBpName(bp?.Name || null);
-            if (bp?.AddressRef) {
-              setEditedItem(prev => ({
-                ...prev!,
-                SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
-                SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
-                SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
-                SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
-              }));
-            } else {
-              setEditedItem(prev => ({
-                ...prev!,
-                SoldtoBusinessPartnerStreet: "",
-                SoldtoBusinessPartnerHouseNumber: "",
-                SoldtoBusinessPartnerZIPCodePostalCode: "",
-                SoldtoBusinessPartnerCountry: "",
-              }));
-            }
-          } catch (error) {
-            console.error("Failed to fetch business partner name and address:", error);
-            setSoldToBpName(null);
+    }
+  }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]); // Added isOpen to dependencies
+
+  // Effect to fetch business partner details when editedItem.SoldtoBusinessPartner changes
+  // This will run both on initial load of an existing item and after a BP is selected
+  useEffect(() => {
+    if (editedItem?.SoldtoBusinessPartner && authToken) {
+      const fetchBpDetails = async () => {
+        try {
+          const bp = await getBusinessPartnerById(authToken, editedItem.SoldtoBusinessPartner);
+          if (bp) {
             setEditedItem(prev => ({
               ...prev!,
+              SoldtoBusinessPartnerName: bp.Name || "",
+              SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
+              SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
+              SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
+              SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
+            }));
+          } else {
+            // Clear BP name and address if BP not found
+            setEditedItem(prev => ({
+              ...prev!,
+              SoldtoBusinessPartnerName: "",
               SoldtoBusinessPartnerStreet: "",
               SoldtoBusinessPartnerHouseNumber: "",
               SoldtoBusinessPartnerZIPCodePostalCode: "",
               SoldtoBusinessPartnerCountry: "",
             }));
           }
-        };
-        fetchBpNameAndAddress();
-      } else {
-        setSoldToBpName(null);
-        setEditedItem(prev => ({
-          ...prev!,
-          SoldtoBusinessPartnerStreet: "",
-          SoldtoBusinessPartnerHouseNumber: "",
-          SoldtoBusinessPartnerZIPCodePostalCode: "",
-          SoldtoBusinessPartnerCountry: "",
-        }));
-      }
+        } catch (error) {
+          console.error("Failed to fetch business partner details:", error);
+          setEditedItem(prev => ({
+            ...prev!,
+            SoldtoBusinessPartnerName: "",
+            SoldtoBusinessPartnerStreet: "",
+            SoldtoBusinessPartnerHouseNumber: "",
+            SoldtoBusinessPartnerZIPCodePostalCode: "",
+            SoldtoBusinessPartnerCountry: "",
+          }));
+        }
+      };
+      fetchBpDetails();
+    } else if (editedItem && !editedItem.SoldtoBusinessPartner) {
+      // If SoldtoBusinessPartner is cleared, also clear its name and address
+      setEditedItem(prev => ({
+        ...prev!,
+        SoldtoBusinessPartnerName: "",
+        SoldtoBusinessPartnerStreet: "",
+        SoldtoBusinessPartnerHouseNumber: "",
+        SoldtoBusinessPartnerZIPCodePostalCode: "",
+        SoldtoBusinessPartnerCountry: "",
+      }));
     }
-  }, [item, isAddingNewItem, authToken, opportunityStatusOptions]);
+  }, [editedItem?.SoldtoBusinessPartner, authToken]); // Depend on editedItem.SoldtoBusinessPartner
 
   const handleChange = (field: string, value: string | number | boolean) => {
     if (editedItem) {
-      setEditedItem({ ...editedItem, [field]: value });
+      setEditedItem((prev) => ({ ...prev!, [field]: value }));
     }
   };
 
@@ -148,13 +163,16 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   };
 
   const handleSelectBusinessPartner = (bp: BusinessPartner) => {
-    handleChange("SoldtoBusinessPartner", bp.BusinessPartner);
-    setSoldToBpName(bp.Name);
-    handleChange("SoldtoBusinessPartnerName", bp.Name || ""); // Also update the name field in editedItem
-    handleChange("SoldtoBusinessPartnerStreet", bp.AddressRef?.Street || "");
-    handleChange("SoldtoBusinessPartnerHouseNumber", bp.AddressRef?.HouseNumber || "");
-    handleChange("SoldtoBusinessPartnerZIPCodePostalCode", bp.AddressRef?.ZIPCodePostalCode || "");
-    handleChange("SoldtoBusinessPartnerCountry", bp.AddressRef?.Country || "");
+    // Update all relevant fields in editedItem directly
+    setEditedItem(prev => ({
+      ...prev!,
+      SoldtoBusinessPartner: bp.BusinessPartner,
+      SoldtoBusinessPartnerName: bp.Name || "",
+      SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
+      SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
+      SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
+      SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
+    }));
   };
 
   if (!editedItem) return null;
@@ -310,16 +328,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             <div className="relative flex-grow">
               <Input
                 {...commonInputProps}
-                value={String(value)}
+                value={String(editedItem.SoldtoBusinessPartner || "")} // Explicitly use editedItem.SoldtoBusinessPartner
                 onChange={(e) => {
                   handleChange(key, e.target.value);
-                  setSoldToBpName(null);
-                  // Clear associated address fields when BP ID changes manually
-                  handleChange("SoldtoBusinessPartnerName", "");
-                  handleChange("SoldtoBusinessPartnerStreet", "");
-                  handleChange("SoldtoBusinessPartnerHouseNumber", "");
-                  handleChange("SoldtoBusinessPartnerZIPCodePostalCode", "");
-                  handleChange("SoldtoBusinessPartnerCountry", "");
+                  // The second useEffect will handle fetching address if a valid BP ID is entered manually.
+                  // If cleared, the second useEffect will clear associated fields.
                 }}
                 className="pr-10 w-full"
               />
@@ -333,8 +346,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 <Search className="h-4 w-4" />
               </Button>
             </div>
-            {soldToBpName && editedItem[key] && (
-              <p className="text-sm text-muted-foreground whitespace-nowrap">{soldToBpName}</p>
+            {editedItem.SoldtoBusinessPartnerName && editedItem.SoldtoBusinessPartner && ( // Use editedItem.SoldtoBusinessPartnerName
+              <p className="text-sm text-muted-foreground whitespace-nowrap">{editedItem.SoldtoBusinessPartnerName}</p>
             )}
           </div>
         );
