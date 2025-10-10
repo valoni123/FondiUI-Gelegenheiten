@@ -58,7 +58,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       setEditedItem({
         id: "",
         name: "",
-        description: "",
+        description: "", // This will now map to tdsmi110.text
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",
@@ -89,7 +89,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     } else if (item) {
       setEditedItem({
         ...item,
-        description: item.description || "",
+        description: item.description || "", // Ensure description is always a string
       });
     }
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
@@ -173,7 +173,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      { key: "description", label: "Allgemeine Daten", type: "textarea" },
+      { key: "description", label: "Allgemeine Daten", type: "textarea" }, // This now maps to tdsmi110.text
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
       { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true }, // New
       { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true }, // New
@@ -224,7 +224,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     key !== "id" &&
     key !== "name" && // 'name' is implicitly handled by 'description' for 'Allgemeine Daten'
     key !== "@odata.etag" &&
-    key !== "@odata.context"
+    key !== "@odata.context" &&
+    key !== "tdsmi110.text" // Explicitly exclude tdsmi110.text from other details
   ).sort();
 
   const renderField = (fieldConfig: typeof structuredFields.general[0]) => {
@@ -478,7 +479,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                             key === "LastTransactionDate" ||
                             key === "CreatedBy" ||
                             key === "LastModifiedBy"
-                            // REMOVED: key === "tdsmi110.text"
                           }
                         />
                       </div>

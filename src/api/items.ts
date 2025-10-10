@@ -7,6 +7,9 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {}; // Start with an empty payload
 
+  // Explicitly map description to tdsmi110.text
+  payload["tdsmi110.text"] = String(itemData.description || "");
+
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
   if (itemData.name) payload.Name = String(itemData.name);
   if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
@@ -31,7 +34,6 @@ const preparePayload = (itemData: Item): Record<string, any> => {
 
   const excludedKeys = new Set([
     "id", "name", "description", "@odata.etag", "@odata.context",
-    // "tdsmi110.text", // REMOVED: Explicitly exclude this system-managed text number field
     "Series", // Exclude Series as it cannot be modified
     "Guid", // Exclude Guid as it cannot be modified
     // Derived/expanded fields
@@ -45,6 +47,8 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
+    // Exclude tdsmi110.text from dynamic loop as it's handled explicitly
+    "tdsmi110.text",
   ]);
 
   for (const key in itemData) {
@@ -106,7 +110,7 @@ export const createItem = async (
     const newItem: Item = {
       id: odataResponse.Opportunity || String(Math.random() * 100000),
       name: odataResponse.Name || odataResponse.Opportunity || "N/A",
-      description: odataResponse.Description || "No description",
+      description: odataResponse["tdsmi110.text"] || "No description", // Map tdsmi110.text to description
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
@@ -115,7 +119,7 @@ export const createItem = async (
     const keysToExcludeFromNewItem = new Set([
       "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-      "tdsmi110.text" // Explicitly exclude from being copied into our Item object
+      "tdsmi110.text" // Explicitly exclude from being copied into our Item object, as it's mapped to 'description'
     ]);
 
     for (const key in odataResponse) {
@@ -195,7 +199,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
-        description: odataItem.Description || "No description",
+        description: odataItem["tdsmi110.text"] || "No description", // Map tdsmi110.text to description
         // Map the correct date fields from OData response
         DateOfFirstContact: odataItem.DateOfFirstContact,
         ExpectedCloseDate: odataItem.ExpectedCloseDate,
@@ -205,7 +209,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const keysToExcludeFromNewItem = new Set([
         "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
         "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-        "tdsmi110.text" // Explicitly exclude from being copied into our Item object
+        "tdsmi110.text" // Explicitly exclude from being copied into our Item object, as it's mapped to 'description'
       ]);
 
       // Dynamically add all other properties from OData response, excluding already mapped date fields
