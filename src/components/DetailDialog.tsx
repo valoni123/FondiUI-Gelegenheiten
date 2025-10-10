@@ -70,7 +70,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   };
 
   const handleSelectBusinessPartner = (bpId: string) => {
-    handleChange("SoldToBusinessPartner", bpId);
+    handleChange("SoldtoBusinessPartner", bpId); // Ensure this matches the key in the item object
   };
 
   if (!editedItem) return null;
@@ -78,7 +78,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const itemKeys = Object.keys(editedItem).filter(key =>
     key !== "id" && key !== "@odata.etag" && key !== "@odata.context"
   ).sort((a, b) => {
-    const order = ["name", "description", "quantity", "SoldToBusinessPartner"]; // Prioritize SoldToBusinessPartner
+    const order = ["name", "description", "quantity", "SoldtoBusinessPartner"]; // Prioritize SoldtoBusinessPartner
     const indexA = order.indexOf(a);
     const indexB = order.indexOf(b);
 
@@ -112,7 +112,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             ))}
           </SelectContent>
         </Select>
-      ) : key === "SoldToBusinessPartner" ? (
+      ) : key === "SoldtoBusinessPartner" ? ( // Changed to "SoldtoBusinessPartner"
         <div className="flex items-center gap-2">
           <Input
             id={key}
