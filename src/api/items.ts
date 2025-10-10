@@ -17,6 +17,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     Phase: itemData.Phase ? String(itemData.Phase) : null,
     Reason: itemData.Reason ? String(itemData.Reason) : null,
     AssignedTo: itemData.AssignedTo ? String(itemData.AssignedTo) : null,
+    // Ensure date fields are sent as strings or null
+    FirstContactDate: itemData.FirstContactDate ? String(itemData.FirstContactDate) : null,
+    ExpectedCompletionDate: itemData.ExpectedCompletionDate ? String(itemData.ExpectedCompletionDate) : null,
+    ActualCompletionDate: itemData.ActualCompletionDate ? String(itemData.ActualCompletionDate) : null,
   };
 
   const excludedKeys = new Set([
@@ -50,6 +54,19 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   return payload;
 };
 
+const parseApiError = async (response: Response): Promise<string> => {
+  try {
+    const errorText = await response.text();
+    const errorData = JSON.parse(errorText);
+    if (errorData.error && errorData.error.details && errorData.error.details.length > 0) {
+      return errorData.error.details[0].message;
+    }
+    return errorData.error?.message || `API Error: ${response.statusText}`;
+  } catch (jsonError) {
+    return `API Error: ${response.statusText} - ${await response.text()}`;
+  }
+};
+
 export const createItem = async (
   itemData: Item,
   authToken: string,
@@ -72,15 +89,8 @@ export const createItem = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API request failed for create item with status: ${response.status} ${response.statusText}`);
-      console.error("Error response body:", errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.message || `Failed to create item: ${response.statusText}`);
-      } catch (jsonParseError) {
-        throw new Error(`Failed to create item: ${response.statusText} - ${errorText}`);
-      }
+      const errorMessage = await parseApiError(response);
+      throw new Error(errorMessage);
     }
 
     const odataResponse = await response.json();
@@ -129,15 +139,8 @@ export const updateItem = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API request failed for update item with status: ${response.status} ${response.statusText}`);
-      console.error("Error response body:", errorText);
-      try {
-        const errorData = JSON.parse(errorText);
-        throw new Error(errorData.message || `Failed to update item: ${response.statusText}`);
-      } catch (jsonParseError) {
-        throw new Error(`Failed to update item: ${response.statusText} - ${errorText}`);
-      }
+      const errorMessage = await parseApiError(response);
+      throw new Error(errorMessage);
     }
 
     console.log("API: Item updated successfully", itemData);

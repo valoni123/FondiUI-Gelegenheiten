@@ -132,9 +132,9 @@ const Index = () => {
           item.id === id ? updatedItem : item
         )
       );
-    } catch (error) {
+    } catch (error: any) { // Catch error and specify type as 'any' for message access
       console.error(`Failed to update item ${field}:`, error);
-      toast.error(`Failed to update item ${field}.`, { id: loadingToastId });
+      toast.error(error.message || `Failed to update item ${field}.`, { id: loadingToastId });
     }
   };
 
@@ -150,28 +150,23 @@ const Index = () => {
       return;
     }
 
-    if (isAddingNewItem) {
-      const loadingToastId = toast.loading("Adding new item...");
-      try {
+    const loadingToastId = toast.loading(isAddingNewItem ? "Adding new item..." : "Saving item changes...");
+    try {
+      if (isAddingNewItem) {
         const newItem = await createItem(updatedItem, authToken, companyNumber);
         setOpportunities((prevItems) => [...prevItems, newItem]);
         toast.success("New item added!", { id: loadingToastId });
-      } catch (error) {
-        console.error("Failed to add new item:", error);
-        toast.error("Failed to add item.", { id: loadingToastId });
-      }
-    } else {
-      const loadingToastId = toast.loading("Saving item changes...");
-      try {
+      } else {
         await updateItem(updatedItem, authToken, companyNumber);
         setOpportunities((prevItems) =>
           prevItems.map((item) => (item.id === updatedItem.id ? updatedItem : item))
         );
         toast.success("Item details saved!", { id: loadingToastId });
-      } catch (error) {
-        console.error("Failed to save item changes:", error);
-        toast.error("Failed to save item changes.", { id: loadingToastId });
       }
+      setIsDetailDialogOpen(false); // Close dialog on successful save
+    } catch (error: any) { // Catch error and specify type as 'any' for message access
+      console.error("Failed to save item changes:", error);
+      toast.error(error.message || "Failed to save item changes.", { id: loadingToastId });
     }
   };
 
