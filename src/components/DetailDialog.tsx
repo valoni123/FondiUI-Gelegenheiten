@@ -61,7 +61,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         id: "",
         name: "",
         description: "",
-        quantity: 0,
+        // quantity: 0, // Removed
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",

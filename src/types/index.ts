@@ -2,7 +2,7 @@ export interface Item {
   id: string;
   name: string;
   description: string;
-  quantity?: number; // Keep as optional for existing local items and if not always present in OData
+  // quantity?: number; // Removed as it's not a mappable property for the API
 
   // New fields based on the requested layout
   SoldtoBusinessPartner?: string;

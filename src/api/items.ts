@@ -12,7 +12,8 @@ export const createItem = async (
   try {
     const payload: Record<string, any> = {
       Name: itemData.name,
-      "tdsmi110.text": itemData.description || "", // Corrected key and ensured string value
+      Description: itemData.description || "", // Reverted key to 'Description' and ensured string value
+      // Quantity removed from payload
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -39,7 +40,7 @@ export const createItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "id", "name", "description", "@odata.etag", "@odata.context", // 'quantity' removed from here
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
@@ -50,7 +51,7 @@ export const createItem = async (
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST (some might be set by API)
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-      "Description", // Exclude the old key 'Description'
+      // "Description", // 'Description' is now explicitly handled, so it's not excluded
     ]);
 
     for (const key in itemData) {
@@ -94,7 +95,7 @@ export const createItem = async (
       id: odataResponse.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
       name: odataResponse.Name || odataResponse.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
       description: odataResponse.Description || "No description", // Map 'Description' to 'description'
-      quantity: odataResponse.Quantity || 0, // Keep quantity, if it exists in OData, otherwise default to 0
+      // quantity: odataResponse.Quantity || 0, // Removed as it's not a mappable property for the API
     };
 
     // Dynamically add all other properties from OData response
@@ -123,7 +124,8 @@ export const updateItem = async (
 
     const payload: Record<string, any> = {
       Name: itemData.name,
-      "tdsmi110.text": itemData.description || "", // Corrected key and ensured string value
+      Description: itemData.description || "", // Reverted key to 'Description' and ensured string value
+      // Quantity removed from payload
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -150,7 +152,7 @@ export const updateItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "id", "name", "description", "@odata.etag", "@odata.context", // 'quantity' removed from here
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
@@ -161,7 +163,7 @@ export const updateItem = async (
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-      "Description", // Exclude the old key 'Description'
+      // "Description", // 'Description' is now explicitly handled, so it's not excluded
     ]);
 
     for (const key in itemData) {
@@ -238,7 +240,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
         id: odataItem.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
         name: odataItem.Name || odataItem.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
         description: odataItem.Description || "No description", // Map 'Description' to 'description'
-        quantity: odataItem.Quantity || 0, // Keep quantity, if it exists in OData, otherwise default to 0
+        // quantity: odataItem.Quantity || 0, // Removed as it's not a mappable property for the API
       };
 
       // Dynamically add all other properties from OData response

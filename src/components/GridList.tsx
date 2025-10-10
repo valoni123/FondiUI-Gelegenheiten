@@ -47,14 +47,14 @@ const GridList: React.FC<GridListProps> = ({
     const keys = new Set<string>();
     items.forEach((item) => {
       for (const key in item) {
-        // Exclude internal OData keys and ensure 'id' is always first, then 'name', 'description', 'quantity'
+        // Exclude internal OData keys and ensure 'id' is always first, then 'name', 'description'
         if (key !== "@odata.etag" && key !== "@odata.context") {
           keys.add(key);
         }
       }
     });
-    // Order the keys: id, name, description, quantity first, then others alphabetically
-    const orderedKeys = ["id", "name", "description", "quantity"].filter(k => keys.has(k));
+    // Order the keys: id, name, description first, then others alphabetically
+    const orderedKeys = ["id", "name", "description"].filter(k => keys.has(k)); // 'quantity' removed
     const otherKeys = Array.from(keys).filter(k => !orderedKeys.includes(k)).sort();
     return [...orderedKeys, ...otherKeys];
   }, [items]);
