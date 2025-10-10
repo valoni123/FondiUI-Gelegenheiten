@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, CalendarIcon } => from "lucide-react";
+import { Search, CalendarIcon } from "lucide-react"; // Corrected this line
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
 import { cn } from "@/lib/utils";
@@ -152,7 +152,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     user: [
       { key: "CreatedBy", label: "Erstellt von", type: "text", disabled: true },
       { key: "CreationDate", label: "Erstellt am", type: "datetime", disabled: true },
-      { key: "LastModifiedBy", label: "Zuletzt geändert von", "type": "text", disabled: true },
+      { key: "LastModifiedBy", label: "Zuletzt geändert von", type: "text", disabled: true },
       { key: "LastTransactionDate", label: "Zuletzt geändert am", type: "datetime", disabled: true },
     ],
   };
@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative"> {/* Removed min-h and overflow-y-auto */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative">
           {/* Save Button - positioned absolutely */}
           <Button
             type="submit"
