@@ -12,8 +12,8 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
   if (itemData.Status) payload.Status = String(itemData.Status);
   
-  // Convert boolean IncludeInForecast to Infor LN specific string
-  payload.IncludeInForecast = itemData.IncludeInForecast ? "tcyesno.yes" : "tcyesno.no";
+  // Convert boolean IncludeInForecast to Infor LN specific string: "Yes" or "No"
+  payload.IncludeInForecast = itemData.IncludeInForecast ? "Yes" : "No";
 
   payload.ProbabilityPercentage = itemData.ProbabilityPercentage ?? 0;
   payload.ExpectedRevenue = itemData.ExpectedRevenue ?? 0;
