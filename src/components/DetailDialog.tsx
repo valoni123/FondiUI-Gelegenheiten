@@ -477,8 +477,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                             key === "CreationDate" ||
                             key === "LastTransactionDate" ||
                             key === "CreatedBy" ||
-                            key === "LastModifiedBy" ||
-                            key === "tdsmi110.text" // Explicitly disable this field
+                            key === "LastModifiedBy"
+                            // REMOVED: key === "tdsmi110.text"
                           }
                         />
                       </div>

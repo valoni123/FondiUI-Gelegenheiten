@@ -31,7 +31,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
 
   const excludedKeys = new Set([
     "id", "name", "description", "@odata.etag", "@odata.context",
-    "tdsmi110.text", // Explicitly exclude this system-managed text number field
+    // "tdsmi110.text", // REMOVED: Explicitly exclude this system-managed text number field
     "Series", // Exclude Series as it cannot be modified
     "Guid", // Exclude Guid as it cannot be modified
     // Derived/expanded fields
