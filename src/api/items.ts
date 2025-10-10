@@ -44,7 +44,8 @@ export const createItem = async (
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
       // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      // Removed "SoldtoBusinessPartner" from this list as it needs to be sent to the API
+      "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST (some might be set by API)
@@ -144,7 +145,8 @@ export const updateItem = async (
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
       // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      // Removed "SoldtoBusinessPartner" from this list as it needs to be sent to the API
+      "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
