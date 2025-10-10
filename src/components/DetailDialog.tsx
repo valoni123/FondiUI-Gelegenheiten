@@ -207,6 +207,27 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     }
   };
 
+  const handleSelectBusinessPartner = (bp: BusinessPartner) => {
+    if (editedItem) {
+      setEditedItem(prev => ({
+        ...prev!,
+        SoldtoBusinessPartner: bp.BusinessPartner,
+        SoldtoBusinessPartnerName: bp.Name,
+        SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
+        SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
+        SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
+        SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
+      }));
+      // Clear validation error for SoldtoBusinessPartner if it was previously set
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.SoldtoBusinessPartner;
+        return newErrors;
+      });
+    }
+    setIsBpSelectDialogOpen(false);
+  };
+
   if (!editedItem) return null;
 
   // Define the order and type of fields for the structured layout
