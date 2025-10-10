@@ -10,21 +10,18 @@ export const createItem = async (
 ): Promise<Item> => {
   try {
     const payload: Record<string, any> = {
-      Name: itemData.name || "", // Ensure name is always a string
-      Description: itemData.description || "", // Ensure description is always a string
-      SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || "", // Ensure BP ID is always a string (or empty string)
-      Status: itemData.Status || "", // Ensure status is always a string
+      Name: String(itemData.name || ""), // Ensure name is always a string
+      Description: String(itemData.description || ""), // Ensure description is always a string
+      SoldtoBusinessPartner: String(itemData.SoldtoBusinessPartner || ""), // Ensure BP ID is always a string (or empty string)
+      Status: String(itemData.Status || ""), // Ensure status is always a string
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Source: itemData.Source || "", // Ensure source is always a string
-      SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
-      Phase: itemData.Phase || "", // Ensure phase is always a string
-      Reason: itemData.Reason || "", // Ensure reason is always a string
-      AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
-      // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
-      // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
-      // ActualCompletionDate: itemData.ActualCompletionDate || "", // Removed as it's not a mappable property
+      Source: String(itemData.Source || ""), // Ensure source is always a string
+      SalesProcess: String(itemData.SalesProcess || ""), // Ensure sales process is always a string
+      Phase: String(itemData.Phase || ""), // Ensure phase is always a string
+      Reason: String(itemData.Reason || ""), // Ensure reason is always a string
+      AssignedTo: String(itemData.AssignedTo || ""), // Ensure assignedTo is always a string
     };
 
     // Dynamically add other properties from itemData to the payload,
@@ -38,7 +35,7 @@ export const createItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate", // Exclude 'ActualCompletionDate' from dynamic addition as well
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
@@ -105,21 +102,18 @@ export const updateItem = async (
     const opportunityId = itemData.id; 
 
     const payload: Record<string, any> = {
-      Name: itemData.name || "", // Ensure name is always a string
-      Description: itemData.description || "", // Ensure description is always a string
-      SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || "", // Ensure BP ID is always a string (or empty string)
-      Status: itemData.Status || "", // Ensure status is always a string
+      Name: String(itemData.name || ""), // Ensure name is always a string
+      Description: String(itemData.description || ""), // Ensure description is always a string
+      SoldtoBusinessPartner: String(itemData.SoldtoBusinessPartner || ""), // Ensure BP ID is always a string (or empty string)
+      Status: String(itemData.Status || ""), // Ensure status is always a string
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Source: itemData.Source || "", // Ensure source is always a string
-      SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
-      Phase: itemData.Phase || "", // Ensure phase is always a string
-      Reason: itemData.Reason || "", // Ensure reason is always a string
-      AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
-      // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
-      // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
-      // ActualCompletionDate: itemData.ActualCompletionDate || "", // Removed as it's not a mappable property
+      Source: String(itemData.Source || ""), // Ensure source is always a string
+      SalesProcess: String(itemData.SalesProcess || ""), // Ensure sales process is always a string
+      Phase: String(itemData.Phase || ""), // Ensure phase is always a string
+      Reason: String(itemData.Reason || ""), // Ensure reason is always a string
+      AssignedTo: String(itemData.AssignedTo || ""), // Ensure assignedTo is always a string
     };
 
     // Dynamically add other properties from itemData to the payload,
@@ -133,7 +127,7 @@ export const updateItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate", // Exclude 'ActualCompletionDate' from dynamic addition as well
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
