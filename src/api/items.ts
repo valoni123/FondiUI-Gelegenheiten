@@ -3,49 +3,57 @@ import { Item } from "@/types";
 // Define your API base URL for the OData service.
 const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp";
 
+// Helper function to prepare the payload, converting empty strings to null for API compatibility
+const preparePayload = (itemData: Item): Record<string, any> => {
+  const payload: Record<string, any> = {
+    Name: itemData.name ? String(itemData.name) : null,
+    Description: itemData.description ? String(itemData.description) : null,
+    SoldtoBusinessPartner: itemData.SoldtoBusinessPartner ? String(itemData.SoldtoBusinessPartner) : null,
+    Status: itemData.Status ? String(itemData.Status) : null,
+    IncludeInForecast: itemData.IncludeInForecast ?? false,
+    ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0,
+    ExpectedRevenue: itemData.ExpectedRevenue ?? 0,
+    Source: itemData.Source ? String(itemData.Source) : null,
+    SalesProcess: itemData.SalesProcess ? String(itemData.SalesProcess) : null,
+    Phase: itemData.Phase ? String(itemData.Phase) : null,
+    Reason: itemData.Reason ? String(itemData.Reason) : null,
+    AssignedTo: itemData.AssignedTo ? String(itemData.AssignedTo) : null,
+  };
+
+  const excludedKeys = new Set([
+    "id", "name", "description", "@odata.etag", "@odata.context",
+    // Derived/expanded fields
+    "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
+    "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
+    "SoldtoBusinessPartnerCountry",
+    // Fields explicitly handled above to avoid duplication or incorrect type handling
+    "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+    "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+    "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+    // Read-only fields that should not be sent in POST/PATCH
+    "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
+  ]);
+
+  for (const key in itemData) {
+    if (!excludedKeys.has(key) && itemData[key] !== undefined) {
+      // For dynamically added fields, if they are strings and empty, also send null
+      if (typeof itemData[key] === 'string' && itemData[key] === '') {
+        payload[key] = null;
+      } else {
+        payload[key] = itemData[key];
+      }
+    }
+  }
+  return payload;
+};
+
 export const createItem = async (
   itemData: Item,
   authToken: string,
   companyNumber: string,
 ): Promise<Item> => {
   try {
-    const payload: Record<string, any> = {
-      Name: String(itemData.name || ""), // Ensure name is always a string
-      Description: String(itemData.description || ""), // Ensure description is always a string
-      SoldtoBusinessPartner: String(itemData.SoldtoBusinessPartner || ""), // Ensure BP ID is always a string (or empty string)
-      Status: String(itemData.Status || ""), // Ensure status is always a string
-      IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
-      ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
-      ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Source: String(itemData.Source || ""), // Ensure source is always a string
-      SalesProcess: String(itemData.SalesProcess || ""), // Ensure sales process is always a string
-      Phase: String(itemData.Phase || ""), // Ensure phase is always a string
-      Reason: String(itemData.Reason || ""), // Ensure reason is always a string
-      AssignedTo: String(itemData.AssignedTo || ""), // Ensure assignedTo is always a string
-    };
-
-    // Dynamically add other properties from itemData to the payload,
-    // but explicitly exclude derived/expanded fields and fields already handled above.
-    const excludedKeys = new Set([
-      "id", "name", "description", "@odata.etag", "@odata.context",
-      // Derived/expanded fields
-      "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
-      "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
-      "SoldtoBusinessPartnerCountry",
-      // Fields explicitly handled above to avoid duplication or incorrect type handling
-      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
-      // Read-only fields that should not be sent in POST
-      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    ]);
-
-    for (const key in itemData) {
-      // This loop adds any other dynamic properties not explicitly listed or excluded.
-      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
-        payload[key] = itemData[key];
-      }
-    }
+    const payload = preparePayload(itemData);
 
     console.log("API: Creating item with payload:", payload);
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
@@ -100,43 +108,7 @@ export const updateItem = async (
 ): Promise<Item> => {
   try {
     const opportunityId = itemData.id; 
-
-    const payload: Record<string, any> = {
-      Name: String(itemData.name || ""), // Ensure name is always a string
-      Description: String(itemData.description || ""), // Ensure description is always a string
-      SoldtoBusinessPartner: String(itemData.SoldtoBusinessPartner || ""), // Ensure BP ID is always a string (or empty string)
-      Status: String(itemData.Status || ""), // Ensure status is always a string
-      IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
-      ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
-      ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      Source: String(itemData.Source || ""), // Ensure source is always a string
-      SalesProcess: String(itemData.SalesProcess || ""), // Ensure sales process is always a string
-      Phase: String(itemData.Phase || ""), // Ensure phase is always a string
-      Reason: String(itemData.Reason || ""), // Ensure reason is always a string
-      AssignedTo: String(itemData.AssignedTo || ""), // Ensure assignedTo is always a string
-    };
-
-    // Dynamically add other properties from itemData to the payload,
-    // but explicitly exclude derived/expanded fields and fields already handled above.
-    const excludedKeys = new Set([
-      "id", "name", "description", "@odata.etag", "@odata.context",
-      // Derived/expanded fields
-      "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
-      "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
-      "SoldtoBusinessPartnerCountry",
-      // Fields explicitly handled above to avoid duplication or incorrect type handling
-      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
-      // Read-only fields that should not be sent in PATCH
-      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    ]);
-
-    for (const key in itemData) {
-      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
-        payload[key] = itemData[key];
-      }
-    }
+    const payload = preparePayload(itemData);
 
     console.log("API: Updating item with payload:", payload);
     console.log("API: Sending X-Infor-LnCompany header with value:", companyNumber);
