@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
@@ -142,7 +141,6 @@ const Index = () => {
           opportunityStatusOptions={opportunityStatusOptions} // Pass options
         />
       </div>
-      <MadeWithDyad />
     </div>
   );
 };
