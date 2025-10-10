@@ -364,15 +364,23 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto">
-          {/* Custom Header Area */}
-          <div className="flex items-center justify-between border-b pb-4 mb-4">
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto relative"> {/* Added relative to DialogContent */}
+          {/* Save Button - positioned absolutely */}
+          <Button
+            type="submit"
+            onClick={handleSave}
+            className="absolute top-4 right-20 z-10" // Positioned to the left of the close button
+          >
+            {isAddingNewItem ? "Add Item" : "Save changes"}
+          </Button>
+
+          {/* Custom Header Area (for title) */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px]"> {/* Added pr to make space for the button */}
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
               <span className="text-xl font-bold">{editedItem.name}</span> {/* Display name as bold text */}
             </div>
-            {/* Removed Save Button from here */}
           </div>
 
           <Tabs defaultValue="gelegenheit" className="w-full">
@@ -428,12 +436,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               )}
             </TabsContent>
           </Tabs>
-
-          <DialogFooter>
-            <Button type="submit" onClick={handleSave}>
-              {isAddingNewItem ? "Add Item" : "Save changes"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
