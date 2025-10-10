@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp } from "lucide-react";
+import { ArrowRight, ArrowDownUp, Search } from "lucide-react"; // Import Search icon
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -18,13 +18,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Import Select components
+} from "@/components/ui/select";
+import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog"; // Import BusinessPartnerSelectDialog
+import { BusinessPartner } from "@/api/businessPartners"; // Import BusinessPartner type
 
 interface GridListProps {
   items: Item[];
   onUpdateItem: (id: string, field: string, value: string | number) => void;
   onViewDetails: (item: Item) => void;
-  opportunityStatusOptions: string[]; // New prop for status options
+  opportunityStatusOptions: string[];
+  authToken: string; // New prop for authentication token
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -32,9 +35,12 @@ const GridList: React.FC<GridListProps> = ({
   onUpdateItem,
   onViewDetails,
   opportunityStatusOptions,
+  authToken, // Destructure authToken
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false); // State for BP dialog
+  const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null); // State to track which item's BP is being edited
 
   // Determine all unique keys from the items to use as columns
   const allKeys = useMemo(() => {
@@ -105,6 +111,27 @@ const GridList: React.FC<GridListProps> = ({
     return currentItems;
   }, [items, filters, sortConfig]);
 
+  const handleOpenBpSelectDialog = (itemId: string) => {
+    setCurrentEditingItemId(itemId);
+    setIsBpSelectDialogOpen(true);
+  };
+
+  const handleSelectBusinessPartnerFromGrid = (bp: BusinessPartner) => {
+    if (currentEditingItemId) {
+      // Update SoldtoBusinessPartner ID
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartner", bp.BusinessPartner);
+      // Update SoldtoBusinessPartnerName
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerName", bp.Name || "");
+      // Update address fields
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerStreet", bp.AddressRef?.Street || "");
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerHouseNumber", bp.AddressRef?.HouseNumber || "");
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerZIPCodePostalCode", bp.AddressRef?.ZIPCodePostalCode || "");
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerCountry", bp.AddressRef?.Country || "");
+    }
+    setIsBpSelectDialogOpen(false);
+    setCurrentEditingItemId(null);
+  };
+
   return (
     <div className="space-y-4">
       <Table>
@@ -171,6 +198,35 @@ const GridList: React.FC<GridListProps> = ({
                         ))}
                       </SelectContent>
                     </Select>
+                  ) : key === "SoldtoBusinessPartner" ? (
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-grow">
+                        <Input
+                          value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
+                          onChange={(e) =>
+                            onUpdateItem(
+                              item.id,
+                              key,
+                              e.target.value
+                            )
+                          }
+                          className="pr-10 w-full"
+                          disabled={false} // Allow manual input
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenBpSelectDialog(item.id)}
+                          aria-label={`Select Business Partner for ${item.id}`}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                        >
+                          <Search className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {item.SoldtoBusinessPartnerName && (
+                        <p className="text-sm text-muted-foreground whitespace-nowrap">{item.SoldtoBusinessPartnerName}</p>
+                      )}
+                    </div>
                   ) : (
                     <Input
                       value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
@@ -203,6 +259,13 @@ const GridList: React.FC<GridListProps> = ({
       {filteredAndSortedItems.length === 0 && (
         <p className="text-center text-muted-foreground py-4">No items found.</p>
       )}
+
+      <BusinessPartnerSelectDialog
+        isOpen={isBpSelectDialogOpen}
+        onClose={() => setIsBpSelectDialogOpen(false)}
+        onSelect={handleSelectBusinessPartnerFromGrid}
+        authToken={authToken}
+      />
     </div>
   );
 };

@@ -180,6 +180,7 @@ const Index = () => {
           onUpdateItem={handleUpdateItem}
           onViewDetails={handleViewDetails}
           opportunityStatusOptions={opportunityStatusOptions}
+          authToken={authToken || ""}
         />
 
         <DetailDialog
