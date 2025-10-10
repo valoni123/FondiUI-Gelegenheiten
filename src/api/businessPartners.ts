@@ -23,7 +23,8 @@ export const getActiveBusinessPartners = async (authToken: string): Promise<Busi
   const filter = "BusinessPartnerStatus eq tcapi.comBusinessPartner.BusinessPartnerStatus'Active'";
   const select = "BusinessPartner,Name";
   const expand = "AddressRef"; // New: expand AddressRef
-  const url = `${BUSINESS_PARTNERS_API_URL}?$filter=${encodeURIComponent(filter)}&$select=${encodeURIComponent(select)}&$expand=${encodeURIComponent(expand)}`;
+  const top = 1000; // Explicitly request up to 1000 records
+  const url = `${BUSINESS_PARTNERS_API_URL}?$filter=${encodeURIComponent(filter)}&$select=${encodeURIComponent(select)}&$expand=${encodeURIComponent(expand)}&$top=${top}`;
 
   try {
     const response = await fetch(url, {
