@@ -7,7 +7,8 @@ const COMPANY_NUMBER = "1000"; // As requested, hardcoded
 
 export const getAccessToken = async (): Promise<string> => {
   try {
-    const ACCESS_TOKEN_URL = `${ionapiConfig.pu}${ionapiConfig.ot}`;
+    // Use the proxy path for the token endpoint
+    const PROXY_TOKEN_PATH = `/infor-sso/FONDIUM_TRN/as/${ionapiConfig.ot}`;
     const CLIENT_ID = ionapiConfig.ci;
     const CLIENT_SECRET = ionapiConfig.cs;
     const USERNAME = ionapiConfig.saak;
@@ -21,10 +22,10 @@ export const getAccessToken = async (): Promise<string> => {
     params.append('username', USERNAME);
     params.append('password', PASSWORD);
 
-    console.log("Attempting to fetch access token from:", ACCESS_TOKEN_URL);
+    console.log("Attempting to fetch access token from proxy:", PROXY_TOKEN_PATH);
     console.log("Request body params:", params.toString());
 
-    const response = await fetch(ACCESS_TOKEN_URL, {
+    const response = await fetch(PROXY_TOKEN_PATH, { // Request to the proxy
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
