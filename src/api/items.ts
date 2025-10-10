@@ -175,12 +175,14 @@ export const updateItem = async (
     }
 
     console.log("API: Updating item with payload:", payload); // Added logging
+    console.log("API: Sending X-Infor-LnCompany header with value:", companyNumber); // Added log for companyNumber
     const response = await fetch(`${API_BASE_URL}/Opportunities('${opportunityId}')`, {
       method: "PATCH", // Use PATCH for partial updates
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Content-Language": "en-US",
+        "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
         "If-Match": itemData["@odata.etag"] || "*", // Include ETag for optimistic concurrency, or '*' to always update
       },
