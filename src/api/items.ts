@@ -13,11 +13,46 @@ export const createItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
+      // Only include SoldtoBusinessPartner ID if it exists
+      ...(itemData.SoldtoBusinessPartner && { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner }),
+      // Status is also a direct property
+      ...(itemData.Status && { Status: itemData.Status }),
+      // IncludeInForecast is also a direct property
+      ...(itemData.IncludeInForecast !== undefined && { IncludeInForecast: itemData.IncludeInForecast }),
+      // ProbabilityPercentage
+      ...(itemData.ProbabilityPercentage !== undefined && { ProbabilityPercentage: itemData.ProbabilityPercentage }),
+      // ExpectedRevenue
+      ...(itemData.ExpectedRevenue !== undefined && { ExpectedRevenue: itemData.ExpectedRevenue }),
+      // Type, Source, SalesProcess, Phase, Reason, AssignedTo
+      ...(itemData.Type && { Type: itemData.Type }),
+      ...(itemData.Source && { Source: itemData.Source }),
+      ...(itemData.SalesProcess && { SalesProcess: itemData.SalesProcess }),
+      ...(itemData.Phase && { Phase: itemData.Phase }),
+      ...(itemData.Reason && { Reason: itemData.Reason }),
+      ...(itemData.AssignedTo && { AssignedTo: itemData.AssignedTo }),
+      // Dates
+      ...(itemData.FirstContactDate && { FirstContactDate: itemData.FirstContactDate }),
+      ...(itemData.ExpectedCompletionDate && { ExpectedCompletionDate: itemData.ExpectedCompletionDate }),
+      ...(itemData.ActualCompletionDate && { ActualCompletionDate: itemData.ActualCompletionDate }),
     };
 
-    // Add other dynamic fields from itemData to the payload, excluding 'id' and internal OData keys
+    // Dynamically add other properties from itemData to the payload,
+    // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
+    const excludedKeys = new Set([
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
+      "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
+      "SoldtoBusinessPartnerCountry",
+      // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
+      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+      // Read-only fields that should not be sent in POST (some might be set by API)
+      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate"
+    ]);
+
     for (const key in itemData) {
-      if (key !== "id" && key !== "name" && key !== "description" && key !== "quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
         payload[key] = itemData[key];
       }
     }
@@ -78,11 +113,46 @@ export const updateItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
+      // Only include SoldtoBusinessPartner ID if it exists and is not empty
+      ...(itemData.SoldtoBusinessPartner && { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner }),
+      // Status is also a direct property
+      ...(itemData.Status && { Status: itemData.Status }),
+      // IncludeInForecast is also a direct property
+      ...(itemData.IncludeInForecast !== undefined && { IncludeInForecast: itemData.IncludeInForecast }),
+      // ProbabilityPercentage
+      ...(itemData.ProbabilityPercentage !== undefined && { ProbabilityPercentage: itemData.ProbabilityPercentage }),
+      // ExpectedRevenue
+      ...(itemData.ExpectedRevenue !== undefined && { ExpectedRevenue: itemData.ExpectedRevenue }),
+      // Type, Source, SalesProcess, Phase, Reason, AssignedTo
+      ...(itemData.Type && { Type: itemData.Type }),
+      ...(itemData.Source && { Source: itemData.Source }),
+      ...(itemData.SalesProcess && { SalesProcess: itemData.SalesProcess }),
+      ...(itemData.Phase && { Phase: itemData.Phase }),
+      ...(itemData.Reason && { Reason: itemData.Reason }),
+      ...(itemData.AssignedTo && { AssignedTo: itemData.AssignedTo }),
+      // Dates
+      ...(itemData.FirstContactDate && { FirstContactDate: itemData.FirstContactDate }),
+      ...(itemData.ExpectedCompletionDate && { ExpectedCompletionDate: itemData.ExpectedCompletionDate }),
+      ...(itemData.ActualCompletionDate && { ActualCompletionDate: itemData.ActualCompletionDate }),
     };
 
-    // Add other dynamic fields from itemData to the payload, excluding 'id' and internal OData keys
+    // Dynamically add other properties from itemData to the payload,
+    // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
+    const excludedKeys = new Set([
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
+      "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
+      "SoldtoBusinessPartnerCountry",
+      // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
+      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+      // Read-only fields that should not be sent in PATCH
+      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate"
+    ]);
+
     for (const key in itemData) {
-      if (key !== "id" && key !== "name" && key !== "description" && key !== "quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) { // Only include if not undefined
         payload[key] = itemData[key];
       }
     }
