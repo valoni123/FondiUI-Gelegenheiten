@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -91,8 +90,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         LastTransactionDate: "",
       });
     } else if (item) {
-      // Initialize with existing item data
-      setEditedItem(item);
+      // Initialize with existing item data, ensuring description is a string
+      setEditedItem({
+        ...item,
+        description: item.description || "", // Ensure description is always a string
+      });
     }
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]); // Added isOpen to dependencies
 

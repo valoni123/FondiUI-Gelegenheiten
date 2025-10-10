@@ -12,8 +12,7 @@ export const createItem = async (
   try {
     const payload: Record<string, any> = {
       Name: itemData.name,
-      Description: itemData.description,
-      // Quantity removed from payload
+      "tdsmi110.text": itemData.description || "", // Corrected key and ensured string value
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -40,7 +39,7 @@ export const createItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context", // Added 'quantity' to excludedKeys
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
@@ -50,7 +49,8 @@ export const createItem = async (
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST (some might be set by API)
-      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate"
+      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
+      "Description", // Exclude the old key 'Description'
     ]);
 
     for (const key in itemData) {
@@ -123,8 +123,7 @@ export const updateItem = async (
 
     const payload: Record<string, any> = {
       Name: itemData.name,
-      Description: itemData.description,
-      // Quantity removed from payload
+      "tdsmi110.text": itemData.description || "", // Corrected key and ensured string value
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -151,7 +150,7 @@ export const updateItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context", // Added 'quantity' to excludedKeys
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
@@ -161,7 +160,8 @@ export const updateItem = async (
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
-      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate"
+      "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
+      "Description", // Exclude the old key 'Description'
     ]);
 
     for (const key in itemData) {
@@ -179,7 +179,6 @@ export const updateItem = async (
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Content-Language": "en-US",
-        "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
         "If-Match": itemData["@odata.etag"] || "*", // Include ETag for optimistic concurrency, or '*' to always update
       },
