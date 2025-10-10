@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -25,6 +27,7 @@ import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners"
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner"; // Import toast for error messages
 
 interface DetailDialogProps {
   item: Item | null;
@@ -47,20 +50,24 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isOpen) {
       setEditedItem(null);
+      setValidationErrors({}); // Clear errors when dialog closes
       return;
     }
+
+    setValidationErrors({}); // Clear errors when dialog opens
 
     if (isAddingNewItem) {
       setEditedItem({
         id: "",
         name: "",
-        description: "", // This is now the separate 'Beschreibung' field
-        opportunityText: "", // This is now 'Allgemeine Daten'
-        "tdsmi110.text": "", // Read-only, but initialized
+        description: "",
+        opportunityText: "",
+        "tdsmi110.text": "",
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",
@@ -71,9 +78,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         AssignedTo: "",
         Type: "100",
         Source: "",
-        DateOfFirstContact: "", // Renamed
-        ExpectedCloseDate: "", // Renamed
-        ActualCloseDate: "", // Renamed
+        DateOfFirstContact: "",
+        ExpectedCloseDate: "",
+        ActualCloseDate: "",
         Status: opportunityStatusOptions.length > 0 ? opportunityStatusOptions[0] : "",
         SalesProcess: "",
         Phase: "",
@@ -91,9 +98,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     } else if (item) {
       setEditedItem({
         ...item,
-        description: item.description || "", // Ensure description is always a string
-        opportunityText: item.opportunityText || item["tdsmi110.text"] || "", // Ensure opportunityText is always a string, fallback to tdsmi110.text
-        "tdsmi110.text": item["tdsmi110.text"] || "", // Ensure tdsmi110.text is always a string
+        description: item.description || "",
+        opportunityText: item.opportunityText || item["tdsmi110.text"] || "",
+        "tdsmi110.text": item["tdsmi110.text"] || "",
       });
     }
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
@@ -150,26 +157,54 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const handleChange = (field: string, value: string | number | boolean) => {
     if (editedItem) {
       setEditedItem((prev) => ({ ...prev!, [field]: value }));
+      // Clear validation error for this field when it's changed
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
+  };
+
+  const validateFields = () => {
+    const newErrors: Record<string, string> = {};
+    if (!editedItem) return newErrors;
+
+    // Validate structured fields
+    Object.values(structuredFields).forEach(section => {
+      section.forEach(fieldConfig => {
+        if (fieldConfig.isRequired) {
+          const value = editedItem[fieldConfig.key];
+          if (
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim() === '') ||
+            (typeof value === 'number' && isNaN(value)) // Check for NaN in numbers
+          ) {
+            newErrors[fieldConfig.key] = `${fieldConfig.label} is required.`;
+          }
+        }
+      });
+    });
+
+    // Validate 'name' field explicitly if not covered by structuredFields (it is now)
+    if (!editedItem.name || editedItem.name.trim() === "") {
+      newErrors.name = "Name is required.";
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Return true if no errors
   };
 
   const handleSave = () => {
     if (editedItem) {
-      onSave(editedItem);
-      // onClose(); // Removed: Parent component (Index.tsx) will now decide when to close the dialog
+      const isValid = validateFields();
+      if (isValid) {
+        onSave(editedItem);
+      } else {
+        toast.error("Please correct the highlighted fields.");
+      }
     }
-  };
-
-  const handleSelectBusinessPartner = (bp: BusinessPartner) => {
-    setEditedItem(prev => ({
-      ...prev!,
-      SoldtoBusinessPartner: bp.BusinessPartner,
-      SoldtoBusinessPartnerName: bp.Name || "",
-      SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
-      SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
-      SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
-      SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
-    }));
   };
 
   if (!editedItem) return null;
@@ -177,13 +212,14 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      { key: "opportunityText", label: "Allgemeine Daten", type: "textarea" }, // This is now the editable 'Opportunity Text'
-      { key: "description", label: "Beschreibung", type: "textarea" }, // This is the separate 'Description' field
+      { key: "name", label: "Name", type: "text", isRequired: true }, // Added name field and made it required
+      { key: "opportunityText", label: "Allgemeine Daten", type: "textarea" },
+      { key: "description", label: "Beschreibung", type: "textarea" },
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
-      { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true }, // New
-      { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true }, // New
-      { key: "SoldtoBusinessPartnerZIPCodePostalCode", label: "PLZ", type: "text", disabled: true }, // New
-      { key: "SoldtoBusinessPartnerCountry", label: "Land", type: "text", disabled: true }, // New
+      { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true },
+      { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true },
+      { key: "SoldtoBusinessPartnerZIPCodePostalCode", label: "PLZ", type: "text", disabled: true },
+      { key: "SoldtoBusinessPartnerCountry", label: "Land", type: "text", disabled: true },
       { key: "BusinessPartnerStatus", label: "Handelspartnerstatus", type: "text", disabled: true, defaultValue: "Aktiv" },
       { key: "AssignedTo", label: "Zugewiesen an", type: "text", hasSearch: true, hasAssignButton: true },
     ],
@@ -192,12 +228,12 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       { key: "Source", label: "Quelle", type: "text", hasSearch: true },
     ],
     dates: [
-      { key: "DateOfFirstContact", label: "Erster Kontakt am", type: "date", isRequired: true }, // Renamed key
-      { key: "ExpectedCloseDate", label: "Erwartetes Abschlussdatum", type: "date" }, // Renamed key
-      { key: "ActualCloseDate", label: "Tatsächliches Abschlussdatum", type: "date" }, // Renamed key
+      { key: "DateOfFirstContact", label: "Erster Kontakt am", type: "date", isRequired: true },
+      { key: "ExpectedCloseDate", label: "Erwartetes Abschlussdatum", type: "date" },
+      { key: "ActualCloseDate", label: "Tatsächliches Abschlussdatum", type: "date", disabled: true }, // ActualCloseDate should be read-only
     ],
     progress: [
-      { key: "Status", label: "Status", type: "select", options: opportunityStatusOptions },
+      { key: "Status", label: "Status", type: "select", options: opportunityStatusOptions, isRequired: true },
       { key: "SalesProcess", label: "VK-Ablauf", type: "text", hasSearch: true },
       { key: "Phase", label: "Phase", type: "text", hasSearch: true },
       { key: "ProbabilityPercentage", label: "Wahrscheinlichkeitsprozentsatz", type: "number", suffix: "%" },
@@ -230,20 +266,36 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     key !== "name" &&
     key !== "@odata.etag" &&
     key !== "@odata.context" &&
-    key !== "Description" && // Exclude API's Description as it's mapped to our 'description'
-    key !== "OpportunityText" // Exclude API's OpportunityText as it's mapped to our 'opportunityText'
+    key !== "Description" &&
+    key !== "OpportunityText"
   ).sort();
 
   const renderField = (fieldConfig: typeof structuredFields.general[0]) => {
     const { key, label, type, disabled, options, hasSearch, hasAssignButton, suffix, isRequired, defaultValue, displaySuffix } = fieldConfig;
     const value = editedItem[key] !== null && editedItem[key] !== undefined ? editedItem[key] : (isAddingNewItem ? defaultValue : "");
+    const hasError = !!validationErrors[key];
 
     const commonInputProps = {
       id: key,
-      className: "w-full",
+      className: cn("w-full", hasError && "border-red-500"),
       placeholder: `Enter ${label.toLowerCase()}`,
-      disabled: disabled || key === "Opportunity" || key === "Guid", // Always disable Opportunity/Guid
+      disabled: disabled || key === "Opportunity" || key === "Guid",
     };
+
+    const renderInput = (
+      <Input
+        {...commonInputProps}
+        type={type === "number" ? "number" : "text"}
+        value={String(value)}
+        onChange={(e) => handleChange(key, type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+        className={cn(
+          commonInputProps.className,
+          (hasSearch || displaySuffix) && "pr-10",
+          displaySuffix && "pr-12",
+          (key === "Type" || key === "Source") && "w-40"
+        )}
+      />
+    );
 
     switch (type) {
       case "textarea":
@@ -262,7 +314,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             onValueChange={(val) => handleChange(key, val)}
             disabled={disabled}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className={cn("w-full", hasError && "border-red-500")}>
               <SelectValue placeholder={`Select ${label}`} />
             </SelectTrigger>
             <SelectContent>
@@ -283,7 +335,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 variant={"outline"}
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !dateValue && "text-muted-foreground"
+                  !dateValue && "text-muted-foreground",
+                  hasError && "border-red-500"
                 )}
                 disabled={disabled}
               >
@@ -295,7 +348,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Calendar
                 mode="single"
                 selected={dateValue}
-                onSelect={(date) => handleChange(key, date ? format(date, "yyyy-MM-dd'T'00:00:00'Z'") : "")} // Changed format here
+                onSelect={(date) => handleChange(key, date ? format(date, "yyyy-MM-dd'T'00:00:00'Z'") : "")}
                 initialFocus
               />
             </PopoverContent>
@@ -307,7 +360,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           <Input
             {...commonInputProps}
             value={dateTimeValue ? format(dateTimeValue, "dd.MM.yyyy HH:mm") : ""}
-            disabled={true} // Always disabled for Created/Modified dates
+            disabled={true}
           />
         );
       case "checkbox":
@@ -318,6 +371,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               checked={Boolean(value)}
               onCheckedChange={(checked) => handleChange(key, checked)}
               disabled={disabled}
+              className={cn(hasError && "border-red-500")}
             />
             <Label htmlFor={key}>{label}</Label>
           </div>
@@ -328,13 +382,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             <div className="relative flex-grow">
               <Input
                 {...commonInputProps}
-                value={String(editedItem.SoldtoBusinessPartner || "")} // Explicitly use editedItem.SoldtoBusinessPartner
+                value={String(editedItem.SoldtoBusinessPartner || "")}
                 onChange={(e) => {
                   handleChange(key, e.target.value);
-                  // The second useEffect will handle fetching address if a valid BP ID is entered manually.
-                  // If cleared, the second useEffect will clear associated fields.
                 }}
-                className="pr-10 w-full"
+                className={cn(commonInputProps.className, "pr-10 w-full")}
               />
               <Button
                 variant="ghost"
@@ -346,7 +398,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 <Search className="h-4 w-4" />
               </Button>
             </div>
-            {editedItem.SoldtoBusinessPartnerName && editedItem.SoldtoBusinessPartner && ( // Use editedItem.SoldtoBusinessPartnerName
+            {editedItem.SoldtoBusinessPartnerName && editedItem.SoldtoBusinessPartner && (
               <p className="text-sm text-muted-foreground whitespace-nowrap">{editedItem.SoldtoBusinessPartnerName}</p>
             )}
           </div>
@@ -359,7 +411,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               type="number"
               value={String(value)}
               onChange={(e) => handleChange(key, parseFloat(e.target.value) || 0)}
-              className="w-40"
+              className={cn(commonInputProps.className, "w-40")}
             />
             {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
           </div>
@@ -368,17 +420,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       default:
         return (
           <div className="flex items-center gap-2 relative">
-            <Input
-              {...commonInputProps}
-              type="text"
-              value={String(value)}
-              onChange={(e) => handleChange(key, e.target.value)}
-              className={cn(
-                (hasSearch || displaySuffix) && "pr-10",
-                displaySuffix && "pr-12",
-                (key === "Type" || key === "Source") && "w-40"
-              )}
-            />
+            {renderInput}
             {displaySuffix && <span className="text-sm text-muted-foreground whitespace-nowrap">{displaySuffix}</span>}
             {hasSearch && (
               <Button
@@ -411,13 +453,18 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       <h3 className="text-lg font-semibold border-b pb-2 mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-4">
         {fields.map((fieldConfig) => (
-          <div className="grid grid-cols-[150px_1fr] items-center gap-4" key={fieldConfig.key}>
+          <div className="grid grid-cols-[150px_1fr] items-start gap-4" key={fieldConfig.key}>
             {fieldConfig.type !== "checkbox" && (
               <Label htmlFor={fieldConfig.key} className={cn("text-right", fieldConfig.isRequired && "after:content-['*'] after:ml-0.5 after:text-red-500")}>
                 {fieldConfig.label}
               </Label>
             )}
-            {renderField(fieldConfig)}
+            <div>
+              {renderField(fieldConfig)}
+              {validationErrors[fieldConfig.key] && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors[fieldConfig.key]}</p>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -467,26 +514,31 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                   <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
                     {otherKeys.map((key) => (
-                      <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
+                      <div className="grid grid-cols-[100px_1fr] items-start gap-4" key={key}>
                         <Label htmlFor={key} className="text-right capitalize">
                           {key.replace(/([A-Z])/g, ' $1').trim()}
                         </Label>
-                        <Input
-                          id={key}
-                          type={typeof editedItem[key] === "number" ? "number" : "text"}
-                          value={String(editedItem[key] || "")}
-                          onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-                          className="w-full"
-                          placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-                          disabled={
-                            key === "Opportunity" ||
-                            key === "Guid" ||
-                            key === "CreationDate" ||
-                            key === "LastTransactionDate" ||
-                            key === "CreatedBy" ||
-                            key === "LastModifiedBy"
-                          }
-                        />
+                        <div>
+                          <Input
+                            id={key}
+                            type={typeof editedItem[key] === "number" ? "number" : "text"}
+                            value={String(editedItem[key] || "")}
+                            onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+                            className={cn("w-full", validationErrors[key] && "border-red-500")}
+                            placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                            disabled={
+                              key === "Opportunity" ||
+                              key === "Guid" ||
+                              key === "CreationDate" ||
+                              key === "LastTransactionDate" ||
+                              key === "CreatedBy" ||
+                              key === "LastModifiedBy"
+                            }
+                          />
+                          {validationErrors[key] && (
+                            <p className="text-red-500 text-xs mt-1">{validationErrors[key]}</p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
