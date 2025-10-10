@@ -5,7 +5,7 @@ import { Item } from "@/types";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
-import { createItem, getOpportunities, updateItem } from "@/api/items"; // Import updateItem
+import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getAccessToken, getCompanyNumber } from "@/authorization/authService";
 
@@ -14,27 +14,40 @@ const Index = () => {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
-  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
+  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false); // For initial/manual load
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const companyNumber = getCompanyNumber();
 
-  const loadOpportunities = useCallback(async (token: string) => {
-    setIsLoadingOpportunities(true);
-    const loadingToastId = toast.loading("Loading opportunities...");
+  // Modified loadOpportunities to accept a silent flag
+  const loadOpportunities = useCallback(async (token: string, silent: boolean = false) => {
+    if (!silent) {
+      setIsLoadingOpportunities(true);
+    }
+    const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
       const fetchedOpportunities = await getOpportunities(token, companyNumber);
       setOpportunities(fetchedOpportunities);
-      toast.success("Opportunities loaded successfully!", { id: loadingToastId });
+      if (!silent) {
+        toast.success("Opportunities loaded successfully!", { id: loadingToastId });
+      }
     } catch (error) {
       console.error("Failed to load opportunities:", error);
-      toast.error("Failed to load opportunities.", { id: loadingToastId });
+      if (!silent) {
+        toast.error("Failed to load opportunities.", { id: loadingToastId });
+      } else {
+        // For silent refreshes, log error but don't spam toasts
+        console.warn("Silent refresh failed:", error);
+      }
     } finally {
-      setIsLoadingOpportunities(false);
+      if (!silent) {
+        setIsLoadingOpportunities(false);
+      }
     }
   }, [companyNumber]);
 
+  // Initial authentication and data load
   useEffect(() => {
     const authenticateAndLoadData = async () => {
       try {
@@ -42,9 +55,9 @@ const Index = () => {
         setAuthToken(token);
         const options = await getOpportunityStatusOptions(token);
         setOpportunityStatusOptions(options);
-        await loadOpportunities(token); // Automatically load opportunities
+        await loadOpportunities(token, false); // Initial load, show toast
       } catch (error) {
-        console.error("Authentication or data fetch failed:", error);
+        console.error("Authentication or initial data fetch failed:", error);
         toast.error("Failed to initialize application: Could not get auth token or data.");
       } finally {
         setIsAuthLoading(false);
@@ -52,6 +65,18 @@ const Index = () => {
     };
     authenticateAndLoadData();
   }, [loadOpportunities]);
+
+  // Periodic silent refresh for opportunities
+  useEffect(() => {
+    if (authToken) {
+      const refreshInterval = setInterval(() => {
+        console.log("Performing silent opportunities refresh...");
+        loadOpportunities(authToken, true); // Silent refresh
+      }, 30000); // Every 30 seconds
+
+      return () => clearInterval(refreshInterval); // Cleanup on unmount
+    }
+  }, [authToken, loadOpportunities]); // Re-run if authToken changes
 
   const handleUpdateItem = async (
     id: string,

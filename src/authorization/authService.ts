@@ -5,7 +5,23 @@ import ionapiConfig from './ionapi.json';
 
 const COMPANY_NUMBER = "1000"; // As requested, hardcoded
 
+interface TokenCache {
+  accessToken: string | null;
+  expiresAt: number | null; // Unix timestamp in milliseconds
+}
+
+let tokenCache: TokenCache = {
+  accessToken: null,
+  expiresAt: null,
+};
+
 export const getAccessToken = async (): Promise<string> => {
+  // Check if token is still valid
+  if (tokenCache.accessToken && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt) {
+    console.log("Using cached OAuth2 Token.");
+    return tokenCache.accessToken;
+  }
+
   try {
     // Use the proxy path for the token endpoint
     const PROXY_TOKEN_PATH = `/infor-sso/TTFMRW9QWR47VL78_DEM/as/${ionapiConfig.ot}`;
@@ -22,8 +38,7 @@ export const getAccessToken = async (): Promise<string> => {
     params.append('username', USERNAME);
     params.append('password', PASSWORD);
 
-    console.log("Attempting to fetch access token from proxy:", PROXY_TOKEN_PATH);
-    console.log("Request body params:", params.toString());
+    console.log("Attempting to fetch new access token from proxy:", PROXY_TOKEN_PATH);
 
     const response = await fetch(PROXY_TOKEN_PATH, { // Request to the proxy
       method: 'POST',
@@ -50,11 +65,19 @@ export const getAccessToken = async (): Promise<string> => {
     if (!data.access_token) {
       throw new Error("Access token not found in the response.");
     }
-    console.log("OAuth2 Token retrieved successfully.");
+
+    // Cache the new token and its expiry time (e.g., 1 minute before actual expiry)
+    tokenCache = {
+      accessToken: data.access_token,
+      expiresAt: Date.now() + (data.expires_in * 1000) - (60 * 1000), // Refresh 1 minute before actual expiry
+    };
+    console.log("New OAuth2 Token retrieved and cached successfully.");
     return data.access_token;
 
   } catch (error) {
     console.error("Authentication Error: Failed to get access token", error);
+    // Clear cache on error to force re-authentication next time
+    tokenCache = { accessToken: null, expiresAt: null };
     throw error;
   }
 };
