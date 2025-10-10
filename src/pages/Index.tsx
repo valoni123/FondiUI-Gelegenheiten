@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, List } from "lucide-react";
 import { toast } from "sonner";
 import { createItem, getOpportunities } from "@/api/items";
-import { getOpportunityStatusOptions } from "@/api/metadata"; // Import the new API function
+import { getOpportunityStatusOptions } from "@/api/metadata";
+import { getAccessToken, getCompanyNumber } from "@/authorization/authService"; // Import auth service
 
 const Index = () => {
   const [localItems, setLocalItems] = useState<Item[]>([
@@ -21,24 +22,31 @@ const Index = () => {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
   const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
-  const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]); // New state for status options
+  const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const companyNumber = getCompanyNumber(); // Get company number from auth service
 
   useEffect(() => {
-    const fetchStatusOptions = async () => {
+    const authenticateAndLoadOptions = async () => {
       try {
-        const options = await getOpportunityStatusOptions();
+        const token = await getAccessToken();
+        setAuthToken(token);
+        const options = await getOpportunityStatusOptions(token);
         setOpportunityStatusOptions(options);
       } catch (error) {
-        console.error("Failed to fetch opportunity status options:", error);
-        toast.error("Failed to load status options.");
+        console.error("Authentication or metadata fetch failed:", error);
+        toast.error("Failed to initialize application: Could not get auth token or status options.");
+      } finally {
+        setIsAuthLoading(false);
       }
     };
-    fetchStatusOptions();
+    authenticateAndLoadOptions();
   }, []);
 
   const handleUpdateItem = (
     id: string,
-    field: string, // field is now a string
+    field: string,
     value: string | number
   ) => {
     setLocalItems((prevItems) =>
@@ -56,11 +64,15 @@ const Index = () => {
   };
 
   const handleSaveDetailChanges = async (updatedItem: Item) => {
+    if (!authToken) {
+      toast.error("Authentication token not available. Please refresh the page.");
+      return;
+    }
+
     if (isAddingNewItem) {
       const loadingToastId = toast.loading("Adding new item...");
       try {
-        // createItem now accepts the full Item object, which includes dynamic fields
-        const newItem = await createItem(updatedItem);
+        const newItem = await createItem(updatedItem, authToken, companyNumber);
         setLocalItems((prevItems) => [...prevItems, newItem]);
         toast.success("New item added!", { id: loadingToastId });
       } catch (error) {
@@ -82,10 +94,15 @@ const Index = () => {
   };
 
   const handleLoadOpportunities = async () => {
+    if (!authToken) {
+      toast.error("Authentication token not available. Please refresh the page.");
+      return;
+    }
+
     setIsLoadingOpportunities(true);
     const loadingToastId = toast.loading("Loading opportunities...");
     try {
-      const fetchedOpportunities = await getOpportunities();
+      const fetchedOpportunities = await getOpportunities(authToken, companyNumber);
       setOpportunities(fetchedOpportunities);
       toast.success("Opportunities loaded successfully!", { id: loadingToastId });
     } catch (error) {
@@ -95,6 +112,14 @@ const Index = () => {
       setIsLoadingOpportunities(false);
     }
   };
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
+        <p>Loading authentication and initial data...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
@@ -107,7 +132,7 @@ const Index = () => {
           <Button onClick={handleAddItem}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
           </Button>
-          <Button onClick={handleLoadOpportunities} disabled={isLoadingOpportunities}>
+          <Button onClick={handleLoadOpportunities} disabled={isLoadingOpportunities || !authToken}>
             <List className="mr-2 h-4 w-4" /> {isLoadingOpportunities ? "Loading..." : "Show Opportunities"}
           </Button>
         </div>
@@ -117,7 +142,7 @@ const Index = () => {
           items={localItems}
           onUpdateItem={handleUpdateItem}
           onViewDetails={handleViewDetails}
-          opportunityStatusOptions={opportunityStatusOptions} // Pass options
+          opportunityStatusOptions={opportunityStatusOptions}
         />
 
         {opportunities.length > 0 && (
@@ -125,9 +150,9 @@ const Index = () => {
             <h2 className="text-2xl font-semibold mt-8 mb-4">Fetched Opportunities</h2>
             <GridList
               items={opportunities}
-              onUpdateItem={() => toast.info("Opportunities from API are read-only in this view.")} // Opportunities are read-only for now
-              onViewDetails={handleViewDetails} // Can still view details
-              opportunityStatusOptions={opportunityStatusOptions} // Pass options
+              onUpdateItem={() => toast.info("Opportunities from API are read-only in this view.")}
+              onViewDetails={handleViewDetails}
+              opportunityStatusOptions={opportunityStatusOptions}
             />
           </>
         )}
@@ -138,7 +163,7 @@ const Index = () => {
           onClose={() => setIsDetailDialogOpen(false)}
           onSave={handleSaveDetailChanges}
           isAddingNewItem={isAddingNewItem}
-          opportunityStatusOptions={opportunityStatusOptions} // Pass options
+          opportunityStatusOptions={opportunityStatusOptions}
         />
       </div>
     </div>

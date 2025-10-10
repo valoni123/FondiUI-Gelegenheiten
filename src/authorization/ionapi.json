@@ -1,0 +1,16 @@
+{
+  "ti": "FONDIUM_TRN",
+  "cn": "LNCustomServices",
+  "dt": "12",
+  "ci": "FONDIUM_TRN~0ky6Z9QIYY2EdOx-arwx7W8fBcbdM8CBFveEqBbOjYc",
+  "cs": "xHd5YMJlIqTlwngVa0v6cxHT8PIfoKjEsfuRHhL11jAmNYRv7Ij0Q2RCfYGWScqvlsTsfV-FWZ2hh-WiEmMOkQ",
+  "iu": "https://mingle-ionapi.eu1.inforcloudsuite.com",
+  "pu": "https://mingle-sso.eu1.inforcloudsuite.com:443/FONDIUM_TRN/as/",
+  "oa": "authorization.oauth2",
+  "ot": "token.oauth2",
+  "or": "revoke_token.oauth2",
+  "ev": "V1480769020",
+  "v": "1.0",
+  "saak": "FONDIUM_TRN#b_-LhMfsLwCOihZsx9gyLK4528nNzMmCNQjASQ-hqgyftlnuQr47DdVeKlyucAnRQLLCem44lJRGKPaKRXqs2w",
+  "sask": "EoJdhXP41bZIYMtjwI514tsuuDxmaxvaiSBKoahHLCyVMr3w9UIhdK3J27243gC6oF03Z40ZDw_X2ZI_i4t_rA"
+}
