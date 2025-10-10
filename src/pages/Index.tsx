@@ -189,7 +189,7 @@ const Index = () => {
           onSave={handleSaveDetailChanges}
           isAddingNewItem={isAddingNewItem}
           opportunityStatusOptions={opportunityStatusOptions}
-          authToken={authToken || ""} {/* Pass authToken to DetailDialog */}
+          authToken={authToken || ""}
         />
       </div>
     </div>
