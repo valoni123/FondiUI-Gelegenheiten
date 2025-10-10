@@ -288,7 +288,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Calendar
                 mode="single"
                 selected={dateValue}
-                onSelect={(date) => handleChange(key, date ? format(date, "yyyy-MM-dd") : "")}
+                onSelect={(date) => handleChange(key, date ? format(date, "yyyy-MM-dd'T'00:00:00'Z'") : "")} // Changed format here
                 initialFocus
               />
             </PopoverContent>
