@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto"> {/* Added min-h-[70vh] */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto">
           {/* Custom Header Area */}
           <div className="flex items-center justify-between border-b pb-4 mb-4">
             <div className="flex items-center gap-2 text-xl font-bold">
@@ -387,19 +387,14 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             </TabsList>
             <TabsContent value="gelegenheit" className="py-4">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Left Column */}
-                <div className="space-y-8">
-                  {renderSection("Allgemein", structuredFields.general)}
-                  {renderSection("Klassifizierung", structuredFields.classification)}
-                  {renderSection("Termine", structuredFields.dates)}
-                </div>
+                {renderSection("Allgemein", structuredFields.general)}
+                {renderSection("Fortschritt", structuredFields.progress)}
 
-                {/* Right Column */}
-                <div className="space-y-8">
-                  {renderSection("Fortschritt", structuredFields.progress)}
-                  {renderSection("Prognose", structuredFields.forecast)}
-                  {renderSection("Anwender", structuredFields.user)}
-                </div>
+                {renderSection("Klassifizierung", structuredFields.classification)}
+                {renderSection("Prognose", structuredFields.forecast)}
+
+                {renderSection("Termine", structuredFields.dates)}
+                {renderSection("Anwender", structuredFields.user)}
               </div>
             </TabsContent>
             <TabsContent value="sonstiges" className="py-4">
@@ -438,8 +433,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               )}
             </TabsContent>
           </Tabs>
-
-          {/* DialogFooter removed as button moved to header */}
         </DialogContent>
       </Dialog>
 
