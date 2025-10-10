@@ -1,7 +1,8 @@
 export interface Item {
   id: string;
   name: string;
-  description: string; // This will be for the 'Allgemeine Daten' field, mapped to API's 'Description'
+  description: string; // This will be for the separate 'Beschreibung' field, mapped to API's 'Description'
+  opportunityText?: string; // New field for 'Allgemeine Daten', mapped to API's 'OpportunityText'
   // quantity?: number; // Removed as it's not a mappable property for the API
 
   // New fields based on the requested layout
@@ -31,8 +32,9 @@ export interface Item {
   CreationDate?: string;
   LastModifiedBy?: string;
   LastTransactionDate?: string;
-  "tdsmi110.text"?: string; // This will be a read-only field from API, used as fallback for 'description'
+  "tdsmi110.text"?: string; // This will be a read-only field from API, used as fallback for 'opportunityText'
   Description?: string; // This is the API field that 'description' maps to for writing
+  OpportunityText?: string; // This is the API field that 'opportunityText' maps to for writing
 
   // Allow for any other properties that might come from the API
   [key: string]: any;

@@ -12,8 +12,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   // Explicitly remove tdsmi110.text from the copy to ensure it's never sent in the payload
   delete itemDataCopy["tdsmi110.text"];
 
-  // Map our UI's 'description' (which is for 'Allgemeine Daten') to the API's 'Description' field for writing
+  // Map our UI's 'description' to the API's 'Description' field for writing
   payload.Description = String(itemDataCopy.description || "");
+  // Map our UI's 'opportunityText' to the API's 'OpportunityText' field for writing
+  payload.OpportunityText = String(itemDataCopy.opportunityText || "");
 
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
   if (itemDataCopy.name) payload.Name = String(itemDataCopy.name);
@@ -38,7 +40,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   // ActualCloseDate should NOT be added to the payload as it's read-only.
 
   const excludedKeys = new Set([
-    "id", "name", "description", "@odata.etag", "@odata.context",
+    "id", "name", "@odata.etag", "@odata.context",
     "Series", // Exclude Series as it cannot be modified
     "Guid", // Exclude Guid as it cannot be modified
     // Derived/expanded fields
@@ -52,8 +54,12 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    // Exclude 'Description' from dynamic loop as it's explicitly handled above
-    "Description",
+    // Exclude UI fields that are explicitly mapped to API fields
+    "description", // Mapped to payload.Description
+    "opportunityText", // Mapped to payload.OpportunityText
+    // Exclude API fields that are explicitly mapped or handled
+    "Description", // Handled by mapping itemData.description
+    "OpportunityText", // Handled by mapping itemData.opportunityText
     // tdsmi110.text is now explicitly deleted from itemDataCopy, so no need to exclude it here.
   ]);
 
@@ -116,15 +122,16 @@ export const createItem = async (
     const newItem: Item = {
       id: odataResponse.Opportunity || String(Math.random() * 100000),
       name: odataResponse.Name || odataResponse.Opportunity || "N/A",
-      description: odataResponse.Description || odataResponse["tdsmi110.text"] || "No description", // Map API's Description to our 'description', fallback to tdsmi110.text
-      "tdsmi110.text": odataResponse["tdsmi110.text"] || "No Allgemeine Daten text", // Keep raw tdsmi110.text
+      description: odataResponse.Description || "No description", // Map API's Description to our 'description'
+      opportunityText: odataResponse.OpportunityText || odataResponse["tdsmi110.text"] || "No Allgemeine Daten text", // Map API's OpportunityText to our 'opportunityText', fallback to tdsmi110.text
+      "tdsmi110.text": odataResponse["tdsmi110.text"] || "No Allgemeine Daten text (raw)", // Keep raw tdsmi110.text
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
     };
 
     const keysToExcludeFromNewItem = new Set([
-      "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
+      "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
       "tdsmi110.text" // Exclude from being copied into our Item object, as it's explicitly mapped
     ]);
@@ -207,15 +214,16 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
-        description: odataItem.Description || odataItem["tdsmi110.text"] || "No description", // Map API's Description to our 'description', fallback to tdsmi110.text
-        "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text", // Keep raw tdsmi110.text
+        description: odataItem.Description || "No description", // Map API's Description to our 'description'
+        opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "No Allgemeine Daten text", // Map API's OpportunityText to our 'opportunityText', fallback to tdsmi110.text
+        "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text (raw)", // Keep raw tdsmi110.text
         DateOfFirstContact: odataItem.DateOfFirstContact,
         ExpectedCloseDate: odataItem.ExpectedCloseDate,
         ActualCloseDate: odataItem.ActualCloseDate,
       };
 
       const keysToExcludeFromNewItem = new Set([
-        "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
+        "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
         "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
         "tdsmi110.text" // Exclude from being copied into our Item object, as it's explicitly mapped
       ]);
