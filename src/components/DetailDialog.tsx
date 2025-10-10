@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col absolute inset-0 m-auto overflow-y-auto"> {/* Applied absolute inset-0 m-auto for centering */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] h-[90vh] flex flex-col overflow-hidden"> {/* Changed max-h to h and added overflow-hidden */}
           {/* Save Button - positioned absolutely */}
           <Button
             type="submit"
