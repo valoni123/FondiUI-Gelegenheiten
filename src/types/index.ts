@@ -15,9 +15,9 @@ export interface Item {
   AssignedTo?: string;
   Type?: string;
   Source?: string;
-  FirstContactDate?: string; // Storing as string, will parse for date picker
-  ExpectedCompletionDate?: string;
-  ActualCompletionDate?: string;
+  DateOfFirstContact?: string; // Renamed from FirstContactDate
+  ExpectedCloseDate?: string; // Renamed from ExpectedCompletionDate
+  ActualCloseDate?: string; // Renamed from ActualCompletionDate
   Status?: string; // Already exists, but ensuring it's here
   SalesProcess?: string;
   Phase?: string;

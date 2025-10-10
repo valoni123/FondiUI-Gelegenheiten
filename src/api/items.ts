@@ -17,10 +17,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     Phase: itemData.Phase ? String(itemData.Phase) : null,
     Reason: itemData.Reason ? String(itemData.Reason) : null,
     AssignedTo: itemData.AssignedTo ? String(itemData.AssignedTo) : null,
-    // Ensure date fields are sent as strings or null
-    FirstContactDate: itemData.FirstContactDate ? String(itemData.FirstContactDate) : null,
-    ExpectedCompletionDate: itemData.ExpectedCompletionDate ? String(itemData.ExpectedCompletionDate) : null,
-    ActualCompletionDate: itemData.ActualCompletionDate ? String(itemData.ActualCompletionDate) : null,
+    // Ensure date fields are sent as strings or null, using the correct API names
+    DateOfFirstContact: itemData.DateOfFirstContact ? String(itemData.DateOfFirstContact) : null,
+    ExpectedCloseDate: itemData.ExpectedCloseDate ? String(itemData.ExpectedCloseDate) : null,
+    ActualCloseDate: itemData.ActualCloseDate ? String(itemData.ActualCloseDate) : null,
   };
 
   const excludedKeys = new Set([
@@ -35,7 +35,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     // Fields explicitly handled above to avoid duplication or incorrect type handling
     "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
     "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+    // Old date field names, now excluded
     "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+    // New date field names, already handled above, so exclude from generic loop
+    "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
   ]);
@@ -100,10 +103,14 @@ export const createItem = async (
       id: odataResponse.Opportunity || String(Math.random() * 100000),
       name: odataResponse.Name || odataResponse.Opportunity || "N/A",
       description: odataResponse.Description || "No description",
+      DateOfFirstContact: odataResponse.DateOfFirstContact,
+      ExpectedCloseDate: odataResponse.ExpectedCloseDate,
+      ActualCloseDate: odataResponse.ActualCloseDate,
     };
 
     for (const key in odataResponse) {
-      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context") {
+      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context" &&
+          key !== "DateOfFirstContact" && key !== "ExpectedCloseDate" && key !== "ActualCloseDate") {
         newItem[key] = odataResponse[key];
       }
     }
@@ -180,11 +187,16 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
         description: odataItem.Description || "No description",
+        // Map the correct date fields from OData response
+        DateOfFirstContact: odataItem.DateOfFirstContact,
+        ExpectedCloseDate: odataItem.ExpectedCloseDate,
+        ActualCloseDate: odataItem.ActualCloseDate,
       };
 
-      // Dynamically add all other properties from OData response
+      // Dynamically add all other properties from OData response, excluding already mapped date fields
       for (const key in odataItem) {
-        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context") {
+        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context" &&
+            key !== "DateOfFirstContact" && key !== "ExpectedCloseDate" && key !== "ActualCloseDate") {
           mappedItem[key] = odataItem[key];
         }
       }

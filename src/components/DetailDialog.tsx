@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogFooter,
-  DialogContent, // Added DialogContent here
+  DialogContent,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,7 +24,7 @@ import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DetailDialogProps {
   item: Item | null;
@@ -47,12 +47,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
-  // Removed [soldToBpName, setSoldToBpName] state
 
-  // Effect to initialize editedItem when the dialog opens or item/isAddingNewItem changes
   useEffect(() => {
     if (!isOpen) {
-      // Reset editedItem when dialog closes
       setEditedItem(null);
       return;
     }
@@ -62,7 +59,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         id: "",
         name: "",
         description: "",
-        // quantity: 0, // Removed
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",
@@ -73,9 +69,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         AssignedTo: "",
         Type: "100",
         Source: "",
-        FirstContactDate: "",
-        ExpectedCompletionDate: "",
-        ActualCompletionDate: "",
+        DateOfFirstContact: "", // Renamed
+        ExpectedCloseDate: "", // Renamed
+        ActualCloseDate: "", // Renamed
         Status: opportunityStatusOptions.length > 0 ? opportunityStatusOptions[0] : "",
         SalesProcess: "",
         Phase: "",
@@ -91,16 +87,13 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         LastTransactionDate: "",
       });
     } else if (item) {
-      // Initialize with existing item data, ensuring description is a string
       setEditedItem({
         ...item,
-        description: item.description || "", // Ensure description is always a string
+        description: item.description || "",
       });
     }
-  }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]); // Added isOpen to dependencies
+  }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
 
-  // Effect to fetch business partner details when editedItem.SoldtoBusinessPartner changes
-  // This will run both on initial load of an existing item and after a BP is selected
   useEffect(() => {
     if (editedItem?.SoldtoBusinessPartner && authToken) {
       const fetchBpDetails = async () => {
@@ -116,7 +109,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
             }));
           } else {
-            // Clear BP name and address if BP not found
             setEditedItem(prev => ({
               ...prev!,
               SoldtoBusinessPartnerName: "",
@@ -140,7 +132,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       };
       fetchBpDetails();
     } else if (editedItem && !editedItem.SoldtoBusinessPartner) {
-      // If SoldtoBusinessPartner is cleared, also clear its name and address
       setEditedItem(prev => ({
         ...prev!,
         SoldtoBusinessPartnerName: "",
@@ -150,7 +141,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         SoldtoBusinessPartnerCountry: "",
       }));
     }
-  }, [editedItem?.SoldtoBusinessPartner, authToken]); // Depend on editedItem.SoldtoBusinessPartner
+  }, [editedItem?.SoldtoBusinessPartner, authToken]);
 
   const handleChange = (field: string, value: string | number | boolean) => {
     if (editedItem) {
@@ -166,7 +157,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   };
 
   const handleSelectBusinessPartner = (bp: BusinessPartner) => {
-    // Update all relevant fields in editedItem directly
     setEditedItem(prev => ({
       ...prev!,
       SoldtoBusinessPartner: bp.BusinessPartner,
@@ -197,9 +187,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       { key: "Source", label: "Quelle", type: "text", hasSearch: true },
     ],
     dates: [
-      { key: "FirstContactDate", label: "Erster Kontakt am", type: "date", isRequired: true },
-      { key: "ExpectedCompletionDate", label: "Erwartetes Abschlussdatum", type: "date" },
-      { key: "ActualCompletionDate", label: "Tatsächliches Abschlussdatum", type: "date" },
+      { key: "DateOfFirstContact", label: "Erster Kontakt am", type: "date", isRequired: true }, // Renamed key
+      { key: "ExpectedCloseDate", label: "Erwartetes Abschlussdatum", type: "date" }, // Renamed key
+      { key: "ActualCloseDate", label: "Tatsächliches Abschlussdatum", type: "date" }, // Renamed key
     ],
     progress: [
       { key: "Status", label: "Status", type: "select", options: opportunityStatusOptions },

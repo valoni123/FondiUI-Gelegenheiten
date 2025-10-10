@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp, Search } from "lucide-react"; // Import Search icon
+import { ArrowRight, ArrowDownUp, Search } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -19,15 +19,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog"; // Import BusinessPartnerSelectDialog
-import { BusinessPartner } from "@/api/businessPartners"; // Import BusinessPartner type
+import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
+import { BusinessPartner } from "@/api/businessPartners";
 
 interface GridListProps {
   items: Item[];
-  onUpdateItem: (id: string, field: string, value: string | number | boolean) => void; // Updated type to include boolean
+  onUpdateItem: (id: string, field: string, value: string | number | boolean) => void;
   onViewDetails: (item: Item) => void;
   opportunityStatusOptions: string[];
-  authToken: string; // New prop for authentication token
+  authToken: string;
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -35,26 +35,25 @@ const GridList: React.FC<GridListProps> = ({
   onUpdateItem,
   onViewDetails,
   opportunityStatusOptions,
-  authToken, // Destructure authToken
+  authToken,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
-  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false); // State for BP dialog
-  const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null); // State to track which item's BP is being edited
+  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
+  const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
 
-  // Determine all unique keys from the items to use as columns
   const allKeys = useMemo(() => {
     const keys = new Set<string>();
     items.forEach((item) => {
       for (const key in item) {
-        // Exclude internal OData keys and ensure 'id' is always first, then 'name', 'description'
         if (key !== "@odata.etag" && key !== "@odata.context") {
           keys.add(key);
         }
       }
     });
     // Order the keys: id, name, description first, then others alphabetically
-    const orderedKeys = ["id", "name", "description"].filter(k => keys.has(k)); // 'quantity' removed
+    // Ensure new date field names are considered if they appear in the initial items
+    const orderedKeys = ["id", "name", "description", "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate"].filter(k => keys.has(k));
     const otherKeys = Array.from(keys).filter(k => !orderedKeys.includes(k)).sort();
     return [...orderedKeys, ...otherKeys];
   }, [items]);
@@ -74,11 +73,10 @@ const GridList: React.FC<GridListProps> = ({
   const filteredAndSortedItems = useMemo(() => {
     let currentItems = [...items];
 
-    // Apply filters
     currentItems = currentItems.filter((item) => {
       for (const key in filters) {
         const filterValue = filters[key].toLowerCase();
-        const itemValue = String(item[key] || "").toLowerCase(); // Handle null/undefined values
+        const itemValue = String(item[key] || "").toLowerCase();
         if (filterValue && !itemValue.includes(filterValue)) {
           return false;
         }
@@ -86,13 +84,11 @@ const GridList: React.FC<GridListProps> = ({
       return true;
     });
 
-    // Apply sorting
     if (sortConfig) {
       currentItems.sort((a, b) => {
         const aValue = a[sortConfig.key];
         const bValue = b[sortConfig.key];
 
-        // Handle null/undefined values for sorting
         if (aValue === null || aValue === undefined) return sortConfig.direction === "asc" ? 1 : -1;
         if (bValue === null || bValue === undefined) return sortConfig.direction === "asc" ? -1 : 1;
 
@@ -104,7 +100,6 @@ const GridList: React.FC<GridListProps> = ({
         if (typeof aValue === "number" && typeof bValue === "number") {
           return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
         }
-        // Fallback for other types, or if types are mixed
         return 0;
       });
     }
@@ -118,7 +113,6 @@ const GridList: React.FC<GridListProps> = ({
 
   const handleSelectBusinessPartnerFromGrid = (bp: BusinessPartner) => {
     if (currentEditingItemId) {
-      // ONLY update SoldtoBusinessPartner ID. Index.tsx will handle fetching and updating derived fields.
       onUpdateItem(currentEditingItemId, "SoldtoBusinessPartner", bp.BusinessPartner);
     }
     setIsBpSelectDialogOpen(false);
@@ -130,7 +124,7 @@ const GridList: React.FC<GridListProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[50px] text-center"></TableHead> {/* For details button */}
+            <TableHead className="w-[50px] text-center"></TableHead>
             {allKeys.map((key) => (
               <TableHead key={key} className="min-w-[100px]">
                 <div className="flex flex-col space-y-1">
@@ -140,7 +134,7 @@ const GridList: React.FC<GridListProps> = ({
                     onClick={() => handleSort(key)}
                     className="flex items-center gap-1 justify-start px-2"
                   >
-                    {key.replace(/([A-Z])/g, ' $1').trim()} {/* Make key readable */}
+                    {key.replace(/([A-Z])/g, ' $1').trim()}
                     {sortConfig?.key === key && (
                       <ArrowDownUp
                         className={cn(
@@ -204,7 +198,7 @@ const GridList: React.FC<GridListProps> = ({
                             )
                           }
                           className="pr-10 w-full"
-                          disabled={false} // Allow manual input
+                          disabled={false}
                         />
                         <Button
                           variant="ghost"
@@ -231,7 +225,6 @@ const GridList: React.FC<GridListProps> = ({
                         )
                       }
                       className="w-full"
-                      // Disable editing for ID and other system-generated/read-only fields
                       disabled={
                         key === "id" ||
                         key === "Opportunity" ||
