@@ -2,10 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +15,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar"; // Import Calendar
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"; // Import Popover
-import { Textarea } from "@/components/ui/textarea"; // Import Textarea
-import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
-import { Search, CalendarIcon } from "lucide-react"; // Import Search and CalendarIcon
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Search, CalendarIcon } from "lucide-react";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
-import { cn } from "@/lib/utils"; // Import cn for conditional classNames
-import { format } from "date-fns"; // Import format from date-fns
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs components
 
 interface DetailDialogProps {
   item: Item | null;
@@ -62,7 +60,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         SoldtoBusinessPartnerName: "",
         BusinessPartnerStatus: "Active", // Default for new item
         AssignedTo: "",
-        Type: "",
+        Type: "100", // Default for new item as per screenshot
         Source: "",
         FirstContactDate: "",
         ExpectedCompletionDate: "",
@@ -126,15 +124,15 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     general: [
       { key: "description", label: "Allgemeine Daten", type: "textarea" },
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
-      { key: "BusinessPartnerStatus", label: "Handelspartnerstatus", type: "text", disabled: true, defaultValue: "Active" },
+      { key: "BusinessPartnerStatus", label: "Handelspartnerstatus", type: "text", disabled: true, defaultValue: "Aktiv" },
       { key: "AssignedTo", label: "Zugewiesen an", type: "text", hasSearch: true, hasAssignButton: true },
     ],
     classification: [
-      { key: "Type", label: "Art", type: "text", hasSearch: true, defaultValue: "100" },
+      { key: "Type", label: "Art", type: "text", hasSearch: true, defaultValue: "100", displaySuffix: "Produkt" },
       { key: "Source", label: "Quelle", type: "text", hasSearch: true },
     ],
     dates: [
-      { key: "FirstContactDate", label: "Erster Kontakt am", type: "date" },
+      { key: "FirstContactDate", label: "Erster Kontakt am", type: "date", isRequired: true },
       { key: "ExpectedCompletionDate", label: "Erwartetes Abschlussdatum", type: "date" },
       { key: "ActualCompletionDate", label: "Tatsächliches Abschlussdatum", type: "date" },
     ],
@@ -175,7 +173,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   ).sort();
 
   const renderField = (fieldConfig: typeof structuredFields.general[0]) => {
-    const { key, label, type, disabled, options, hasSearch, hasAssignButton, suffix, isRequired, defaultValue } = fieldConfig;
+    const { key, label, type, disabled, options, hasSearch, hasAssignButton, suffix, isRequired, defaultValue, displaySuffix } = fieldConfig;
     const value = editedItem[key] !== null && editedItem[key] !== undefined ? editedItem[key] : (isAddingNewItem ? defaultValue : "");
 
     const commonInputProps = {
@@ -294,15 +292,19 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       case "text":
       default:
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <Input
               {...commonInputProps}
               type={type === "number" ? "number" : "text"}
               value={String(value)}
               onChange={(e) => handleChange(key, type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-              className={cn(hasSearch && "pr-10", suffix && "pr-12")}
+              className={cn(
+                (hasSearch || suffix || displaySuffix) && "pr-10", // Adjust padding for icons/suffixes
+                suffix && "pr-12" // More padding if there's a suffix
+              )}
             />
             {suffix && <span className="text-sm text-muted-foreground absolute right-2">{suffix}</span>}
+            {displaySuffix && <span className="text-sm text-muted-foreground whitespace-nowrap">{displaySuffix}</span>}
             {hasSearch && (
               <Button
                 variant="ghost"
@@ -351,62 +353,98 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {isAddingNewItem ? "Add New Item" : `Edit Item Details (ID: ${editedItem.id})`}
-            </DialogTitle>
-            <DialogDescription>
-              {isAddingNewItem ? "Enter details for the new item." : "Make changes to your item here. Click save when you're done."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column */}
-            <div className="space-y-8">
-              {renderSection("Allgemein", structuredFields.general)}
-              {renderSection("Klassifizierung", structuredFields.classification)}
-              {renderSection("Termine", structuredFields.dates)}
+          {/* Custom Header Area */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4">
+            <div className="flex items-center gap-2 text-xl font-bold">
+              <span>Gelegenheit:</span>
+              <Input
+                value={editedItem.id}
+                disabled
+                className="w-32 text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0"
+              />
+              <div className="relative">
+                <Input
+                  value={editedItem.name}
+                  onChange={(e) => handleChange("name", e.target.value)}
+                  className="w-48 text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0 pr-8"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => console.log("Search Opportunity Name")}
+                  aria-label="Search Opportunity Name"
+                  className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-
-            {/* Right Column */}
-            <div className="space-y-8">
-              {renderSection("Fortschritt", structuredFields.progress)}
-              {renderSection("Prognose", structuredFields.forecast)}
-              {renderSection("Anwender", structuredFields.user)}
+            {/* Placeholder for top-right icon if needed */}
+            <div>
+              {/* <Button variant="ghost" size="icon"><MoreHorizontal className="h-5 w-5" /></Button> */}
             </div>
+          </div>
 
-            {/* Other Details Section for any remaining dynamic fields */}
-            {otherKeys.length > 0 && (
-              <div className="lg:col-span-2 space-y-4 mt-8">
-                <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
-                  {otherKeys.map((key) => (
-                    <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
-                      <Label htmlFor={key} className="text-right capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </Label>
-                      <Input
-                        id={key}
-                        type={typeof editedItem[key] === "number" ? "number" : "text"}
-                        value={String(editedItem[key] || "")}
-                        onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-                        className="w-full"
-                        placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-                        disabled={
-                          key === "Opportunity" ||
-                          key === "Guid" ||
-                          key === "CreationDate" ||
-                          key === "LastTransactionDate" ||
-                          key === "CreatedBy" ||
-                          key === "LastModifiedBy"
-                        }
-                      />
-                    </div>
-                  ))}
+          <Tabs defaultValue="gelegenheit" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
+              <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
+            </TabsList>
+            <TabsContent value="gelegenheit" className="py-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-8">
+                  {renderSection("Allgemein", structuredFields.general)}
+                  {renderSection("Klassifizierung", structuredFields.classification)}
+                  {renderSection("Termine", structuredFields.dates)}
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-8">
+                  {renderSection("Fortschritt", structuredFields.progress)}
+                  {renderSection("Prognose", structuredFields.forecast)}
+                  {renderSection("Anwender", structuredFields.user)}
                 </div>
               </div>
-            )}
-          </div>
-          <DialogFooter>
+            </TabsContent>
+            <TabsContent value="sonstiges" className="py-4">
+              {/* Other Details Section for any remaining dynamic fields */}
+              {otherKeys.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+                    {otherKeys.map((key) => (
+                      <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
+                        <Label htmlFor={key} className="text-right capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </Label>
+                        <Input
+                          id={key}
+                          type={typeof editedItem[key] === "number" ? "number" : "text"}
+                          value={String(editedItem[key] || "")}
+                          onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+                          className="w-full"
+                          placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                          disabled={
+                            key === "Opportunity" ||
+                            key === "Guid" ||
+                            key === "CreationDate" ||
+                            key === "LastTransactionDate" ||
+                            key === "CreatedBy" ||
+                            key === "LastModifiedBy"
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">No other details available.</p>
+              )}
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="mt-4">
             <Button type="submit" onClick={handleSave}>
               {isAddingNewItem ? "Add Item" : "Save changes"}
             </Button>
