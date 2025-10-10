@@ -164,10 +164,11 @@ const Index = () => {
         );
         toast.success("Item details saved!", { id: loadingToastId });
       }
-      setIsDetailDialogOpen(false); // Close dialog on successful save
+      setIsDetailDialogOpen(false); // ONLY close dialog on successful save
     } catch (error: any) { // Catch error and specify type as 'any' for message access
       console.error("Failed to save item changes:", error);
       toast.error(error.message || "Failed to save item changes.", { id: loadingToastId });
+      // Dialog remains open, data is preserved
     }
   };
 

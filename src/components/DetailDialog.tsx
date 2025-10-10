@@ -156,7 +156,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const handleSave = () => {
     if (editedItem) {
       onSave(editedItem);
-      onClose();
+      // onClose(); // Removed: Parent component (Index.tsx) will now decide when to close the dialog
     }
   };
 
