@@ -11,8 +11,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   if (itemData.name) payload.Name = String(itemData.name);
   if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
   if (itemData.Status) payload.Status = String(itemData.Status);
-  // Boolean and number fields should always be sent if they exist, even if 0 or false
-  payload.IncludeInForecast = itemData.IncludeInForecast ?? false;
+  
+  // Convert boolean IncludeInForecast to Infor LN specific string
+  payload.IncludeInForecast = itemData.IncludeInForecast ? "tcyesno.yes" : "tcyesno.no";
+
   payload.ProbabilityPercentage = itemData.ProbabilityPercentage ?? 0;
   payload.ExpectedRevenue = itemData.ExpectedRevenue ?? 0;
   if (itemData.Source) payload.Source = String(itemData.Source);
