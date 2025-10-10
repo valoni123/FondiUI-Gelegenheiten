@@ -162,8 +162,8 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50"> {/* Removed p-4 */}
-      <div className="w-full px-4 space-y-6"> {/* Added px-4 for horizontal padding */}
+    <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
+      <div className="w-full px-4 space-y-6">
         <h1 className="text-4xl font-bold text-center mb-6">
           Opportunity List
         </h1>
@@ -189,6 +189,7 @@ const Index = () => {
           onSave={handleSaveDetailChanges}
           isAddingNewItem={isAddingNewItem}
           opportunityStatusOptions={opportunityStatusOptions}
+          authToken={authToken || ""} {/* Pass authToken to DetailDialog */}
         />
       </div>
     </div>
