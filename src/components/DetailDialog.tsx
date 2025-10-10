@@ -364,26 +364,27 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col">
-          {/* Custom Header Area (for title and save button) */}
-          <div className="flex items-center justify-between border-b pb-4 mb-4 flex-shrink-0"> {/* Removed pr-[150px] */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative overflow-y-auto"> {/* Added relative and overflow-y-auto */}
+          {/* Save Button - positioned absolutely */}
+          <Button
+            type="submit"
+            onClick={handleSave}
+            className="absolute top-4 right-20 z-10" // Adjusted right position
+          >
+            {isAddingNewItem ? "Add Item" : "Save changes"}
+          </Button>
+
+          {/* Custom Header Area (for title) */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0"> {/* Keep pr-[150px] to make space for the button */}
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
               <span className="text-xl font-bold">{editedItem.name}</span>
             </div>
-            {/* Save Button - now part of the header flex container */}
-            <Button
-              type="submit"
-              onClick={handleSave}
-              className="ml-auto" // Pushes the button to the right
-            >
-              {isAddingNewItem ? "Add Item" : "Save changes"}
-            </Button>
           </div>
 
           <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow h-full">
-            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0 w-fit"> {/* Changed justify-center to justify-start and added w-fit */}
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0 w-fit">
               <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
               <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
             </TabsList>
