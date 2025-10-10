@@ -7,7 +7,7 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {
     Name: itemData.name ? String(itemData.name) : null,
-    Description: itemData.description ? String(itemData.description) : null,
+    // Description: itemData.description ? String(itemData.description) : null, // Removed as it's managed by text numbers
     SoldtoBusinessPartner: itemData.SoldtoBusinessPartner ? String(itemData.SoldtoBusinessPartner) : null,
     Status: itemData.Status ? String(itemData.Status) : null,
     IncludeInForecast: itemData.IncludeInForecast ?? false,
@@ -21,7 +21,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   };
 
   const excludedKeys = new Set([
-    "id", "name", "description", "@odata.etag", "@odata.context",
+    "id", "name", "description", "@odata.etag", "@odata.context", // Added 'description' to excluded keys
     // Derived/expanded fields
     "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
     "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
