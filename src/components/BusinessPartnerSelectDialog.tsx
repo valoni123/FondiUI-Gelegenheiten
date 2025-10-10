@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,12 +7,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowRight } from "lucide-react";
 import { getActiveBusinessPartners, BusinessPartner } from "@/api/businessPartners";
 import { toast } from "sonner";
-import BusinessPartnerGrid from "./BusinessPartnerGrid"; // Import the new grid component
+import BusinessPartnerGrid from "./BusinessPartnerGrid";
+import { useDebounce } from "@/hooks/use-debounce"; // Import the new hook
 
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
@@ -29,26 +28,34 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
 }) => {
   const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Debounce the search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
+
+  const fetchPartners = useCallback(async (term: string) => {
+    if (!authToken) return;
+
+    setIsLoading(true);
+    const loadingToastId = toast.loading("Loading business partners...");
+    try {
+      const partners = await getActiveBusinessPartners(authToken, term);
+      setBusinessPartners(partners);
+      toast.success("Business partners loaded!", { id: loadingToastId });
+    } catch (error) {
+      console.error("Failed to fetch business partners:", error);
+      toast.error("Failed to load business partners.", { id: loadingToastId });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authToken]);
 
   useEffect(() => {
-    if (isOpen && authToken) {
-      const fetchPartners = async () => {
-        setIsLoading(true);
-        const loadingToastId = toast.loading("Loading business partners...");
-        try {
-          const partners = await getActiveBusinessPartners(authToken);
-          setBusinessPartners(partners);
-          toast.success("Business partners loaded!", { id: loadingToastId });
-        } catch (error) {
-          console.error("Failed to fetch business partners:", error);
-          toast.error("Failed to load business partners.", { id: loadingToastId });
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPartners();
+    if (isOpen) {
+      // Fetch partners when dialog opens or debounced search term changes
+      fetchPartners(debouncedSearchTerm);
     }
-  }, [isOpen, authToken]);
+  }, [isOpen, debouncedSearchTerm, fetchPartners]);
 
   const handleSelectPartner = (partner: BusinessPartner) => {
     onSelect(partner);
@@ -57,14 +64,22 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col"> {/* Increased width and height */}
+      <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Select Business Partner</DialogTitle>
           <DialogDescription>
             Search and select an active business partner from the list below.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 flex-grow overflow-hidden"> {/* Allow content to grow and scroll */}
+        <div className="py-4 flex-shrink-0">
+          <Input
+            placeholder="Search by ID or Name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <div className="flex-grow overflow-hidden">
           {isLoading ? (
             <div className="text-center text-muted-foreground">Loading...</div>
           ) : (
