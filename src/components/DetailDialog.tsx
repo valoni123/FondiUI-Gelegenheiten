@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, CalendarIcon } from "lucide-react";
+import { Search, CalendarIcon } from "lucide-react"; // Corrected this line
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
 import { cn } from "@/lib/utils";
@@ -365,6 +365,15 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative">
+          {/* Save Button - positioned absolutely */}
+          <Button
+            type="submit"
+            onClick={handleSave}
+            className="absolute top-4 right-20 z-10"
+          >
+            {isAddingNewItem ? "Add Item" : "Save changes"}
+          </Button>
+
           {/* Custom Header Area (for title) */}
           <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0">
             <div className="flex items-center gap-2 text-xl font-bold">
@@ -427,13 +436,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               )}
             </TabsContent>
           </Tabs>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button type="submit" onClick={handleSave}>
-              {isAddingNewItem ? "Add Item" : "Save changes"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
