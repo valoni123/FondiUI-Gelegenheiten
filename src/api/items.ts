@@ -17,13 +17,12 @@ export const createItem = async (
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      // Type: itemData.Type || "", // Removed as it's not a mappable property
       Source: itemData.Source || "", // Ensure source is always a string
       SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
       Phase: itemData.Phase || "", // Ensure phase is always a string
       Reason: itemData.Reason || "", // Ensure reason is always a string
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
-      FirstContactDate: itemData.FirstContactDate || "", // Ensure date is always a string
+      // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
       ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
       ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
@@ -38,9 +37,9 @@ export const createItem = async (
       "SoldtoBusinessPartnerCountry",
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", // Exclude 'Type' from dynamic addition as well
-      "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "FirstContactDate", // Exclude 'FirstContactDate' from dynamic addition as well
+      "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
@@ -114,13 +113,12 @@ export const updateItem = async (
       IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
       ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
       ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
-      // Type: itemData.Type || "", // Removed as it's not a mappable property
       Source: itemData.Source || "", // Ensure source is always a string
       SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
       Phase: itemData.Phase || "", // Ensure phase is always a string
       Reason: itemData.Reason || "", // Ensure reason is always a string
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
-      FirstContactDate: itemData.FirstContactDate || "", // Ensure date is always a string
+      // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
       ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
       ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
@@ -135,9 +133,9 @@ export const updateItem = async (
       "SoldtoBusinessPartnerCountry",
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
-      "Type", // Exclude 'Type' from dynamic addition as well
-      "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
+      "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
+      "FirstContactDate", // Exclude 'FirstContactDate' from dynamic addition as well
+      "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
