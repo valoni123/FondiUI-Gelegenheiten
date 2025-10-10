@@ -1,7 +1,7 @@
 export interface Item {
   id: string;
   name: string;
-  description: string;
+  description: string; // This will be for the separate 'Beschreibung' field
   // quantity?: number; // Removed as it's not a mappable property for the API
 
   // New fields based on the requested layout
@@ -31,8 +31,8 @@ export interface Item {
   CreationDate?: string;
   LastModifiedBy?: string;
   LastTransactionDate?: string;
-  "tdsmi110.text"?: string; // Read-only field from API
-  Description?: string; // Writable field for API
+  "tdsmi110.text"?: string; // This will be for 'Allgemeine Daten'
+  Description?: string; // This is the API field for 'description'
 
   // Allow for any other properties that might come from the API
   [key: string]: any;

@@ -58,7 +58,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       setEditedItem({
         id: "",
         name: "",
-        description: "", // This will now map to tdsmi110.text
+        description: "", // This is now a separate 'Beschreibung' field
+        "tdsmi110.text": "", // This is now 'Allgemeine Daten'
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
         SoldtoBusinessPartnerStreet: "",
@@ -90,6 +91,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       setEditedItem({
         ...item,
         description: item.description || "", // Ensure description is always a string
+        "tdsmi110.text": item["tdsmi110.text"] || "", // Ensure tdsmi110.text is always a string
       });
     }
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
@@ -173,7 +175,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      { key: "description", label: "Allgemeine Daten", type: "textarea" }, // This now maps to tdsmi110.text
+      { key: "tdsmi110.text", label: "Allgemeine Daten", type: "textarea" }, // This is now the 'Opportunity Text'
+      { key: "description", label: "Beschreibung", type: "textarea" }, // This is the separate 'Description' field
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
       { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true }, // New
       { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true }, // New
@@ -222,10 +225,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const otherKeys = Object.keys(editedItem).filter(key =>
     !structuredKeys.has(key) &&
     key !== "id" &&
-    key !== "name" && // 'name' is implicitly handled by 'description' for 'Allgemeine Daten'
+    key !== "name" &&
     key !== "@odata.etag" &&
-    key !== "@odata.context" &&
-    key !== "tdsmi110.text" // Explicitly exclude tdsmi110.text from other details
+    key !== "@odata.context"
   ).sort();
 
   const renderField = (fieldConfig: typeof structuredFields.general[0]) => {

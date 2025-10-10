@@ -7,38 +7,35 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {}; // Start with an empty payload
 
-  // Create a mutable copy of itemData to safely remove properties
-  const itemDataCopy = { ...itemData };
-  // Explicitly remove tdsmi110.text from the copy to ensure it's never sent in the payload
-  delete itemDataCopy["tdsmi110.text"];
-
   // Map our UI's 'description' to the API's 'Description' field for writing
-  payload.Description = String(itemDataCopy.description || "");
+  payload.Description = String(itemData.description || "");
+  // Map 'tdsmi110.text' directly for 'Allgemeine Daten'
+  payload["tdsmi110.text"] = String(itemData["tdsmi110.text"] || "");
 
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
-  if (itemDataCopy.name) payload.Name = String(itemDataCopy.name);
-  if (itemDataCopy.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemDataCopy.SoldtoBusinessPartner);
-  if (itemDataCopy.Status) payload.Status = String(itemDataCopy.Status);
+  if (itemData.name) payload.Name = String(itemData.name);
+  if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
+  if (itemData.Status) payload.Status = String(itemData.Status);
   
   // Convert boolean IncludeInForecast to Infor LN specific string: "Yes" or "No"
-  payload.IncludeInForecast = itemDataCopy.IncludeInForecast ? "Yes" : "No";
+  payload.IncludeInForecast = itemData.IncludeInForecast ? "Yes" : "No";
 
-  payload.ProbabilityPercentage = itemDataCopy.ProbabilityPercentage ?? 0;
-  payload.ExpectedRevenue = itemDataCopy.ExpectedRevenue ?? 0;
-  if (itemDataCopy.Source) payload.Source = String(itemDataCopy.Source);
-  if (itemDataCopy.SalesProcess) payload.SalesProcess = String(itemDataCopy.SalesProcess);
-  if (itemDataCopy.Phase) payload.Phase = String(itemDataCopy.Phase);
-  if (itemDataCopy.Reason) payload.Reason = String(itemDataCopy.Reason);
-  if (itemDataCopy.AssignedTo) payload.AssignedTo = String(itemDataCopy.AssignedTo);
+  payload.ProbabilityPercentage = itemData.ProbabilityPercentage ?? 0;
+  payload.ExpectedRevenue = itemData.ExpectedRevenue ?? 0;
+  if (itemData.Source) payload.Source = String(itemData.Source);
+  if (itemData.SalesProcess) payload.SalesProcess = String(itemData.SalesProcess);
+  if (itemData.Phase) payload.Phase = String(itemData.Phase);
+  if (itemData.Reason) payload.Reason = String(itemData.Reason);
+  if (itemData.AssignedTo) payload.AssignedTo = String(itemData.AssignedTo);
 
   // Date fields: only send if they have a value
-  if (itemDataCopy.DateOfFirstContact) payload.DateOfFirstContact = String(itemDataCopy.DateOfFirstContact);
+  if (itemData.DateOfFirstContact) payload.DateOfFirstContact = String(itemData.DateOfFirstContact);
   // ExpectedCloseDate: only send if it has a value
-  if (itemDataCopy.ExpectedCloseDate) payload.ExpectedCloseDate = String(itemDataCopy.ExpectedCloseDate);
+  if (itemData.ExpectedCloseDate) payload.ExpectedCloseDate = String(itemData.ExpectedCloseDate);
   // ActualCloseDate should NOT be added to the payload as it's read-only.
 
   const excludedKeys = new Set([
-    "id", "name", "description", "@odata.etag", "@odata.context",
+    "id", "name", "@odata.etag", "@odata.context",
     "Series", // Exclude Series as it cannot be modified
     "Guid", // Exclude Guid as it cannot be modified
     // Derived/expanded fields
@@ -52,18 +49,21 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
+    // Exclude 'description' from dynamic loop as it's explicitly handled above (mapped to payload.Description)
+    "description",
     // Exclude 'Description' from dynamic loop as it's explicitly handled above
     "Description",
-    // tdsmi110.text is now explicitly deleted from itemDataCopy, so no need to exclude it here.
+    // Exclude 'tdsmi110.text' from dynamic loop as it's explicitly handled above
+    "tdsmi110.text",
   ]);
 
-  for (const key in itemDataCopy) { // Iterate over the copy
-    if (!excludedKeys.has(key) && itemDataCopy[key] !== undefined) {
+  for (const key in itemData) {
+    if (!excludedKeys.has(key) && itemData[key] !== undefined) {
       // For dynamically added fields, if they are strings and empty, also send null
-      if (typeof itemDataCopy[key] === 'string' && itemDataCopy[key] === '') {
+      if (typeof itemData[key] === 'string' && itemData[key] === '') {
         payload[key] = null;
       } else {
-        payload[key] = itemDataCopy[key];
+        payload[key] = itemData[key];
       }
     }
   }
@@ -116,7 +116,8 @@ export const createItem = async (
     const newItem: Item = {
       id: odataResponse.Opportunity || String(Math.random() * 100000),
       name: odataResponse.Name || odataResponse.Opportunity || "N/A",
-      description: odataResponse.Description || odataResponse["tdsmi110.text"] || "No description", // Prioritize Description, fallback to tdsmi110.text
+      description: odataResponse.Description || "No description", // Map API's Description to our 'description'
+      "tdsmi110.text": odataResponse["tdsmi110.text"] || "No Allgemeine Daten text", // Map API's tdsmi110.text to our 'tdsmi110.text'
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
@@ -125,7 +126,7 @@ export const createItem = async (
     const keysToExcludeFromNewItem = new Set([
       "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-      "tdsmi110.text" // Exclude from being copied into our Item object, as it's mapped to 'description'
+      "tdsmi110.text" // Exclude from being copied into our Item object, as it's explicitly mapped
     ]);
 
     // Dynamically add all other properties from OData response, excluding already mapped date fields
@@ -206,7 +207,8 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
-        description: odataItem.Description || odataItem["tdsmi110.text"] || "No description", // Prioritize Description, fallback to tdsmi110.text
+        description: odataItem.Description || "No description", // Map API's Description to our 'description'
+        "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text", // Map API's tdsmi110.text to our 'tdsmi110.text'
         DateOfFirstContact: odataItem.DateOfFirstContact,
         ExpectedCloseDate: odataItem.ExpectedCloseDate,
         ActualCloseDate: odataItem.ActualCloseDate,
@@ -215,7 +217,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const keysToExcludeFromNewItem = new Set([
         "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
         "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-        "tdsmi110.text" // Exclude from being copied into our Item object, as it's mapped to 'description'
+        "tdsmi110.text" // Exclude from being copied into our Item object, as it's explicitly mapped
       ]);
 
       // Dynamically add all other properties from OData response, excluding already mapped date fields

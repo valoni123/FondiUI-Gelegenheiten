@@ -97,9 +97,6 @@ const Index = () => {
 
     let updatedItem = { ...itemToUpdate, [field]: value };
 
-    // Removed: No longer explicitly setting tdsmi110.text here.
-    // The 'description' field will now map to the API's 'Description' field in preparePayload.
-
     const loadingToastId = toast.loading(`Updating item ${field}...`);
 
     try {
@@ -153,9 +150,6 @@ const Index = () => {
       toast.error("Authentication token not available. Please refresh the page.");
       return;
     }
-
-    // Removed: No longer explicitly setting tdsmi110.text here.
-    // The 'description' field will now map to the API's 'Description' field in preparePayload.
 
     const loadingToastId = toast.loading(isAddingNewItem ? "Adding new item..." : "Saving item changes...");
     try {
