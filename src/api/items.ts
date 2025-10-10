@@ -63,6 +63,60 @@ export const createItem = async (
   }
 };
 
+export const updateItem = async (
+  itemData: Item,
+  authToken: string,
+  companyNumber: string,
+): Promise<Item> => {
+  try {
+    // The OData key for an Opportunity is 'Opportunity', which we map to 'id' in our Item interface.
+    // We need to use the original OData 'Opportunity' value for the URL.
+    // Assuming itemData.id holds the 'Opportunity' value from the API.
+    const opportunityId = itemData.id; 
+
+    const payload: Record<string, any> = {
+      OpportunityName: itemData.name,
+      Description: itemData.description,
+      Quantity: itemData.quantity,
+    };
+
+    // Add other dynamic fields from itemData to the payload, excluding 'id' and internal OData keys
+    for (const key in itemData) {
+      if (key !== "id" && key !== "name" && key !== "description" && key !== "quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+        payload[key] = itemData[key];
+      }
+    }
+
+    const response = await fetch(`${API_BASE_URL}/Opportunities('${opportunityId}')`, {
+      method: "PATCH", // Use PATCH for partial updates
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "Content-Language": "en-US",
+        "X-Infor-LnCompany": companyNumber,
+        "Authorization": `Bearer ${authToken}`,
+        "If-Match": itemData["@odata.etag"] || "*", // Include ETag for optimistic concurrency, or '*' to always update
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to update item: ${response.statusText}`);
+    }
+
+    // OData PATCH typically returns 204 No Content on success, or the updated entity.
+    // If it returns 204, we can return the itemData as is, or refetch.
+    // For simplicity, we'll assume the update was successful and return the itemData.
+    // If the API returns the updated entity, you might want to parse it.
+    console.log("API: Item updated successfully", itemData);
+    return itemData; 
+  } catch (error) {
+    console.error("API Error: Failed to update item", error);
+    throw error;
+  }
+};
+
 export const getOpportunities = async (authToken: string, companyNumber: string): Promise<Item[]> => {
   // The full URL for fetching opportunities, including query parameters.
   const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=*`;
