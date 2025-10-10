@@ -7,6 +7,10 @@ export interface Item {
   // New fields based on the requested layout
   SoldtoBusinessPartner?: string;
   SoldtoBusinessPartnerName?: string; // To store the name for display
+  SoldtoBusinessPartnerStreet?: string; // New: Street from AddressRef
+  SoldtoBusinessPartnerHouseNumber?: string; // New: HouseNumber from AddressRef
+  SoldtoBusinessPartnerZIPCodePostalCode?: string; // New: ZIPCodePostalCode from AddressRef
+  SoldtoBusinessPartnerCountry?: string; // New: Country from AddressRef
   BusinessPartnerStatus?: string;
   AssignedTo?: string;
   Type?: string;

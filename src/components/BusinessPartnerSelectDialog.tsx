@@ -16,7 +16,7 @@ import { toast } from "sonner";
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (businessPartner: BusinessPartner) => void; // Changed to return full object
+  onSelect: (businessPartner: BusinessPartner) => void;
   authToken: string;
 }
 
@@ -53,10 +53,13 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
   const filteredPartners = businessPartners.filter(
     (partner) =>
       partner.BusinessPartner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      partner.Name.toLowerCase().includes(searchTerm.toLowerCase())
+      partner.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (partner.AddressRef?.Street?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (partner.AddressRef?.CityDescription?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (partner.AddressRef?.ZIPCodePostalCode?.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSelectPartner = (partner: BusinessPartner) => { // Changed to accept full object
+  const handleSelectPartner = (partner: BusinessPartner) => {
     onSelect(partner);
     onClose();
   };
@@ -72,7 +75,7 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
         </DialogHeader>
         <div className="py-4 space-y-4">
           <Input
-            placeholder="Search by ID or Name..."
+            placeholder="Search by ID, Name, Street, City or Zip Code..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full"
@@ -91,11 +94,16 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
                       <div>
                         <p className="font-medium">{partner.Name}</p>
                         <p className="text-sm text-muted-foreground">ID: {partner.BusinessPartner}</p>
+                        {partner.AddressRef && (
+                          <p className="text-xs text-muted-foreground">
+                            {partner.AddressRef.Street} {partner.AddressRef.HouseNumber}, {partner.AddressRef.ZIPCodePostalCode} {partner.AddressRef.CityDescription} ({partner.AddressRef.Country})
+                          </p>
+                        )}
                       </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleSelectPartner(partner)} // Pass full object
+                        onClick={() => handleSelectPartner(partner)}
                       >
                         <ArrowRight className="h-4 w-4" />
                       </Button>

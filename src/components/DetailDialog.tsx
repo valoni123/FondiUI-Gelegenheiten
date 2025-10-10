@@ -58,6 +58,10 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         quantity: 0,
         SoldtoBusinessPartner: "",
         SoldtoBusinessPartnerName: "",
+        SoldtoBusinessPartnerStreet: "", // New
+        SoldtoBusinessPartnerHouseNumber: "", // New
+        SoldtoBusinessPartnerZIPCodePostalCode: "", // New
+        SoldtoBusinessPartnerCountry: "", // New
         BusinessPartnerStatus: "Active", // Default for new item
         AssignedTo: "",
         Type: "100", // Default for new item as per screenshot
@@ -83,18 +87,49 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     } else {
       setEditedItem(item);
       if (item?.SoldtoBusinessPartner && authToken) {
-        const fetchBpName = async () => {
+        const fetchBpNameAndAddress = async () => { // Renamed function
           try {
             const bp = await getBusinessPartnerById(authToken, item.SoldtoBusinessPartner);
             setSoldToBpName(bp?.Name || null);
+            if (bp?.AddressRef) {
+              setEditedItem(prev => ({
+                ...prev!,
+                SoldtoBusinessPartnerStreet: bp.AddressRef?.Street || "",
+                SoldtoBusinessPartnerHouseNumber: bp.AddressRef?.HouseNumber || "",
+                SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
+                SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
+              }));
+            } else {
+              setEditedItem(prev => ({
+                ...prev!,
+                SoldtoBusinessPartnerStreet: "",
+                SoldtoBusinessPartnerHouseNumber: "",
+                SoldtoBusinessPartnerZIPCodePostalCode: "",
+                SoldtoBusinessPartnerCountry: "",
+              }));
+            }
           } catch (error) {
-            console.error("Failed to fetch business partner name:", error);
+            console.error("Failed to fetch business partner name and address:", error);
             setSoldToBpName(null);
+            setEditedItem(prev => ({
+              ...prev!,
+              SoldtoBusinessPartnerStreet: "",
+              SoldtoBusinessPartnerHouseNumber: "",
+              SoldtoBusinessPartnerZIPCodePostalCode: "",
+              SoldtoBusinessPartnerCountry: "",
+            }));
           }
         };
-        fetchBpName();
+        fetchBpNameAndAddress();
       } else {
         setSoldToBpName(null);
+        setEditedItem(prev => ({
+          ...prev!,
+          SoldtoBusinessPartnerStreet: "",
+          SoldtoBusinessPartnerHouseNumber: "",
+          SoldtoBusinessPartnerZIPCodePostalCode: "",
+          SoldtoBusinessPartnerCountry: "",
+        }));
       }
     }
   }, [item, isAddingNewItem, authToken, opportunityStatusOptions]);
@@ -115,6 +150,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const handleSelectBusinessPartner = (bp: BusinessPartner) => {
     handleChange("SoldtoBusinessPartner", bp.BusinessPartner);
     setSoldToBpName(bp.Name);
+    handleChange("SoldtoBusinessPartnerName", bp.Name || ""); // Also update the name field in editedItem
+    handleChange("SoldtoBusinessPartnerStreet", bp.AddressRef?.Street || "");
+    handleChange("SoldtoBusinessPartnerHouseNumber", bp.AddressRef?.HouseNumber || "");
+    handleChange("SoldtoBusinessPartnerZIPCodePostalCode", bp.AddressRef?.ZIPCodePostalCode || "");
+    handleChange("SoldtoBusinessPartnerCountry", bp.AddressRef?.Country || "");
   };
 
   if (!editedItem) return null;
@@ -124,6 +164,10 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     general: [
       { key: "description", label: "Allgemeine Daten", type: "textarea" },
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
+      { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true }, // New
+      { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true }, // New
+      { key: "SoldtoBusinessPartnerZIPCodePostalCode", label: "PLZ", type: "text", disabled: true }, // New
+      { key: "SoldtoBusinessPartnerCountry", label: "Land", type: "text", disabled: true }, // New
       { key: "BusinessPartnerStatus", label: "Handelspartnerstatus", type: "text", disabled: true, defaultValue: "Aktiv" },
       { key: "AssignedTo", label: "Zugewiesen an", type: "text", hasSearch: true, hasAssignButton: true },
     ],
@@ -270,6 +314,12 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 onChange={(e) => {
                   handleChange(key, e.target.value);
                   setSoldToBpName(null);
+                  // Clear associated address fields when BP ID changes manually
+                  handleChange("SoldtoBusinessPartnerName", "");
+                  handleChange("SoldtoBusinessPartnerStreet", "");
+                  handleChange("SoldtoBusinessPartnerHouseNumber", "");
+                  handleChange("SoldtoBusinessPartnerZIPCodePostalCode", "");
+                  handleChange("SoldtoBusinessPartnerCountry", "");
                 }}
                 className="pr-10 w-full"
               />
@@ -364,18 +414,16 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] h-[90vh] flex flex-col overflow-hidden"> {/* Changed max-h to h and added overflow-hidden */}
-          {/* Save Button - positioned absolutely */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] h-[90vh] flex flex-col overflow-hidden">
           <Button
             type="submit"
             onClick={handleSave}
-            className="absolute top-4 right-20 z-10" // Adjusted right position
+            className="absolute top-4 right-20 z-10"
           >
             {isAddingNewItem ? "Add Item" : "Save changes"}
           </Button>
 
-          {/* Custom Header Area (for title) */}
-          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0"> {/* Keep pr-[150px] to make space for the button */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0">
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
@@ -401,7 +449,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               </div>
             </TabsContent>
             <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto">
-              {/* Other Details Section for any remaining dynamic fields */}
               {otherKeys.length > 0 ? (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
