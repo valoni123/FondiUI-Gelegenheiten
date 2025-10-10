@@ -22,28 +22,42 @@ export const getActiveBusinessPartners = async (authToken: string): Promise<Busi
   const companyNumber = getCompanyNumber();
   const filter = "BusinessPartnerStatus eq tcapi.comBusinessPartner.BusinessPartnerStatus'Active'";
   const select = "BusinessPartner,Name";
-  const expand = "AddressRef"; // New: expand AddressRef
-  const top = 1000; // Explicitly request up to 1000 records
-  const url = `${BUSINESS_PARTNERS_API_URL}?$filter=${encodeURIComponent(filter)}&$select=${encodeURIComponent(select)}&$expand=${encodeURIComponent(expand)}&$top=${top}`;
+  const expand = "AddressRef";
+  
+  let allBusinessPartners: BusinessPartner[] = [];
+  let nextLink: string | null = null;
+
+  // Initial URL for the first request
+  let currentUrl = `${BUSINESS_PARTNERS_API_URL}?$filter=${encodeURIComponent(filter)}&$select=${encodeURIComponent(select)}&$expand=${encodeURIComponent(expand)}`;
 
   try {
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Content-Language": "en-US",
-        "X-Infor-LnCompany": companyNumber,
-        "Authorization": `Bearer ${authToken}`,
-      },
-    });
+    do {
+      const response = await fetch(currentUrl, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Content-Language": "en-US",
+          "X-Infor-LnCompany": companyNumber,
+          "Authorization": `Bearer ${authToken}`,
+        },
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Failed to fetch business partners: ${response.statusText}`);
-    }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to fetch business partners: ${response.statusText}`);
+      }
 
-    const data = await response.json();
-    return data.value || [];
+      const data = await response.json();
+      allBusinessPartners = allBusinessPartners.concat(data.value || []);
+      nextLink = data["@odata.nextLink"] || null;
+
+      if (nextLink) {
+        currentUrl = nextLink; // Use the nextLink for the subsequent request
+      }
+
+    } while (nextLink); // Continue fetching as long as there's a nextLink
+
+    return allBusinessPartners;
   } catch (error) {
     console.error("API Error: Failed to fetch active business partners", error);
     throw error;
