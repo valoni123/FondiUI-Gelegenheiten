@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getAccessToken, getCompanyNumber } from "@/authorization/authService";
+import { getBusinessPartnerById } from "@/api/businessPartners"; // Import to fetch BP details
 
 const Index = () => {
   const [opportunities, setOpportunities] = useState<Item[]>([]);
@@ -81,7 +82,7 @@ const Index = () => {
   const handleUpdateItem = async (
     id: string,
     field: string,
-    value: string | number
+    value: string | number | boolean // Updated type to include boolean
   ) => {
     if (!authToken) {
       toast.error("Authentication token not available. Please refresh the page.");
@@ -94,16 +95,43 @@ const Index = () => {
       return;
     }
 
-    const updatedItem = { ...itemToUpdate, [field]: value };
+    let updatedItem = { ...itemToUpdate, [field]: value };
     const loadingToastId = toast.loading(`Updating item ${field}...`);
+
     try {
-      await updateItem(updatedItem, authToken, companyNumber);
+      if (field === "SoldtoBusinessPartner") {
+        // Special handling for SoldtoBusinessPartner:
+        // 1. Update the SoldtoBusinessPartner ID via API
+        await updateItem(updatedItem, authToken, companyNumber);
+
+        // 2. Fetch the full business partner details to get name and address
+        const businessPartnerId = String(value);
+        const bpDetails = businessPartnerId
+          ? await getBusinessPartnerById(authToken, businessPartnerId)
+          : null;
+
+        // 3. Update the local state with the new ID and all derived BP details
+        updatedItem = {
+          ...updatedItem,
+          SoldtoBusinessPartner: businessPartnerId,
+          SoldtoBusinessPartnerName: bpDetails?.Name || "",
+          SoldtoBusinessPartnerStreet: bpDetails?.AddressRef?.Street || "",
+          SoldtoBusinessPartnerHouseNumber: bpDetails?.AddressRef?.HouseNumber || "",
+          SoldtoBusinessPartnerZIPCodePostalCode: bpDetails?.AddressRef?.ZIPCodePostalCode || "",
+          SoldtoBusinessPartnerCountry: bpDetails?.AddressRef?.Country || "",
+        };
+        toast.success("Business Partner updated!", { id: loadingToastId });
+      } else {
+        // For all other fields, perform a direct update
+        await updateItem(updatedItem, authToken, companyNumber);
+        toast.success(`Item ${field} updated!`, { id: loadingToastId });
+      }
+
       setOpportunities((prevItems) =>
         prevItems.map((item) =>
           item.id === id ? updatedItem : item
         )
       );
-      toast.success(`Item ${field} updated!`, { id: loadingToastId });
     } catch (error) {
       console.error(`Failed to update item ${field}:`, error);
       toast.error(`Failed to update item ${field}.`, { id: loadingToastId });

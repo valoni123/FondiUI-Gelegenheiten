@@ -24,7 +24,7 @@ import { BusinessPartner } from "@/api/businessPartners"; // Import BusinessPart
 
 interface GridListProps {
   items: Item[];
-  onUpdateItem: (id: string, field: string, value: string | number) => void;
+  onUpdateItem: (id: string, field: string, value: string | number | boolean) => void; // Updated type to include boolean
   onViewDetails: (item: Item) => void;
   opportunityStatusOptions: string[];
   authToken: string; // New prop for authentication token
@@ -118,15 +118,8 @@ const GridList: React.FC<GridListProps> = ({
 
   const handleSelectBusinessPartnerFromGrid = (bp: BusinessPartner) => {
     if (currentEditingItemId) {
-      // Update SoldtoBusinessPartner ID
+      // ONLY update SoldtoBusinessPartner ID. Index.tsx will handle fetching and updating derived fields.
       onUpdateItem(currentEditingItemId, "SoldtoBusinessPartner", bp.BusinessPartner);
-      // Update SoldtoBusinessPartnerName
-      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerName", bp.Name || "");
-      // Update address fields
-      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerStreet", bp.AddressRef?.Street || "");
-      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerHouseNumber", bp.AddressRef?.HouseNumber || "");
-      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerZIPCodePostalCode", bp.AddressRef?.ZIPCodePostalCode || "");
-      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartnerCountry", bp.AddressRef?.Country || "");
     }
     setIsBpSelectDialogOpen(false);
     setCurrentEditingItemId(null);
