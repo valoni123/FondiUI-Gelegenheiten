@@ -162,8 +162,8 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full max-w-7xl mx-auto space-y-6"> {/* Changed max-w-4xl to max-w-7xl */}
+    <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50"> {/* Removed p-4 */}
+      <div className="w-full px-4 space-y-6"> {/* Added px-4 for horizontal padding */}
         <h1 className="text-4xl font-bold text-center mb-6">
           Opportunity List
         </h1>
