@@ -110,9 +110,14 @@ export const createItem = async (
       ActualCloseDate: odataResponse.ActualCloseDate,
     };
 
+    const keysToExcludeFromNewItem = new Set([
+      "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
+      "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
+      "tdsmi110.text" // Explicitly exclude from being copied into our Item object
+    ]);
+
     for (const key in odataResponse) {
-      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context" &&
-          key !== "DateOfFirstContact" && key !== "ExpectedCloseDate" && key !== "ActualCloseDate") {
+      if (!keysToExcludeFromNewItem.has(key)) {
         newItem[key] = odataResponse[key];
       }
     }
@@ -195,10 +200,15 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
         ActualCloseDate: odataItem.ActualCloseDate,
       };
 
+      const keysToExcludeFromNewItem = new Set([
+        "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
+        "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
+        "tdsmi110.text" // Explicitly exclude from being copied into our Item object
+      ]);
+
       // Dynamically add all other properties from OData response, excluding already mapped date fields
       for (const key in odataItem) {
-        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context" &&
-            key !== "DateOfFirstContact" && key !== "ExpectedCloseDate" && key !== "ActualCloseDate") {
+        if (!keysToExcludeFromNewItem.has(key)) {
           mappedItem[key] = odataItem[key];
         }
       }
