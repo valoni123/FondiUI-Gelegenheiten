@@ -5,23 +5,27 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 
 // Helper function to prepare the payload, converting empty strings to null for API compatibility
 const preparePayload = (itemData: Item): Record<string, any> => {
-  const payload: Record<string, any> = {
-    Name: itemData.name ? String(itemData.name) : null,
-    SoldtoBusinessPartner: itemData.SoldtoBusinessPartner ? String(itemData.SoldtoBusinessPartner) : null,
-    Status: itemData.Status ? String(itemData.Status) : null,
-    IncludeInForecast: itemData.IncludeInForecast ?? false,
-    ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0,
-    ExpectedRevenue: itemData.ExpectedRevenue ?? 0,
-    Source: itemData.Source ? String(itemData.Source) : null,
-    SalesProcess: itemData.SalesProcess ? String(itemData.SalesProcess) : null,
-    Phase: itemData.Phase ? String(itemData.Phase) : null,
-    Reason: itemData.Reason ? String(itemData.Reason) : null,
-    AssignedTo: itemData.AssignedTo ? String(itemData.AssignedTo) : null,
-    // Ensure date fields are sent as strings or null, using the correct API names
-    DateOfFirstContact: itemData.DateOfFirstContact ? String(itemData.DateOfFirstContact) : null,
-    ExpectedCloseDate: itemData.ExpectedCloseDate ? String(itemData.ExpectedCloseDate) : null,
-    ActualCloseDate: itemData.ActualCloseDate ? String(itemData.ActualCloseDate) : null,
-  };
+  const payload: Record<string, any> = {}; // Start with an empty payload
+
+  // Add fields only if they have a value, or if they are boolean/number and explicitly set
+  if (itemData.name) payload.Name = String(itemData.name);
+  if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
+  if (itemData.Status) payload.Status = String(itemData.Status);
+  // Boolean and number fields should always be sent if they exist, even if 0 or false
+  payload.IncludeInForecast = itemData.IncludeInForecast ?? false;
+  payload.ProbabilityPercentage = itemData.ProbabilityPercentage ?? 0;
+  payload.ExpectedRevenue = itemData.ExpectedRevenue ?? 0;
+  if (itemData.Source) payload.Source = String(itemData.Source);
+  if (itemData.SalesProcess) payload.SalesProcess = String(itemData.SalesProcess);
+  if (itemData.Phase) payload.Phase = String(itemData.Phase);
+  if (itemData.Reason) payload.Reason = String(itemData.Reason);
+  if (itemData.AssignedTo) payload.AssignedTo = String(itemData.AssignedTo);
+
+  // Date fields: only send if they have a value
+  if (itemData.DateOfFirstContact) payload.DateOfFirstContact = String(itemData.DateOfFirstContact);
+  // ExpectedCloseDate: only send if it has a value
+  if (itemData.ExpectedCloseDate) payload.ExpectedCloseDate = String(itemData.ExpectedCloseDate);
+  // ActualCloseDate should NOT be added to the payload as it's read-only.
 
   const excludedKeys = new Set([
     "id", "name", "description", "@odata.etag", "@odata.context",
@@ -35,9 +39,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     // Fields explicitly handled above to avoid duplication or incorrect type handling
     "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
     "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-    // Old date field names, now excluded
-    "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
-    // New date field names, already handled above, so exclude from generic loop
+    // Date field names, already handled above or explicitly excluded
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
