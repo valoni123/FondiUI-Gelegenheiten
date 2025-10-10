@@ -11,7 +11,7 @@ export const createItem = async (
 ): Promise<Item> => {
   try {
     const payload: Record<string, any> = {
-      OpportunityName: itemData.name,
+      Name: itemData.name, // Corrected from OpportunityName to Name
       Description: itemData.description,
       Quantity: itemData.quantity,
       // Handle SoldtoBusinessPartner as a direct string property
@@ -122,7 +122,7 @@ export const updateItem = async (
     const opportunityId = itemData.id; 
 
     const payload: Record<string, any> = {
-      OpportunityName: itemData.name,
+      Name: itemData.name, // Corrected from OpportunityName to Name
       Description: itemData.description,
       Quantity: itemData.quantity,
       // Handle SoldtoBusinessPartner as a direct string property
