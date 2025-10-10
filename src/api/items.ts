@@ -11,9 +11,9 @@ export const createItem = async (
 ): Promise<Item> => {
   try {
     const payload: Record<string, any> = {
-      Name: itemData.name, // Corrected from OpportunityName to Name
+      Name: itemData.name,
       Description: itemData.description,
-      Quantity: itemData.quantity,
+      // Quantity removed from payload
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -40,7 +40,7 @@ export const createItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context", // Added 'quantity' to excludedKeys
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
@@ -122,9 +122,9 @@ export const updateItem = async (
     const opportunityId = itemData.id; 
 
     const payload: Record<string, any> = {
-      Name: itemData.name, // Corrected from OpportunityName to Name
+      Name: itemData.name,
       Description: itemData.description,
-      Quantity: itemData.quantity,
+      // Quantity removed from payload
       // Handle SoldtoBusinessPartner as a direct string property
       ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
       // Status is also a direct property
@@ -151,7 +151,7 @@ export const updateItem = async (
     // Dynamically add other properties from itemData to the payload,
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
-      "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "id", "name", "description", "quantity", "@odata.etag", "@odata.context", // Added 'quantity' to excludedKeys
       // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
