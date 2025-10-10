@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowRight } from "lucide-react";
 import { getActiveBusinessPartners, BusinessPartner } from "@/api/businessPartners";
 import { toast } from "sonner";
+import BusinessPartnerGrid from "./BusinessPartnerGrid"; // Import the new grid component
 
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
@@ -27,7 +28,6 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
   authToken,
 }) => {
   const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -50,15 +50,6 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
     }
   }, [isOpen, authToken]);
 
-  const filteredPartners = businessPartners.filter(
-    (partner) =>
-      partner.BusinessPartner.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      partner.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (partner.AddressRef?.Street?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (partner.AddressRef?.CityDescription?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (partner.AddressRef?.ZIPCodePostalCode?.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   const handleSelectPartner = (partner: BusinessPartner) => {
     onSelect(partner);
     onClose();
@@ -66,53 +57,22 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] h-[90vh] flex flex-col"> {/* Increased width and height */}
         <DialogHeader>
           <DialogTitle>Select Business Partner</DialogTitle>
           <DialogDescription>
             Search and select an active business partner from the list below.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 space-y-4">
-          <Input
-            placeholder="Search by ID, Name, Street, City or Zip Code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full"
-          />
+        <div className="py-4 flex-grow overflow-hidden"> {/* Allow content to grow and scroll */}
           {isLoading ? (
             <div className="text-center text-muted-foreground">Loading...</div>
           ) : (
-            <ScrollArea className="h-[300px] w-full rounded-md border">
-              <div className="p-4">
-                {filteredPartners.length > 0 ? (
-                  filteredPartners.map((partner) => (
-                    <div
-                      key={partner.BusinessPartner}
-                      className="flex items-center justify-between py-2 border-b last:border-b-0"
-                    >
-                      <div>
-                        <p className="font-medium">{partner.Name}</p>
-                        <p className="text-sm text-muted-foreground">ID: {partner.BusinessPartner}</p>
-                        {partner.AddressRef && (
-                          <p className="text-xs text-muted-foreground">
-                            {partner.AddressRef.Street} {partner.AddressRef.HouseNumber}, {partner.AddressRef.ZIPCodePostalCode} {partner.AddressRef.CityDescription} ({partner.AddressRef.Country})
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleSelectPartner(partner)}
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground">No business partners found.</p>
-                )}
-              </div>
+            <ScrollArea className="h-full w-full rounded-md border">
+              <BusinessPartnerGrid
+                businessPartners={businessPartners}
+                onSelect={handleSelectPartner}
+              />
             </ScrollArea>
           )}
         </div>
