@@ -146,7 +146,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     forecast: [
       { key: "IncludeInForecast", label: "In Prognose berücksichtigen", type: "checkbox" },
       { key: "ExpectedRevenue", label: "Erwartete Erlöse", type: "number", hasSearch: false, suffix: "EUR", isRequired: true },
-      { key: "WeightedRevenue", label: "Gewichteter Erlös", type: "number", disabled: true, suffix: "EUR" },
+      { key: "WeightedRevenue: number", label: "Gewichteter Erlös", type: "number", disabled: true, suffix: "EUR" },
       { key: "ItemRevenue", label: "Artikelerlös", type: "number", disabled: true, suffix: "EUR" },
     ],
     user: [
@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col overflow-y-auto !top-auto !translate-y-0 inset-y-0 my-auto"> {/* Added !top-auto !translate-y-0 inset-y-0 my-auto */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] h-[90vh] flex flex-col relative"> {/* Changed max-h to h and removed overflow-y-auto and custom positioning */}
           {/* Save Button - positioned absolutely */}
           <Button
             type="submit"
