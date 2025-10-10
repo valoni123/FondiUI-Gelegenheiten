@@ -7,29 +7,34 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {}; // Start with an empty payload
 
+  // Create a mutable copy of itemData to safely remove properties
+  const itemDataCopy = { ...itemData };
+  // Explicitly remove tdsmi110.text from the copy to ensure it's never sent in the payload
+  delete itemDataCopy["tdsmi110.text"];
+
   // Map our UI's 'description' to the API's 'Description' field for writing
-  payload.Description = String(itemData.description || "");
+  payload.Description = String(itemDataCopy.description || "");
 
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
-  if (itemData.name) payload.Name = String(itemData.name);
-  if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
-  if (itemData.Status) payload.Status = String(itemData.Status);
+  if (itemDataCopy.name) payload.Name = String(itemDataCopy.name);
+  if (itemDataCopy.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemDataCopy.SoldtoBusinessPartner);
+  if (itemDataCopy.Status) payload.Status = String(itemDataCopy.Status);
   
   // Convert boolean IncludeInForecast to Infor LN specific string: "Yes" or "No"
-  payload.IncludeInForecast = itemData.IncludeInForecast ? "Yes" : "No";
+  payload.IncludeInForecast = itemDataCopy.IncludeInForecast ? "Yes" : "No";
 
-  payload.ProbabilityPercentage = itemData.ProbabilityPercentage ?? 0;
-  payload.ExpectedRevenue = itemData.ExpectedRevenue ?? 0;
-  if (itemData.Source) payload.Source = String(itemData.Source);
-  if (itemData.SalesProcess) payload.SalesProcess = String(itemData.SalesProcess);
-  if (itemData.Phase) payload.Phase = String(itemData.Phase);
-  if (itemData.Reason) payload.Reason = String(itemData.Reason);
-  if (itemData.AssignedTo) payload.AssignedTo = String(itemData.AssignedTo);
+  payload.ProbabilityPercentage = itemDataCopy.ProbabilityPercentage ?? 0;
+  payload.ExpectedRevenue = itemDataCopy.ExpectedRevenue ?? 0;
+  if (itemDataCopy.Source) payload.Source = String(itemDataCopy.Source);
+  if (itemDataCopy.SalesProcess) payload.SalesProcess = String(itemDataCopy.SalesProcess);
+  if (itemDataCopy.Phase) payload.Phase = String(itemDataCopy.Phase);
+  if (itemDataCopy.Reason) payload.Reason = String(itemDataCopy.Reason);
+  if (itemDataCopy.AssignedTo) payload.AssignedTo = String(itemDataCopy.AssignedTo);
 
   // Date fields: only send if they have a value
-  if (itemData.DateOfFirstContact) payload.DateOfFirstContact = String(itemData.DateOfFirstContact);
+  if (itemDataCopy.DateOfFirstContact) payload.DateOfFirstContact = String(itemDataCopy.DateOfFirstContact);
   // ExpectedCloseDate: only send if it has a value
-  if (itemData.ExpectedCloseDate) payload.ExpectedCloseDate = String(itemData.ExpectedCloseDate);
+  if (itemDataCopy.ExpectedCloseDate) payload.ExpectedCloseDate = String(itemDataCopy.ExpectedCloseDate);
   // ActualCloseDate should NOT be added to the payload as it's read-only.
 
   const excludedKeys = new Set([
@@ -47,19 +52,18 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    // Exclude tdsmi110.text from dynamic loop as it's read-only and not directly writable via main entity
-    "tdsmi110.text",
     // Exclude 'Description' from dynamic loop as it's explicitly handled above
     "Description",
+    // tdsmi110.text is now explicitly deleted from itemDataCopy, so no need to exclude it here.
   ]);
 
-  for (const key in itemData) {
-    if (!excludedKeys.has(key) && itemData[key] !== undefined) {
+  for (const key in itemDataCopy) { // Iterate over the copy
+    if (!excludedKeys.has(key) && itemDataCopy[key] !== undefined) {
       // For dynamically added fields, if they are strings and empty, also send null
-      if (typeof itemData[key] === 'string' && itemData[key] === '') {
+      if (typeof itemDataCopy[key] === 'string' && itemDataCopy[key] === '') {
         payload[key] = null;
       } else {
-        payload[key] = itemData[key];
+        payload[key] = itemDataCopy[key];
       }
     }
   }
