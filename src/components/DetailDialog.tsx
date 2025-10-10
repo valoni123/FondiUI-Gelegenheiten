@@ -364,80 +364,77 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh]"> {/* Simplified DialogContent classes */}
-          <div className="flex flex-col h-full relative"> {/* New wrapper div for flex layout and relative positioning */}
-            {/* Save Button - positioned absolutely */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col">
+          {/* Custom Header Area (for title and save button) */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 flex-shrink-0"> {/* Removed pr-[150px] */}
+            <div className="flex items-center gap-2 text-xl font-bold">
+              <span>Gelegenheit:</span>
+              <span className="font-normal text-muted-foreground">{editedItem.id}</span>
+              <span className="text-xl font-bold">{editedItem.name}</span>
+            </div>
+            {/* Save Button - now part of the header flex container */}
             <Button
               type="submit"
               onClick={handleSave}
-              className="absolute top-4 right-20 z-10"
+              className="ml-auto" // Pushes the button to the right
             >
               {isAddingNewItem ? "Add Item" : "Save changes"}
             </Button>
+          </div>
 
-            {/* Custom Header Area (for title) */}
-            <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0">
-              <div className="flex items-center gap-2 text-xl font-bold">
-                <span>Gelegenheit:</span>
-                <span className="font-normal text-muted-foreground">{editedItem.id}</span>
-                <span className="text-xl font-bold">{editedItem.name}</span>
+          <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow h-full">
+            <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0 w-fit"> {/* Changed justify-center to justify-start and added w-fit */}
+              <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
+              <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
+            </TabsList>
+            <TabsContent value="gelegenheit" className="py-4 flex-grow overflow-y-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {renderSection("Allgemein", structuredFields.general)}
+                {renderSection("Fortschritt", structuredFields.progress)}
+
+                {renderSection("Klassifizierung", structuredFields.classification)}
+                {renderSection("Prognose", structuredFields.forecast)}
+
+                {renderSection("Termine", structuredFields.dates)}
+                {renderSection("Anwender", structuredFields.user)}
               </div>
-            </div>
-
-            <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow h-full"> {/* Added h-full */}
-              <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0">
-                <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
-                <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
-              </TabsList>
-              <TabsContent value="gelegenheit" className="py-4 flex-grow overflow-y-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {renderSection("Allgemein", structuredFields.general)}
-                  {renderSection("Fortschritt", structuredFields.progress)}
-
-                  {renderSection("Klassifizierung", structuredFields.classification)}
-                  {renderSection("Prognose", structuredFields.forecast)}
-
-                  {renderSection("Termine", structuredFields.dates)}
-                  {renderSection("Anwender", structuredFields.user)}
-                </div>
-              </TabsContent>
-              <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto">
-                {/* Other Details Section for any remaining dynamic fields */}
-                {otherKeys.length > 0 ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
-                      {otherKeys.map((key) => (
-                        <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
-                          <Label htmlFor={key} className="text-right capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </Label>
-                          <Input
-                            id={key}
-                            type={typeof editedItem[key] === "number" ? "number" : "text"}
-                            value={String(editedItem[key] || "")}
-                            onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
-                            className="w-full"
-                            placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-                            disabled={
-                              key === "Opportunity" ||
-                              key === "Guid" ||
-                              key === "CreationDate" ||
-                              key === "LastTransactionDate" ||
-                              key === "CreatedBy" ||
-                              key === "LastModifiedBy"
-                            }
-                          />
-                        </div>
-                      ))}
-                    </div>
+            </TabsContent>
+            <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto">
+              {/* Other Details Section for any remaining dynamic fields */}
+              {otherKeys.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold border-b pb-2 mb-4">Other Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+                    {otherKeys.map((key) => (
+                      <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
+                        <Label htmlFor={key} className="text-right capitalize">
+                          {key.replace(/([A-Z])/g, ' $1').trim()}
+                        </Label>
+                        <Input
+                          id={key}
+                          type={typeof editedItem[key] === "number" ? "number" : "text"}
+                          value={String(editedItem[key] || "")}
+                          onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+                          className="w-full"
+                          placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                          disabled={
+                            key === "Opportunity" ||
+                            key === "Guid" ||
+                            key === "CreationDate" ||
+                            key === "LastTransactionDate" ||
+                            key === "CreatedBy" ||
+                            key === "LastModifiedBy"
+                          }
+                        />
+                      </div>
+                    ))}
                   </div>
-                ) : (
-                  <p className="text-center text-muted-foreground py-4">No other details available.</p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div> {/* End new wrapper div */}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">No other details available.</p>
+              )}
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
