@@ -86,24 +86,24 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[600px] md:max-w-[700px]"> {/* Adjusted width for two columns */}
         <DialogHeader>
           <DialogTitle>{isAddingNewItem ? "Add New Item" : "Edit Item Details"}</DialogTitle>
           <DialogDescription>
             {isAddingNewItem ? "Enter details for the new item." : "Make changes to your item here. Click save when you're done."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          {/* ID field always first and disabled */}
-          <div className="grid grid-cols-4 items-center gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4"> {/* Two columns for fields */}
+          {/* ID field always first and disabled, spanning both columns */}
+          <div className="md:col-span-2 grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="id" className="text-right">
               ID
             </Label>
-            <Input id="id" value={editedItem.id} className="col-span-3" disabled={true} placeholder={isAddingNewItem ? "Auto-generated on save" : ""} />
+            <Input id="id" value={editedItem.id} className="w-full" disabled={true} placeholder={isAddingNewItem ? "Auto-generated on save" : ""} />
           </div>
 
           {itemKeys.map((key) => (
-            <div className="grid grid-cols-4 items-center gap-4" key={key}>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}> {/* Each field group takes one column */}
               <Label htmlFor={key} className="text-right capitalize">
                 {key.replace(/([A-Z])/g, ' $1').trim()} {/* Make it more readable */}
               </Label>
@@ -112,7 +112,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                   value={String(editedItem[key])}
                   onValueChange={(value) => handleChange(key, value)}
                 >
-                  <SelectTrigger className="col-span-3">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -129,7 +129,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                   type={typeof editedItem[key] === "number" ? "number" : "text"}
                   value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
                   onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
-                  className="col-span-3"
+                  className="w-full"
                   placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
                   // Disable editing for system-generated/read-only fields
                   disabled={
