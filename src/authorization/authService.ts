@@ -8,7 +8,7 @@ const COMPANY_NUMBER = "1000"; // As requested, hardcoded
 export const getAccessToken = async (): Promise<string> => {
   try {
     // Use the proxy path for the token endpoint
-    const PROXY_TOKEN_PATH = `/infor-sso/FONDIUM_TRN/as/${ionapiConfig.ot}`;
+    const PROXY_TOKEN_PATH = `/infor-sso/TTFMRW9QWR47VL78_DEM/as/${ionapiConfig.ot}`;
     const CLIENT_ID = ionapiConfig.ci;
     const CLIENT_SECRET = ionapiConfig.cs;
     const USERNAME = ionapiConfig.saak;
