@@ -24,7 +24,7 @@ export const createItem = async (
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
       // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
       // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
-      ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
+      // ActualCompletionDate: itemData.ActualCompletionDate || "", // Removed as it's not a mappable property
     };
 
     // Dynamically add other properties from itemData to the payload,
@@ -38,8 +38,7 @@ export const createItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", // Exclude 'FirstContactDate' and 'ExpectedCompletionDate' from dynamic addition as well
-      "ActualCompletionDate",
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate", // Exclude 'ActualCompletionDate' from dynamic addition as well
       // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
@@ -120,7 +119,7 @@ export const updateItem = async (
       AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
       // FirstContactDate: itemData.FirstContactDate || "", // Removed as it's not a mappable property
       // ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Removed as it's not a mappable property
-      ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
+      // ActualCompletionDate: itemData.ActualCompletionDate || "", // Removed as it's not a mappable property
     };
 
     // Dynamically add other properties from itemData to the payload,
@@ -134,8 +133,7 @@ export const updateItem = async (
       // Fields explicitly handled above to avoid duplication or incorrect type handling
       "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
-      "FirstContactDate", "ExpectedCompletionDate", // Exclude 'FirstContactDate' and 'ExpectedCompletionDate' from dynamic addition as well
-      "ActualCompletionDate",
+      "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate", // Exclude 'ActualCompletionDate' from dynamic addition as well
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     ]);
