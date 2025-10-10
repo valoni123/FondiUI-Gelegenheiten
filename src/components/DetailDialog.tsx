@@ -372,12 +372,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
               <span className="text-xl font-bold">{editedItem.name}</span> {/* Display name as bold text */}
             </div>
-            {/* Save Button moved to top right */}
-            <div>
-              <Button type="submit" onClick={handleSave}>
-                {isAddingNewItem ? "Add Item" : "Save changes"}
-              </Button>
-            </div>
+            {/* Removed Save Button from here */}
           </div>
 
           <Tabs defaultValue="gelegenheit" className="w-full">
@@ -433,6 +428,12 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               )}
             </TabsContent>
           </Tabs>
+
+          <DialogFooter>
+            <Button type="submit" onClick={handleSave}>
+              {isAddingNewItem ? "Add Item" : "Save changes"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
