@@ -44,7 +44,6 @@ export const createItem = async (
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
       // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      // Removed "SoldtoBusinessPartner" from this list as it needs to be sent to the API
       "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
@@ -53,11 +52,14 @@ export const createItem = async (
     ]);
 
     for (const key in itemData) {
-      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
+      // Ensure SoldtoBusinessPartner is NOT excluded here, as it's handled explicitly above.
+      // This loop adds any other dynamic properties not explicitly listed or excluded.
+      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") {
         payload[key] = itemData[key];
       }
     }
 
+    console.log("API: Creating item with payload:", payload); // Added logging
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
       method: "POST",
       headers: {
@@ -71,8 +73,15 @@ export const createItem = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Failed to create item: ${response.statusText}`);
+      const errorText = await response.text(); // Get raw text for better error inspection
+      console.error(`API request failed for create item with status: ${response.status} ${response.statusText}`);
+      console.error("Error response body:", errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || `Failed to create item: ${response.statusText}`);
+      } catch (jsonParseError) {
+        throw new Error(`Failed to create item: ${response.statusText} - ${errorText}`);
+      }
     }
 
     const odataResponse = await response.json();
@@ -145,7 +154,6 @@ export const updateItem = async (
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
       // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      // Removed "SoldtoBusinessPartner" from this list as it needs to be sent to the API
       "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
@@ -154,11 +162,14 @@ export const updateItem = async (
     ]);
 
     for (const key in itemData) {
-      if (!excludedKeys.has(key) && itemData[key] !== undefined) { // Only include if not undefined
+      // Ensure SoldtoBusinessPartner is NOT excluded here, as it's handled explicitly above.
+      // This loop adds any other dynamic properties not explicitly listed or excluded.
+      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") { // Only include if not undefined
         payload[key] = itemData[key];
       }
     }
 
+    console.log("API: Updating item with payload:", payload); // Added logging
     const response = await fetch(`${API_BASE_URL}/Opportunities('${opportunityId}')`, {
       method: "PATCH", // Use PATCH for partial updates
       headers: {
@@ -173,8 +184,15 @@ export const updateItem = async (
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Failed to update item: ${response.statusText}`);
+      const errorText = await response.text(); // Get raw text for better error inspection
+      console.error(`API request failed for update item with status: ${response.status} ${response.statusText}`);
+      console.error("Error response body:", errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.message || `Failed to update item: ${response.statusText}`);
+      } catch (jsonParseError) {
+        throw new Error(`Failed to update item: ${response.statusText} - ${errorText}`);
+      }
     }
 
     // OData PATCH typically returns 204 No Content on success, or the updated entity.
