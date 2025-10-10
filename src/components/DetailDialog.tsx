@@ -24,8 +24,7 @@ import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator"; // Import Separator
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"; // Import Tabs components
 
 interface DetailDialogProps {
   item: Item | null;
@@ -346,10 +345,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 
   const renderSection = (title: string, fields: typeof structuredFields.general) => (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4"> {/* Flex container for title and separator */}
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <Separator className="flex-grow" />
-      </div>
+      <h3 className="text-lg font-semibold border-b pb-2 mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-4">
         {fields.map((fieldConfig) => (
           <div className="grid grid-cols-[150px_1fr] items-center gap-4" key={fieldConfig.key}>
@@ -368,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto"> {/* Added min-h-[70vh] */}
           {/* Custom Header Area */}
           <div className="flex items-center justify-between border-b pb-4 mb-4">
             <div className="flex items-center gap-2 text-xl font-bold">
@@ -442,6 +438,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               )}
             </TabsContent>
           </Tabs>
+
+          {/* DialogFooter removed as button moved to header */}
         </DialogContent>
       </Dialog>
 
