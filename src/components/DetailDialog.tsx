@@ -364,31 +364,31 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto relative"> {/* Added relative to DialogContent */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative overflow-hidden"> {/* Added flex flex-col, overflow-hidden */}
           {/* Save Button - positioned absolutely */}
           <Button
             type="submit"
             onClick={handleSave}
-            className="absolute top-4 right-20 z-10" // Positioned to the left of the close button
+            className="absolute top-4 right-20 z-10"
           >
             {isAddingNewItem ? "Add Item" : "Save changes"}
           </Button>
 
           {/* Custom Header Area (for title) */}
-          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px]"> {/* Added pr to make space for the button */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0"> {/* Added flex-shrink-0 */}
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
-              <span className="text-xl font-bold">{editedItem.name}</span> {/* Display name as bold text */}
+              <span className="text-xl font-bold">{editedItem.name}</span>
             </div>
           </div>
 
-          <Tabs defaultValue="gelegenheit" className="w-full">
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+          <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow"> {/* Added flex flex-col flex-grow */}
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0"> {/* Added flex-shrink-0 */}
               <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
               <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
             </TabsList>
-            <TabsContent value="gelegenheit" className="py-4 min-h-[600px]">
+            <TabsContent value="gelegenheit" className="py-4 flex-grow overflow-y-auto"> {/* Added flex-grow overflow-y-auto, removed min-h */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {renderSection("Allgemein", structuredFields.general)}
                 {renderSection("Fortschritt", structuredFields.progress)}
@@ -400,7 +400,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 {renderSection("Anwender", structuredFields.user)}
               </div>
             </TabsContent>
-            <TabsContent value="sonstiges" className="py-4 min-h-[600px]">
+            <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto"> {/* Added flex-grow overflow-y-auto, removed min-h */}
               {/* Other Details Section for any remaining dynamic fields */}
               {otherKeys.length > 0 ? (
                 <div className="space-y-4">
