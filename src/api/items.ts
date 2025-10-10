@@ -1,5 +1,4 @@
 import { Item } from "@/types";
-// Removed import for BUSINESS_PARTNERS_API_URL as it's no longer needed for @odata.bind
 
 // Define your API base URL for the OData service.
 const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp";
@@ -11,58 +10,48 @@ export const createItem = async (
 ): Promise<Item> => {
   try {
     const payload: Record<string, any> = {
-      Name: itemData.name,
-      Description: itemData.description || "", // Reverted key to 'Description' and ensured string value
-      // Quantity removed from payload
-      // Handle SoldtoBusinessPartner as a direct string property
-      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
-      // Status is also a direct property
-      ...(itemData.Status && { Status: itemData.Status }),
-      // IncludeInForecast is also a direct property
-      ...(itemData.IncludeInForecast !== undefined && { IncludeInForecast: itemData.IncludeInForecast }),
-      // ProbabilityPercentage
-      ...(itemData.ProbabilityPercentage !== undefined && { ProbabilityPercentage: itemData.ProbabilityPercentage }),
-      // ExpectedRevenue
-      ...(itemData.ExpectedRevenue !== undefined && { ExpectedRevenue: itemData.ExpectedRevenue }),
-      // Type, Source, SalesProcess, Phase, Reason, AssignedTo
-      ...(itemData.Type && { Type: itemData.Type }),
-      ...(itemData.Source && { Source: itemData.Source }),
-      ...(itemData.SalesProcess && { SalesProcess: itemData.SalesProcess }),
-      ...(itemData.Phase && { Phase: itemData.Phase }),
-      ...(itemData.Reason && { Reason: itemData.Reason }),
-      ...(itemData.AssignedTo && { AssignedTo: itemData.AssignedTo }),
-      // Dates
-      ...(itemData.FirstContactDate && { FirstContactDate: itemData.FirstContactDate }),
-      ...(itemData.ExpectedCompletionDate && { ExpectedCompletionDate: itemData.ExpectedCompletionDate }),
-      ...(itemData.ActualCompletionDate && { ActualCompletionDate: itemData.ActualCompletionDate }),
+      Name: itemData.name || "", // Ensure name is always a string
+      Description: itemData.description || "", // Ensure description is always a string
+      SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || "", // Ensure BP ID is always a string (or empty string)
+      Status: itemData.Status || "", // Ensure status is always a string
+      IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
+      ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
+      ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
+      Type: itemData.Type || "", // Ensure type is always a string
+      Source: itemData.Source || "", // Ensure source is always a string
+      SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
+      Phase: itemData.Phase || "", // Ensure phase is always a string
+      Reason: itemData.Reason || "", // Ensure reason is always a string
+      AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
+      FirstContactDate: itemData.FirstContactDate || "", // Ensure date is always a string
+      ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
+      ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
 
     // Dynamically add other properties from itemData to the payload,
-    // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
+    // but explicitly exclude derived/expanded fields and fields already handled above.
     const excludedKeys = new Set([
-      "id", "name", "description", "@odata.etag", "@odata.context", // 'quantity' removed from here
-      // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
+      "id", "name", "description", "@odata.etag", "@odata.context",
+      // Derived/expanded fields
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
-      // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      // Fields explicitly handled above to avoid duplication or incorrect type handling
+      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
-      // Read-only fields that should not be sent in POST (some might be set by API)
+      // Read-only fields that should not be sent in POST
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-      // "Description", // 'Description' is now explicitly handled, so it's not excluded
     ]);
 
     for (const key in itemData) {
       // This loop adds any other dynamic properties not explicitly listed or excluded.
-      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
-      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") {
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
         payload[key] = itemData[key];
       }
     }
 
-    console.log("API: Creating item with payload:", payload); // Added logging
+    console.log("API: Creating item with payload:", payload);
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
       method: "POST",
       headers: {
@@ -76,7 +65,7 @@ export const createItem = async (
     });
 
     if (!response.ok) {
-      const errorText = await response.text(); // Get raw text for better error inspection
+      const errorText = await response.text();
       console.error(`API request failed for create item with status: ${response.status} ${response.statusText}`);
       console.error("Error response body:", errorText);
       try {
@@ -90,17 +79,14 @@ export const createItem = async (
     const odataResponse = await response.json();
     console.log("API: Item created successfully", odataResponse);
 
-    // Map the OData response back to your Item interface, including all dynamic fields.
     const newItem: Item = {
-      id: odataResponse.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
-      name: odataResponse.Name || odataResponse.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
-      description: odataResponse.Description || "No description", // Map 'Description' to 'description'
-      // quantity: odataResponse.Quantity || 0, // Removed as it's not a mappable property for the API
+      id: odataResponse.Opportunity || String(Math.random() * 100000),
+      name: odataResponse.Name || odataResponse.Opportunity || "N/A",
+      description: odataResponse.Description || "No description",
     };
 
-    // Dynamically add all other properties from OData response
     for (const key in odataResponse) {
-      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "Quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+      if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context") {
         newItem[key] = odataResponse[key];
       }
     }
@@ -117,80 +103,66 @@ export const updateItem = async (
   companyNumber: string,
 ): Promise<Item> => {
   try {
-    // The OData key for an Opportunity is 'Opportunity', which we map to 'id' in our Item interface.
-    // We need to use the original OData 'Opportunity' value for the URL.
-    // Assuming itemData.id holds the 'Opportunity' value from the API.
     const opportunityId = itemData.id; 
 
     const payload: Record<string, any> = {
-      Name: itemData.name,
-      Description: itemData.description || "", // Reverted key to 'Description' and ensured string value
-      // Quantity removed from payload
-      // Handle SoldtoBusinessPartner as a direct string property
-      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || null } : {}),
-      // Status is also a direct property
-      ...(itemData.Status && { Status: itemData.Status }),
-      // IncludeInForecast is also a direct property
-      ...(itemData.IncludeInForecast !== undefined && { IncludeInForecast: itemData.IncludeInForecast }),
-      // ProbabilityPercentage
-      ...(itemData.ProbabilityPercentage !== undefined && { ProbabilityPercentage: itemData.ProbabilityPercentage }),
-      // ExpectedRevenue
-      ...(itemData.ExpectedRevenue !== undefined && { ExpectedRevenue: itemData.ExpectedRevenue }),
-      // Type, Source, SalesProcess, Phase, Reason, AssignedTo
-      ...(itemData.Type && { Type: itemData.Type }),
-      ...(itemData.Source && { Source: itemData.Source }),
-      ...(itemData.SalesProcess && { SalesProcess: itemData.SalesProcess }),
-      ...(itemData.Phase && { Phase: itemData.Phase }),
-      ...(itemData.Reason && { Reason: itemData.Reason }),
-      ...(itemData.AssignedTo && { AssignedTo: itemData.AssignedTo }),
-      // Dates
-      ...(itemData.FirstContactDate && { FirstContactDate: itemData.FirstContactDate }),
-      ...(itemData.ExpectedCompletionDate && { ExpectedCompletionDate: itemData.ExpectedCompletionDate }),
-      ...(itemData.ActualCompletionDate && { ActualCompletionDate: itemData.ActualCompletionDate }),
+      Name: itemData.name || "", // Ensure name is always a string
+      Description: itemData.description || "", // Ensure description is always a string
+      SoldtoBusinessPartner: itemData.SoldtoBusinessPartner || "", // Ensure BP ID is always a string (or empty string)
+      Status: itemData.Status || "", // Ensure status is always a string
+      IncludeInForecast: itemData.IncludeInForecast ?? false, // Default to false if null/undefined
+      ProbabilityPercentage: itemData.ProbabilityPercentage ?? 0, // Default to 0 if null/undefined
+      ExpectedRevenue: itemData.ExpectedRevenue ?? 0, // Default to 0 if null/undefined
+      Type: itemData.Type || "", // Ensure type is always a string
+      Source: itemData.Source || "", // Ensure source is always a string
+      SalesProcess: itemData.SalesProcess || "", // Ensure sales process is always a string
+      Phase: itemData.Phase || "", // Ensure phase is always a string
+      Reason: itemData.Reason || "", // Ensure reason is always a string
+      AssignedTo: itemData.AssignedTo || "", // Ensure assignedTo is always a string
+      FirstContactDate: itemData.FirstContactDate || "", // Ensure date is always a string
+      ExpectedCompletionDate: itemData.ExpectedCompletionDate || "", // Ensure date is always a string
+      ActualCompletionDate: itemData.ActualCompletionDate || "", // Ensure date is always a string
     };
 
     // Dynamically add other properties from itemData to the payload,
-    // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
+    // but explicitly exclude derived/expanded fields and fields already handled above.
     const excludedKeys = new Set([
-      "id", "name", "description", "@odata.etag", "@odata.context", // 'quantity' removed from here
-      // SoldtoBusinessPartner is now handled directly above, so it's not excluded here
+      "id", "name", "description", "@odata.etag", "@odata.context",
+      // Derived/expanded fields
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
-      // Also exclude fields already explicitly handled above to avoid duplication or incorrect type handling
-      "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
+      // Fields explicitly handled above to avoid duplication or incorrect type handling
+      "SoldtoBusinessPartner", "Status", "IncludeInForecast", "ProbabilityPercentage", "ExpectedRevenue",
       "Type", "Source", "SalesProcess", "Phase", "Reason", "AssignedTo",
       "FirstContactDate", "ExpectedCompletionDate", "ActualCompletionDate",
       // Read-only fields that should not be sent in PATCH
       "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-      // "Description", // 'Description' is now explicitly handled, so it's not excluded
     ]);
 
     for (const key in itemData) {
-      // This loop adds any other dynamic properties not explicitly listed or excluded.
-      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
-      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") { // Only include if not undefined
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
         payload[key] = itemData[key];
       }
     }
 
-    console.log("API: Updating item with payload:", payload); // Added logging
-    console.log("API: Sending X-Infor-LnCompany header with value:", companyNumber); // Added log for companyNumber
+    console.log("API: Updating item with payload:", payload);
+    console.log("API: Sending X-Infor-LnCompany header with value:", companyNumber);
     const response = await fetch(`${API_BASE_URL}/Opportunities('${opportunityId}')`, {
-      method: "PATCH", // Use PATCH for partial updates
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Content-Language": "en-US",
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
-        "If-Match": itemData["@odata.etag"] || "*", // Include ETag for optimistic concurrency, or '*' to always update
+        "If-Match": itemData["@odata.etag"] || "*",
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
-      const errorText = await response.text(); // Get raw text for better error inspection
+      const errorText = await response.text();
       console.error(`API request failed for update item with status: ${response.status} ${response.statusText}`);
       console.error("Error response body:", errorText);
       try {
@@ -201,10 +173,6 @@ export const updateItem = async (
       }
     }
 
-    // OData PATCH typically returns 204 No Content on success, or the updated entity.
-    // If it returns 204, we can return the itemData as is, or refetch.
-    // For simplicity, we'll assume the update was successful and return the itemData.
-    // If the API returns the updated entity, you might want to parse it.
     console.log("API: Item updated successfully", itemData);
     return itemData; 
   } catch (error) {
@@ -239,15 +207,14 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
     // OData responses for collections typically have a 'value' array.
     const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
       const mappedItem: Item = {
-        id: odataItem.Opportunity || String(Math.random() * 100000), // Map 'Opportunity' to 'id'
-        name: odataItem.Name || odataItem.Opportunity || "N/A", // Map 'Name' to 'name', fallback to 'Opportunity'
-        description: odataItem.Description || "No description", // Map 'Description' to 'description'
-        // quantity: odataItem.Quantity || 0, // Removed as it's not a mappable property for the API
+        id: odataItem.Opportunity || String(Math.random() * 100000),
+        name: odataItem.Name || odataItem.Opportunity || "N/A",
+        description: odataItem.Description || "No description",
       };
 
       // Dynamically add all other properties from OData response
       for (const key in odataItem) {
-        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "Quantity" && key !== "@odata.etag" && key !== "@odata.context") {
+        if (key !== "Opportunity" && key !== "Name" && key !== "Description" && key !== "@odata.etag" && key !== "@odata.context") {
           mappedItem[key] = odataItem[key];
         }
       }
