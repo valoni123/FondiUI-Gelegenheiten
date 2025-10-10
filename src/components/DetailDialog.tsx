@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] overflow-y-auto"> {/* Added lg:min-w-[1200px] */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] min-h-[70vh] overflow-y-auto"> {/* Added min-h-[70vh] */}
           {/* Custom Header Area */}
           <div className="flex items-center justify-between border-b pb-4 mb-4">
             <div className="flex items-center gap-2 text-xl font-bold">
@@ -372,9 +372,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
               <span className="text-xl font-bold">{editedItem.name}</span> {/* Display name as bold text */}
             </div>
-            {/* Placeholder for top-right icon if needed */}
+            {/* Save Button moved to top right */}
             <div>
-              {/* <Button variant="ghost" size="icon"><MoreHorizontal className="h-5 w-5" /></Button> */}
+              <Button type="submit" onClick={handleSave}>
+                {isAddingNewItem ? "Add Item" : "Save changes"}
+              </Button>
             </div>
           </div>
 
@@ -437,11 +439,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="mt-4">
-            <Button type="submit" onClick={handleSave}>
-              {isAddingNewItem ? "Add Item" : "Save changes"}
-            </Button>
-          </DialogFooter>
+          {/* DialogFooter removed as button moved to header */}
         </DialogContent>
       </Dialog>
 
