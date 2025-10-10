@@ -1,4 +1,5 @@
 import { Item } from "@/types";
+import { BUSINESS_PARTNERS_API_URL } from "@/api/businessPartners"; // Import Business Partners API URL
 
 // Define your API base URL for the OData service.
 const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp";
@@ -13,8 +14,6 @@ export const createItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
-      // Ensure SoldtoBusinessPartner is always included if it exists in itemData, even if its value is null or empty string
-      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner } : {}),
       // Status is also a direct property
       ...(itemData.Status && { Status: itemData.Status }),
       // IncludeInForecast is also a direct property
@@ -40,6 +39,7 @@ export const createItem = async (
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
       "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "SoldtoBusinessPartner", // Exclude as it's handled separately with @odata.bind
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
@@ -52,10 +52,18 @@ export const createItem = async (
     ]);
 
     for (const key in itemData) {
-      // This loop adds any other dynamic properties not explicitly listed or excluded.
-      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
-      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") {
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) {
         payload[key] = itemData[key];
+      }
+    }
+
+    // Handle SoldtoBusinessPartner using @odata.bind for creation
+    if (itemData.SoldtoBusinessPartner !== undefined) {
+      if (itemData.SoldtoBusinessPartner) {
+        payload["SoldtoBusinessPartner@odata.bind"] = `${BUSINESS_PARTNERS_API_URL}('${itemData.SoldtoBusinessPartner}')`;
+      } else {
+        // To unlink, set the navigation property to null
+        payload.SoldtoBusinessPartner = null;
       }
     }
 
@@ -123,8 +131,6 @@ export const updateItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
-      // Ensure SoldtoBusinessPartner is always included if it exists in itemData, even if its value is null or empty string
-      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner } : {}),
       // Status is also a direct property
       ...(itemData.Status && { Status: itemData.Status }),
       // IncludeInForecast is also a direct property
@@ -150,6 +156,7 @@ export const updateItem = async (
     // but explicitly exclude derived/expanded fields that are not direct properties of Opportunity.
     const excludedKeys = new Set([
       "id", "name", "description", "quantity", "@odata.etag", "@odata.context",
+      "SoldtoBusinessPartner", // Exclude as it's handled separately with @odata.bind
       "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
       "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
       "SoldtoBusinessPartnerCountry",
@@ -162,10 +169,18 @@ export const updateItem = async (
     ]);
 
     for (const key in itemData) {
-      // This loop adds any other dynamic properties not explicitly listed or excluded.
-      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
-      if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") { // Only include if not undefined
+      if (!excludedKeys.has(key) && itemData[key] !== undefined) { // Only include if not undefined
         payload[key] = itemData[key];
+      }
+    }
+
+    // Handle SoldtoBusinessPartner using @odata.bind for updates
+    if (itemData.SoldtoBusinessPartner !== undefined) {
+      if (itemData.SoldtoBusinessPartner) {
+        payload["SoldtoBusinessPartner@odata.bind"] = `${BUSINESS_PARTNERS_API_URL}('${itemData.SoldtoBusinessPartner}')`;
+      } else {
+        // To unlink, set the navigation property to null
+        payload.SoldtoBusinessPartner = null;
       }
     }
 
