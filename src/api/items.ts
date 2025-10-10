@@ -13,8 +13,8 @@ export const createItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
-      // Only include SoldtoBusinessPartner ID if it exists
-      ...(itemData.SoldtoBusinessPartner && { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner }),
+      // Ensure SoldtoBusinessPartner is always included if it exists in itemData, even if its value is null or empty string
+      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner } : {}),
       // Status is also a direct property
       ...(itemData.Status && { Status: itemData.Status }),
       // IncludeInForecast is also a direct property
@@ -52,8 +52,8 @@ export const createItem = async (
     ]);
 
     for (const key in itemData) {
-      // Ensure SoldtoBusinessPartner is NOT excluded here, as it's handled explicitly above.
       // This loop adds any other dynamic properties not explicitly listed or excluded.
+      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
       if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") {
         payload[key] = itemData[key];
       }
@@ -123,8 +123,8 @@ export const updateItem = async (
       OpportunityName: itemData.name,
       Description: itemData.description,
       Quantity: itemData.quantity,
-      // Only include SoldtoBusinessPartner ID if it exists and is not empty
-      ...(itemData.SoldtoBusinessPartner && { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner }),
+      // Ensure SoldtoBusinessPartner is always included if it exists in itemData, even if its value is null or empty string
+      ...(itemData.SoldtoBusinessPartner !== undefined ? { SoldtoBusinessPartner: itemData.SoldtoBusinessPartner } : {}),
       // Status is also a direct property
       ...(itemData.Status && { Status: itemData.Status }),
       // IncludeInForecast is also a direct property
@@ -162,8 +162,8 @@ export const updateItem = async (
     ]);
 
     for (const key in itemData) {
-      // Ensure SoldtoBusinessPartner is NOT excluded here, as it's handled explicitly above.
       // This loop adds any other dynamic properties not explicitly listed or excluded.
+      // We already handled SoldtoBusinessPartner explicitly above, so ensure it's not re-added here.
       if (!excludedKeys.has(key) && itemData[key] !== undefined && key !== "SoldtoBusinessPartner") { // Only include if not undefined
         payload[key] = itemData[key];
       }
