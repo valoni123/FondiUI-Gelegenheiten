@@ -83,67 +83,82 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     return a.localeCompare(b);
   });
 
+  const firstGroupKeys = itemKeys.slice(0, 12); // First 12 fields for 4-column layout
+  const secondGroupKeys = itemKeys.slice(12); // Remaining fields for 3-column layout
+
+  const renderField = (key: string) => (
+    <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
+      <Label htmlFor={key} className="text-right capitalize">
+        {key.replace(/([A-Z])/g, ' $1').trim()}
+      </Label>
+      {key === "Status" && opportunityStatusOptions.length > 0 ? (
+        <Select
+          value={String(editedItem[key])}
+          onValueChange={(value) => handleChange(key, value)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Status" />
+          </SelectTrigger>
+          <SelectContent>
+            {opportunityStatusOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : (
+        <Input
+          id={key}
+          type={typeof editedItem[key] === "number" ? "number" : "text"}
+          value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
+          onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
+          className="w-full"
+          placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+          disabled={
+            key === "Opportunity" ||
+            key === "Guid" ||
+            key === "CreationDate" ||
+            key === "LastTransactionDate" ||
+            key === "CreatedBy" ||
+            key === "LastModifiedBy"
+          }
+        />
+      )}
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] md:max-w-[700px]"> {/* Adjusted width for two columns */}
+      <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px]"> {/* Adjusted width for more columns */}
         <DialogHeader>
           <DialogTitle>{isAddingNewItem ? "Add New Item" : "Edit Item Details"}</DialogTitle>
           <DialogDescription>
             {isAddingNewItem ? "Enter details for the new item." : "Make changes to your item here. Click save when you're done."}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 py-4"> {/* Two columns for fields */}
-          {/* ID field always first and disabled, spanning both columns */}
-          <div className="md:col-span-2 grid grid-cols-[100px_1fr] items-center gap-4">
+        <div className="py-4 space-y-6"> {/* Main content wrapper with spacing between grid sections */}
+          {/* ID field always first and disabled, spanning all columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 items-center gap-4">
             <Label htmlFor="id" className="text-right">
               ID
             </Label>
-            <Input id="id" value={editedItem.id} className="w-full" disabled={true} placeholder={isAddingNewItem ? "Auto-generated on save" : ""} />
+            <Input id="id" value={editedItem.id} className="lg:col-span-3 w-full" disabled={true} placeholder={isAddingNewItem ? "Auto-generated on save" : ""} />
           </div>
 
-          {itemKeys.map((key) => (
-            <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}> {/* Each field group takes one column */}
-              <Label htmlFor={key} className="text-right capitalize">
-                {key.replace(/([A-Z])/g, ' $1').trim()} {/* Make it more readable */}
-              </Label>
-              {key === "Status" && opportunityStatusOptions.length > 0 ? (
-                <Select
-                  value={String(editedItem[key])}
-                  onValueChange={(value) => handleChange(key, value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {opportunityStatusOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  id={key}
-                  type={typeof editedItem[key] === "number" ? "number" : "text"}
-                  value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
-                  onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
-                  className="w-full"
-                  placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-                  // Disable editing for system-generated/read-only fields
-                  disabled={
-                    key === "Opportunity" ||
-                    key === "Guid" ||
-                    key === "CreationDate" ||
-                    key === "LastTransactionDate" ||
-                    key === "CreatedBy" ||
-                    key === "LastModifiedBy"
-                  }
-                />
-              )}
+          {/* First group of fields (up to 12) in a 4-column layout */}
+          {firstGroupKeys.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-4">
+              {firstGroupKeys.map(renderField)}
             </div>
-          ))}
+          )}
+
+          {/* Second group of fields (remaining) in a 3-column layout */}
+          {secondGroupKeys.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4">
+              {secondGroupKeys.map(renderField)}
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button type="submit" onClick={handleSave}>
