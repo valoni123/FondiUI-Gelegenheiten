@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, CalendarIcon } from "lucide-react";
+import { Search, CalendarIcon } => from "lucide-react";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners";
 import { cn } from "@/lib/utils";
@@ -152,7 +152,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     user: [
       { key: "CreatedBy", label: "Erstellt von", type: "text", disabled: true },
       { key: "CreationDate", label: "Erstellt am", type: "datetime", disabled: true },
-      { key: "LastModifiedBy", label: "Zuletzt geändert von", type: "text", disabled: true },
+      { key: "LastModifiedBy", label: "Zuletzt geändert von", "type": "text", disabled: true },
       { key: "LastTransactionDate", label: "Zuletzt geändert am", type: "datetime", disabled: true },
     ],
   };
@@ -364,7 +364,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative overflow-hidden"> {/* Added flex flex-col, overflow-hidden */}
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] lg:min-w-[1200px] max-h-[90vh] flex flex-col relative"> {/* Removed min-h and overflow-y-auto */}
           {/* Save Button - positioned absolutely */}
           <Button
             type="submit"
@@ -375,7 +375,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           </Button>
 
           {/* Custom Header Area (for title) */}
-          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0"> {/* Added flex-shrink-0 */}
+          <div className="flex items-center justify-between border-b pb-4 mb-4 pr-[150px] flex-shrink-0">
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
               <span className="font-normal text-muted-foreground">{editedItem.id}</span>
@@ -383,12 +383,12 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             </div>
           </div>
 
-          <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow"> {/* Added flex flex-col flex-grow */}
-            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0"> {/* Added flex-shrink-0 */}
+          <Tabs defaultValue="gelegenheit" className="w-full flex flex-col flex-grow">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground flex-shrink-0">
               <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
               <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
             </TabsList>
-            <TabsContent value="gelegenheit" className="py-4 flex-grow overflow-y-auto"> {/* Added flex-grow overflow-y-auto, removed min-h */}
+            <TabsContent value="gelegenheit" className="py-4 flex-grow overflow-y-auto">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {renderSection("Allgemein", structuredFields.general)}
                 {renderSection("Fortschritt", structuredFields.progress)}
@@ -400,7 +400,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 {renderSection("Anwender", structuredFields.user)}
               </div>
             </TabsContent>
-            <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto"> {/* Added flex-grow overflow-y-auto, removed min-h */}
+            <TabsContent value="sonstiges" className="py-4 flex-grow overflow-y-auto">
               {/* Other Details Section for any remaining dynamic fields */}
               {otherKeys.length > 0 ? (
                 <div className="space-y-4">
