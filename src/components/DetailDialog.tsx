@@ -381,11 +381,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           </div>
 
           <Tabs defaultValue="gelegenheit" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
               <TabsTrigger value="gelegenheit">Gelegenheit</TabsTrigger>
               <TabsTrigger value="sonstiges">Sonstiges</TabsTrigger>
             </TabsList>
-            <TabsContent value="gelegenheit" className="py-4 min-h-[600px]"> {/* Added min-h */}
+            <TabsContent value="gelegenheit" className="py-4 min-h-[600px]">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {renderSection("Allgemein", structuredFields.general)}
                 {renderSection("Fortschritt", structuredFields.progress)}
@@ -397,7 +397,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 {renderSection("Anwender", structuredFields.user)}
               </div>
             </TabsContent>
-            <TabsContent value="sonstiges" className="py-4 min-h-[600px]"> {/* Added min-h */}
+            <TabsContent value="sonstiges" className="py-4 min-h-[600px]">
               {/* Other Details Section for any remaining dynamic fields */}
               {otherKeys.length > 0 ? (
                 <div className="space-y-4">
