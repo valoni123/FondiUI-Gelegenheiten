@@ -23,6 +23,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "id", "name", "description", "@odata.etag", "@odata.context",
     "tdsmi110.text", // Explicitly exclude this system-managed text number field
     "Series", // Exclude Series as it cannot be modified
+    "Guid", // Exclude Guid as it cannot be modified
     // Derived/expanded fields
     "SoldtoBusinessPartnerName", "SoldtoBusinessPartnerStreet",
     "SoldtoBusinessPartnerHouseNumber", "SoldtoBusinessPartnerZIPCodePostalCode",
