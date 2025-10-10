@@ -111,88 +111,91 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const firstGroupKeys = itemKeys.slice(0, 12);
   const secondGroupKeys = itemKeys.slice(12);
 
-  const renderField = (key: string) => (
-    <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
-      <Label htmlFor={key} className="text-right capitalize">
-        {key.replace(/([A-Z])/g, ' $1').trim()}
-      </Label>
-      {key === "Status" && opportunityStatusOptions.length > 0 ? (
-        <Select
-          value={String(editedItem[key])}
-          onValueChange={(value) => handleChange(key, value)}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {opportunityStatusOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      ) : key === "SoldtoBusinessPartner" ? (
-        <div className="flex items-center gap-2"> {/* Container for input group and name */}
-          <div className="relative flex-grow"> {/* Container for input and search button */}
-            <Input
-              id={key}
-              type="text"
-              value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
-              onChange={(e) => {
-                handleChange(key, e.target.value);
-                setSoldToBpName(null); // Clear name if user types manually
-              }}
-              className="pr-10 w-full" // Add padding-right for the button
-              placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-              disabled={
-                key === "Opportunity" ||
-                key === "Guid" ||
-                key === "CreationDate" ||
-                key === "LastTransactionDate" ||
-                key === "CreatedBy" ||
-                key === "LastModifiedBy"
-              }
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsBpSelectDialogOpen(true)}
-              aria-label="Select Business Partner"
-              className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0" // Position button inside
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+  const renderField = (key: string) => {
+    // console.log(`Rendering field: ${key}, Value: ${editedItem[key]}`); // Debugging line
+    return (
+      <div className="grid grid-cols-[100px_1fr] items-center gap-4" key={key}>
+        <Label htmlFor={key} className="text-right capitalize">
+          {key.replace(/([A-Z])/g, ' $1').trim()}
+        </Label>
+        {key === "Status" && opportunityStatusOptions.length > 0 ? (
+          <Select
+            value={String(editedItem[key] || "")} // Ensure value is always a string
+            onValueChange={(value) => handleChange(key, value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {opportunityStatusOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : key === "SoldtoBusinessPartner" ? (
+          <div className="flex items-center gap-2"> {/* Container for input group and name */}
+            <div className="relative flex-grow"> {/* Container for input and search button */}
+              <Input
+                id={key}
+                type="text"
+                value={String(editedItem[key] || "")} // Ensure value is always a string
+                onChange={(e) => {
+                  handleChange(key, e.target.value);
+                  setSoldToBpName(null); // Clear name if user types manually
+                }}
+                className="pr-10 w-full" // Add padding-right for the button
+                placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                disabled={
+                  key === "Opportunity" ||
+                  key === "Guid" ||
+                  key === "CreationDate" ||
+                  key === "LastTransactionDate" ||
+                  key === "CreatedBy" ||
+                  key === "LastModifiedBy"
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsBpSelectDialogOpen(true)}
+                aria-label="Select Business Partner"
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0" // Position button inside
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            {soldToBpName && editedItem[key] && ( // Conditionally display name
+              <p className="text-sm text-muted-foreground whitespace-nowrap">{soldToBpName}</p>
+            )}
           </div>
-          {soldToBpName && editedItem[key] && ( // Conditionally display name
-            <p className="text-sm text-muted-foreground whitespace-nowrap">{soldToBpName}</p>
-          )}
-        </div>
-      ) : (
-        <Input
-          id={key}
-          type={typeof editedItem[key] === "number" ? "number" : "text"}
-          value={editedItem[key] !== null && editedItem[key] !== undefined ? String(editedItem[key]) : ""}
-          onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
-          className="w-full"
-          placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
-          disabled={
-            key === "Opportunity" ||
-            key === "Guid" ||
-            key === "CreationDate" ||
-            key === "LastTransactionDate" ||
-            key === "CreatedBy" ||
-            key === "LastModifiedBy"
-          }
-        />
-      )}
-    </div>
-  );
+        ) : (
+          <Input
+            id={key}
+            type={typeof editedItem[key] === "number" ? "number" : "text"}
+            value={String(editedItem[key] || "")} // Ensure value is always a string
+            onChange={(e) => handleChange(key, typeof editedItem[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value)}
+            className="w-full"
+            placeholder={`Enter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+            disabled={
+              key === "Opportunity" ||
+              key === "Guid" ||
+              key === "CreationDate" ||
+              key === "LastTransactionDate" ||
+              key === "CreatedBy" ||
+              key === "LastModifiedBy"
+            }
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[800px] lg:max-w-[1000px]">
+        <DialogContent className="sm:max-w-[90vw] lg:max-w-[1200px] max-h-[90vh] overflow-y-auto"> {/* Expanded dialog size */}
           <DialogHeader>
             <DialogTitle>
               {isAddingNewItem ? "Add New Item" : `Edit Item Details (ID: ${editedItem.id})`}
