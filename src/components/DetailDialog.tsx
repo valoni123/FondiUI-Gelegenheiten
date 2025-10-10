@@ -128,7 +128,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       { key: "AssignedTo", label: "Zugewiesen an", type: "text", hasSearch: true, hasAssignButton: true },
     ],
     classification: [
-      { key: "Type", label: "Art", type: "text", hasSearch: true, defaultValue: "100", displaySuffix: "Produkt" },
+      { key: "Type", label: "Art", type: "text", hasSearch: false, defaultValue: "100", displaySuffix: "Produkt" },
       { key: "Source", label: "Quelle", type: "text", hasSearch: true },
     ],
     dates: [
@@ -145,7 +145,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     ],
     forecast: [
       { key: "IncludeInForecast", label: "In Prognose berücksichtigen", type: "checkbox" },
-      { key: "ExpectedRevenue", label: "Erwartete Erlöse", type: "number", hasSearch: false, suffix: "EUR", isRequired: true }, // hasSearch changed to false
+      { key: "ExpectedRevenue", label: "Erwartete Erlöse", type: "number", hasSearch: false, suffix: "EUR", isRequired: true },
       { key: "WeightedRevenue", label: "Gewichteter Erlös", type: "number", disabled: true, suffix: "EUR" },
       { key: "ItemRevenue", label: "Artikelerlös", type: "number", disabled: true, suffix: "EUR" },
     ],
@@ -290,13 +290,13 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         );
       case "number":
         return (
-          <div className="flex items-center gap-2"> {/* This div aligns the input and suffix */}
+          <div className="flex items-center gap-2">
             <Input
               {...commonInputProps}
               type="number"
               value={String(value)}
               onChange={(e) => handleChange(key, parseFloat(e.target.value) || 0)}
-              className="w-40" // Apply a fixed width here
+              className="w-40"
             />
             {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
           </div>
@@ -311,8 +311,9 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               value={String(value)}
               onChange={(e) => handleChange(key, e.target.value)}
               className={cn(
-                (hasSearch || displaySuffix) && "pr-10", // Adjust padding for icons/suffixes
-                displaySuffix && "pr-12" // More padding if there's a suffix
+                (hasSearch || displaySuffix) && "pr-10",
+                displaySuffix && "pr-12",
+                (key === "Type" || key === "Source") && "w-40"
               )}
             />
             {displaySuffix && <span className="text-sm text-muted-foreground whitespace-nowrap">{displaySuffix}</span>}
@@ -320,7 +321,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => console.log(`Search for ${key}`)} // Placeholder for search
+                onClick={() => console.log(`Search for ${key}`)}
                 aria-label={`Search ${label}`}
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
               >
@@ -331,7 +332,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => console.log(`Assign to me: ${key}`)} // Placeholder for assign
+                onClick={() => console.log(`Assign to me: ${key}`)}
                 className="ml-2"
               >
                 Mir zuweisen
@@ -348,7 +349,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       <div className="grid grid-cols-1 gap-4">
         {fields.map((fieldConfig) => (
           <div className="grid grid-cols-[150px_1fr] items-center gap-4" key={fieldConfig.key}>
-            {fieldConfig.type !== "checkbox" && ( // Checkbox label is rendered inside renderField
+            {fieldConfig.type !== "checkbox" && (
               <Label htmlFor={fieldConfig.key} className={cn("text-right", fieldConfig.isRequired && "after:content-['*'] after:ml-0.5 after:text-red-500")}>
                 {fieldConfig.label}
               </Label>
@@ -368,27 +369,21 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           <div className="flex items-center justify-between border-b pb-4 mb-4">
             <div className="flex items-center gap-2 text-xl font-bold">
               <span>Gelegenheit:</span>
+              <span className="font-normal text-muted-foreground">{editedItem.id}</span>
               <Input
-                value={editedItem.id}
-                disabled
-                className="w-32 text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0"
+                value={editedItem.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+                className="w-auto text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0"
               />
-              <div className="relative">
-                <Input
-                  value={editedItem.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  className="w-48 text-xl font-bold border-none p-0 h-auto bg-transparent focus-visible:ring-0 pr-8"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => console.log("Search Opportunity Name")}
-                  aria-label="Search Opportunity Name"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                >
-                  <Search className="h-4 w-4" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => console.log("Search Opportunity Name")}
+                aria-label="Search Opportunity Name"
+                className="h-8 w-8 p-0"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
             </div>
             {/* Placeholder for top-right icon if needed */}
             <div>
