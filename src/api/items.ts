@@ -7,6 +7,9 @@ const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {}; // Start with an empty payload
 
+  // Map our UI's 'description' to the API's 'Description' field for writing
+  payload.Description = String(itemData.description || "");
+
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
   if (itemData.name) payload.Name = String(itemData.name);
   if (itemData.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemData.SoldtoBusinessPartner);
@@ -44,7 +47,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     // Read-only fields that should not be sent in POST/PATCH
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
-    // "tdsmi110.text" is now handled by the generic loop if present in itemData
+    // Exclude tdsmi110.text from dynamic loop as it's read-only and not directly writable via main entity
+    "tdsmi110.text",
+    // Exclude 'Description' from dynamic loop as it's explicitly handled above
+    "Description",
   ]);
 
   for (const key in itemData) {
@@ -106,7 +112,7 @@ export const createItem = async (
     const newItem: Item = {
       id: odataResponse.Opportunity || String(Math.random() * 100000),
       name: odataResponse.Name || odataResponse.Opportunity || "N/A",
-      description: odataResponse["tdsmi110.text"] || "No description", // Map tdsmi110.text to description
+      description: odataResponse.Description || odataResponse["tdsmi110.text"] || "No description", // Prioritize Description, fallback to tdsmi110.text
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
@@ -115,9 +121,10 @@ export const createItem = async (
     const keysToExcludeFromNewItem = new Set([
       "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-      "tdsmi110.text" // Explicitly exclude from being copied into our Item object, as it's mapped to 'description'
+      "tdsmi110.text" // Exclude from being copied into our Item object, as it's mapped to 'description'
     ]);
 
+    // Dynamically add all other properties from OData response, excluding already mapped date fields
     for (const key in odataResponse) {
       if (!keysToExcludeFromNewItem.has(key)) {
         newItem[key] = odataResponse[key];
@@ -195,8 +202,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
-        description: odataItem["tdsmi110.text"] || "No description", // Map tdsmi110.text to description
-        // Map the correct date fields from OData response
+        description: odataItem.Description || odataItem["tdsmi110.text"] || "No description", // Prioritize Description, fallback to tdsmi110.text
         DateOfFirstContact: odataItem.DateOfFirstContact,
         ExpectedCloseDate: odataItem.ExpectedCloseDate,
         ActualCloseDate: odataItem.ActualCloseDate,
@@ -205,7 +211,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       const keysToExcludeFromNewItem = new Set([
         "Opportunity", "Name", "Description", "@odata.etag", "@odata.context",
         "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-        "tdsmi110.text" // Explicitly exclude from being copied into our Item object, as it's mapped to 'description'
+        "tdsmi110.text" // Exclude from being copied into our Item object, as it's mapped to 'description'
       ]);
 
       // Dynamically add all other properties from OData response, excluding already mapped date fields

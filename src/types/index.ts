@@ -31,7 +31,8 @@ export interface Item {
   CreationDate?: string;
   LastModifiedBy?: string;
   LastTransactionDate?: string;
-  "tdsmi110.text"?: string; // Added for API payload consistency
+  "tdsmi110.text"?: string; // Read-only field from API
+  Description?: string; // Writable field for API
 
   // Allow for any other properties that might come from the API
   [key: string]: any;

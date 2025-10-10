@@ -97,10 +97,8 @@ const Index = () => {
 
     let updatedItem = { ...itemToUpdate, [field]: value };
 
-    // IMPORTANT: Ensure tdsmi110.text is updated from description if description is the field being changed
-    if (field === "description") {
-      updatedItem["tdsmi110.text"] = String(value);
-    }
+    // Removed: No longer explicitly setting tdsmi110.text here.
+    // The 'description' field will now map to the API's 'Description' field in preparePayload.
 
     const loadingToastId = toast.loading(`Updating item ${field}...`);
 
@@ -156,8 +154,8 @@ const Index = () => {
       return;
     }
 
-    // IMPORTANT: Ensure tdsmi110.text is updated from description before saving
-    updatedItem["tdsmi110.text"] = updatedItem.description;
+    // Removed: No longer explicitly setting tdsmi110.text here.
+    // The 'description' field will now map to the API's 'Description' field in preparePayload.
 
     const loadingToastId = toast.loading(isAddingNewItem ? "Adding new item..." : "Saving item changes...");
     try {
