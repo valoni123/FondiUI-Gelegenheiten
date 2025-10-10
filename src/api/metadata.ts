@@ -7,6 +7,7 @@ export const getOpportunityStatusOptions = async (authToken: string): Promise<st
       headers: {
         "Accept": "application/xml",
         "Authorization": `Bearer ${authToken}`,
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
       },
     });
 

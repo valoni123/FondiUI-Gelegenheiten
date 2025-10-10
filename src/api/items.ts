@@ -104,7 +104,7 @@ export const createItem = async (
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Content-Language": "en-US",
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
       },
@@ -165,7 +165,7 @@ export const updateItem = async (
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Content-Language": "en-US",
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
         "If-Match": itemData["@odata.etag"] || "*",
@@ -195,7 +195,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string)
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "Content-Language": "en-US",
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
       },

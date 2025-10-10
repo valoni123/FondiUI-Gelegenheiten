@@ -44,7 +44,7 @@ export const getActiveBusinessPartners = async (
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "Content-Language": "en-US",
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
       },
@@ -83,7 +83,7 @@ export const getBusinessPartnerById = async (
       method: "GET",
       headers: {
         "Accept": "application/json",
-        "Content-Language": "en-US",
+        "Content-Language": "de-DE", // Changed from en-US to de-DE
         "X-Infor-LnCompany": companyNumber,
         "Authorization": `Bearer ${authToken}`,
       },
