@@ -32,6 +32,7 @@ export const getActiveBusinessPartners = async (authToken: string): Promise<Busi
 
   try {
     do {
+      console.log("Fetching business partners from:", currentUrl); // Log the URL for debugging
       const response = await fetch(currentUrl, {
         method: "GET",
         headers: {
@@ -43,16 +44,33 @@ export const getActiveBusinessPartners = async (authToken: string): Promise<Busi
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to fetch business partners: ${response.statusText}`);
+        const errorText = await response.text(); // Get raw text first
+        console.error(`API request failed for URL: ${currentUrl} with status: ${response.status} ${response.statusText}`);
+        console.error("Error response body:", errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || `Failed to fetch business partners: ${response.statusText}`);
+        } catch (jsonParseError) {
+          throw new Error(`Failed to fetch business partners: ${response.statusText} - ${errorText}`);
+        }
       }
 
       const data = await response.json();
-      allBusinessPartners = allBusinessPartners.concat(data.value || []);
+      if (Array.isArray(data.value)) { // Ensure data.value is an array
+        allBusinessPartners = allBusinessPartners.concat(data.value);
+      } else {
+        console.warn("API response 'value' is not an array or is missing:", data);
+        // If data.value is not an array, it might be the last page with no more items, or an unexpected format.
+        // We should probably stop here if it's not an array.
+        nextLink = null; // Stop the loop
+        continue; // Skip to next iteration to check nextLink
+      }
+      
       nextLink = data["@odata.nextLink"] || null;
+      console.log("Next link:", nextLink); // Log nextLink for debugging
 
       if (nextLink) {
-        currentUrl = nextLink; // Use the nextLink for the subsequent request
+        currentUrl = nextLink;
       }
 
     } while (nextLink); // Continue fetching as long as there's a nextLink
