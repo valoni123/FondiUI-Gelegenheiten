@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner } from "@/api/businessPartners";
+import EditableCellInput from "./EditableCellInput"; // Import the new component
 
 interface GridListProps {
   items: Item[];
@@ -46,7 +47,7 @@ const GridList: React.FC<GridListProps> = ({
     const keys = new Set<string>();
     items.forEach((item) => {
       for (const key in item) {
-        if (key !== "@odata.etag" && key !== "@odata.context") {
+        if (key !== "@odata.etag" && key !== "@odata.context" && key !== "name") { // Exclude 'name' from grid columns
           keys.add(key);
         }
       }
@@ -187,43 +188,27 @@ const GridList: React.FC<GridListProps> = ({
                     </Select>
                   ) : key === "SoldtoBusinessPartner" ? (
                     <div className="flex items-center gap-2">
-                      <div className="relative flex-grow">
-                        <Input
-                          value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
-                          onChange={(e) =>
-                            onUpdateItem(
-                              item.id,
-                              key,
-                              e.target.value
-                            )
-                          }
-                          className="pr-10 w-full"
-                          disabled={false}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenBpSelectDialog(item.id)}
-                          aria-label={`Select Business Partner for ${item.id}`}
-                          className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                        >
-                          <Search className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <EditableCellInput
+                        itemId={item.id}
+                        fieldKey={key}
+                        initialValue={item[key] || ""}
+                        onUpdateItem={onUpdateItem}
+                        className="pr-10 w-full"
+                        disabled={false}
+                        hasSearchButton={true}
+                        onSearchButtonClick={handleOpenBpSelectDialog}
+                      />
                       {item.SoldtoBusinessPartnerName && (
                         <p className="text-sm text-muted-foreground whitespace-nowrap">{item.SoldtoBusinessPartnerName}</p>
                       )}
                     </div>
                   ) : (
-                    <Input
-                      value={item[key] !== null && item[key] !== undefined ? String(item[key]) : ""}
-                      onChange={(e) =>
-                        onUpdateItem(
-                          item.id,
-                          key,
-                          typeof item[key] === "number" ? parseInt(e.target.value) || 0 : e.target.value
-                        )
-                      }
+                    <EditableCellInput
+                      itemId={item.id}
+                      fieldKey={key}
+                      initialValue={item[key] || ""}
+                      onUpdateItem={onUpdateItem}
+                      type={typeof item[key] === "number" ? "number" : "text"}
                       className="w-full"
                       disabled={
                         key === "id" ||
