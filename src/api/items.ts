@@ -17,8 +17,10 @@ const preparePayload = (itemData: Item): Record<string, any> => {
   // Map our UI's 'opportunityText' to the API's 'OpportunityText' field for writing
   payload.OpportunityText = String(itemDataCopy.opportunityText || "");
 
+  // Always send the Name field, even if it's an empty string from the UI
+  payload.Name = String(itemDataCopy.name || "");
+  
   // Add fields only if they have a value, or if they are boolean/number and explicitly set
-  if (itemDataCopy.name) payload.Name = String(itemDataCopy.name);
   if (itemDataCopy.SoldtoBusinessPartner) payload.SoldtoBusinessPartner = String(itemDataCopy.SoldtoBusinessPartner);
   if (itemDataCopy.Status) payload.Status = String(itemDataCopy.Status);
   
@@ -138,9 +140,9 @@ export const createItem = async (
 
     // Dynamically add all other properties from OData response, excluding already mapped date fields
     for (const key in odataResponse) {
-      if (!keysToExcludeFromNewItem.has(key)) {
-        newItem[key] = odataResponse[key];
-      }
+        if (!keysToExcludeFromNewItem.has(key)) {
+            newItem[key] = odataResponse[key];
+        }
     }
     return newItem;
   } catch (error) {

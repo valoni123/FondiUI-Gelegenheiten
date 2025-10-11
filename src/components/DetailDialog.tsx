@@ -64,7 +64,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     if (isAddingNewItem) {
       setEditedItem({
         id: "",
-        name: "",
+        name: "", // Keep name in state for display in header, but not as an editable field
         description: "",
         opportunityText: "",
         "tdsmi110.text": "",
@@ -187,11 +187,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       });
     });
 
-    // Validate 'name' field explicitly if not covered by structuredFields (it is now)
-    if (!editedItem.name || editedItem.name.trim() === "") {
-      newErrors.name = "Name is required.";
-    }
-
     setValidationErrors(newErrors);
     return Object.keys(newErrors).length === 0; // Return true if no errors
   };
@@ -233,7 +228,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      { key: "name", label: "Name", type: "text", isRequired: true }, // Added name field and made it required
+      // Removed { key: "name", label: "Name", type: "text", isRequired: true }
       { key: "opportunityText", label: "Allgemeine Daten", type: "textarea" },
       { key: "description", label: "Beschreibung", type: "textarea" },
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
@@ -284,7 +279,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   const otherKeys = Object.keys(editedItem).filter(key =>
     !structuredKeys.has(key) &&
     key !== "id" &&
-    key !== "name" &&
+    key !== "name" && // Exclude 'name' from other details as well
     key !== "@odata.etag" &&
     key !== "@odata.context" &&
     key !== "Description" &&
