@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/select";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner } from "@/api/businessPartners";
-import EditableCellInput from "./EditableCellInput"; // Import the new component
+import EditableCellInput from "./EditableCellInput";
 import { CloudEnvironment } from "@/authorization/configLoader";
+import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 
 interface GridListProps {
   items: Item[];
@@ -32,6 +33,8 @@ interface GridListProps {
   authToken: string;
   companyNumber: string;
   cloudEnvironment: CloudEnvironment;
+  selectedOpportunityId: string | null; // New prop for selected item
+  onSelectOpportunity: (opportunityId: string | null) => void; // New prop for selection handler
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -42,6 +45,8 @@ const GridList: React.FC<GridListProps> = ({
   authToken,
   companyNumber,
   cloudEnvironment,
+  selectedOpportunityId, // Destructure new prop
+  onSelectOpportunity, // Destructure new prop
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -52,7 +57,7 @@ const GridList: React.FC<GridListProps> = ({
   const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
 
   const getColumnLabel = (key: string) => {
-    if (key === "id") return "Gelegenheit"; // Changed from "Genehmigung" to "Gelegenheit"
+    if (key === "id") return "Gelegenheit";
     if (key === "Project") return "Projekt";
     if (key === "description") return "Bezeichnung";
     return key.replace(/([A-Z])/g, ' $1').trim();
@@ -76,7 +81,6 @@ const GridList: React.FC<GridListProps> = ({
     currentItems = currentItems.filter((item) => {
       for (const key in filters) {
         const filterValue = filters[key].toLowerCase();
-        // Ensure we check against the actual item data, not just visible keys
         const itemValue = String(item[key] || "").toLowerCase();
         if (filterValue && !itemValue.includes(filterValue)) {
           return false;
@@ -126,15 +130,18 @@ const GridList: React.FC<GridListProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] text-center"></TableHead>
+              <TableHead className="w-[50px] text-center"></TableHead> {/* For select button */}
+              <TableHead className="w-[50px] text-center">
+                <span className="sr-only">Select</span> {/* New TableHead for checkbox */}
+              </TableHead>
               {visibleKeys.map((key) => (
                 <TableHead
                   key={key}
                   className={cn(
-                    "min-w-[100px]", // Default width
-                    key === "id" && "min-w-[180px]", // Wider for ID
-                    key === "Project" && "min-w-[180px]", // Wider for Project
-                    key === "description" && "min-w-[250px]" // Wider for description
+                    "min-w-[100px]",
+                    key === "id" && "min-w-[180px]",
+                    key === "Project" && "min-w-[180px]",
+                    key === "description" && "min-w-[250px]"
                   )}
                 >
                   <div className="flex flex-col space-y-1">
@@ -166,7 +173,7 @@ const GridList: React.FC<GridListProps> = ({
           </TableHeader>
           <TableBody>
             {filteredAndSortedItems.map((item) => (
-              <TableRow key={item.id} className="hover:bg-muted"> {/* Changed to hover:bg-muted */}
+              <TableRow key={item.id} className="hover:bg-muted">
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
@@ -175,6 +182,19 @@ const GridList: React.FC<GridListProps> = ({
                   >
                     <ArrowRight className="h-4 w-4" />
                   </Button>
+                </TableCell>
+                <TableCell className="text-center"> {/* New TableCell for checkbox */}
+                  <Checkbox
+                    checked={selectedOpportunityId === item.id}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onSelectOpportunity(item.id);
+                      } else if (selectedOpportunityId === item.id) {
+                        onSelectOpportunity(null);
+                      }
+                    }}
+                    aria-label={`Select opportunity ${item.id}`}
+                  />
                 </TableCell>
                 {visibleKeys.map((key) => (
                   <TableCell key={`${item.id}-${key}`}>

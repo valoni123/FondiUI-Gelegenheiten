@@ -25,6 +25,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null); // New state for selected opportunity
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -173,6 +174,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     setIsDetailDialogOpen(true);
   };
 
+  const handleSelectOpportunity = (opportunityId: string | null) => {
+    setSelectedOpportunityId(opportunityId);
+  };
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
@@ -202,6 +207,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           authToken={authToken || ""}
           companyNumber={companyNumber}
           cloudEnvironment={cloudEnvironment}
+          selectedOpportunityId={selectedOpportunityId} // Pass new prop
+          onSelectOpportunity={handleSelectOpportunity} // Pass new handler
         />
 
         <DetailDialog
