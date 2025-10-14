@@ -41,9 +41,6 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose 
                   {selectedOpportunityId}
                 </span>
               </p>
-              <p>This panel will show more information about the selected opportunity.</p>
-              <p>You can add widgets, related documents, or other relevant data here.</p>
-              <p>For example, a small image gallery, activity feed, or contact details.</p>
             </div>
           </ScrollArea>
         </CardContent>
