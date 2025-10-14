@@ -130,7 +130,7 @@ const GridList: React.FC<GridListProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] text-center"></TableHead> {/* For select button */}
+              <TableHead className="w-[50px] text-center"></TableHead> {/* For view details button */}
               <TableHead className="w-[50px] text-center">
                 <span className="sr-only">Select</span> {/* New TableHead for checkbox */}
               </TableHead>
@@ -173,7 +173,13 @@ const GridList: React.FC<GridListProps> = ({
           </TableHeader>
           <TableBody>
             {filteredAndSortedItems.map((item) => (
-              <TableRow key={item.id} className="hover:bg-muted">
+              <TableRow
+                key={item.id}
+                className={cn(
+                  "hover:bg-muted",
+                  selectedOpportunityId === item.id && "bg-gray-200 dark:bg-gray-700" // Conditional highlight
+                )}
+              >
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
