@@ -27,7 +27,7 @@ import { BusinessPartner, getBusinessPartnerById } from "@/api/businessPartners"
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner"; // Import toast for error messages
+import { toast } from "sonner";
 
 interface DetailDialogProps {
   item: Item | null;
@@ -37,6 +37,7 @@ interface DetailDialogProps {
   isAddingNewItem: boolean;
   opportunityStatusOptions: string[];
   authToken: string;
+  companyNumber: string;
 }
 
 const DetailDialog: React.FC<DetailDialogProps> = ({
@@ -47,6 +48,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   isAddingNewItem,
   opportunityStatusOptions,
   authToken,
+  companyNumber,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
@@ -55,16 +57,16 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setEditedItem(null);
-      setValidationErrors({}); // Clear errors when dialog closes
+      setValidationErrors({});
       return;
     }
 
-    setValidationErrors({}); // Clear errors when dialog opens
+    setValidationErrors({});
 
     if (isAddingNewItem) {
       setEditedItem({
         id: "",
-        name: "", // Keep name in state for display in header, but not as an editable field
+        name: "",
         description: "",
         opportunityText: "",
         "tdsmi110.text": "",
@@ -106,10 +108,10 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
 
   useEffect(() => {
-    if (editedItem?.SoldtoBusinessPartner && authToken) {
+    if (editedItem?.SoldtoBusinessPartner && authToken && companyNumber) {
       const fetchBpDetails = async () => {
         try {
-          const bp = await getBusinessPartnerById(authToken, editedItem.SoldtoBusinessPartner);
+          const bp = await getBusinessPartnerById(authToken, editedItem.SoldtoBusinessPartner, companyNumber);
           if (bp) {
             setEditedItem(prev => ({
               ...prev!,
@@ -152,12 +154,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         SoldtoBusinessPartnerCountry: "",
       }));
     }
-  }, [editedItem?.SoldtoBusinessPartner, authToken]);
+  }, [editedItem?.SoldtoBusinessPartner, authToken, companyNumber]);
 
   const handleChange = (field: string, value: string | number | boolean) => {
     if (editedItem) {
       setEditedItem((prev) => ({ ...prev!, [field]: value }));
-      // Clear validation error for this field when it's changed
       setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[field];
@@ -170,7 +171,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     const newErrors: Record<string, string> = {};
     if (!editedItem) return newErrors;
 
-    // Validate structured fields
     Object.values(structuredFields).forEach(section => {
       section.forEach(fieldConfig => {
         if (fieldConfig.isRequired) {
@@ -179,7 +179,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
             value === null ||
             value === undefined ||
             (typeof value === 'string' && value.trim() === '') ||
-            (typeof value === 'number' && isNaN(value)) // Check for NaN in numbers
+            (typeof value === 'number' && isNaN(value))
           ) {
             newErrors[fieldConfig.key] = `${fieldConfig.label} is required.`;
           }
@@ -188,7 +188,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     });
 
     setValidationErrors(newErrors);
-    return Object.keys(newErrors).length === 0; // Return true if no errors
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSave = () => {
@@ -213,7 +213,6 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         SoldtoBusinessPartnerZIPCodePostalCode: bp.AddressRef?.ZIPCodePostalCode || "",
         SoldtoBusinessPartnerCountry: bp.AddressRef?.Country || "",
       }));
-      // Clear validation error for SoldtoBusinessPartner if it was previously set
       setValidationErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors.SoldtoBusinessPartner;
@@ -225,10 +224,8 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 
   if (!editedItem) return null;
 
-  // Define the order and type of fields for the structured layout
   const structuredFields = {
     general: [
-      // Removed { key: "name", label: "Name", type: "text", isRequired: true }
       { key: "opportunityText", label: "Allgemeine Daten", type: "textarea" },
       { key: "description", label: "Beschreibung", type: "textarea" },
       { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
@@ -246,7 +243,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     dates: [
       { key: "DateOfFirstContact", label: "Erster Kontakt am", type: "date", isRequired: true },
       { key: "ExpectedCloseDate", label: "Erwartetes Abschlussdatum", type: "date" },
-      { key: "ActualCloseDate", label: "Tatsächliches Abschlussdatum", type: "date", disabled: true }, // ActualCloseDate should be read-only
+      { key: "ActualCloseDate", label: "Tatsächliches Abschlussdatum", type: "date", disabled: true },
     ],
     progress: [
       { key: "Status", label: "Status", type: "select", options: opportunityStatusOptions, isRequired: true },
@@ -269,17 +266,15 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     ],
   };
 
-  // Collect all keys that are part of the structured layout
   const structuredKeys = new Set<string>();
   Object.values(structuredFields).forEach(section => {
     section.forEach(field => structuredKeys.add(field.key));
   });
 
-  // Filter out structured keys and internal OData keys for the "Other Details" section
   const otherKeys = Object.keys(editedItem).filter(key =>
     !structuredKeys.has(key) &&
     key !== "id" &&
-    key !== "name" && // Exclude 'name' from other details as well
+    key !== "name" &&
     key !== "@odata.etag" &&
     key !== "@odata.context" &&
     key !== "Description" &&
@@ -572,6 +567,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         onClose={() => setIsBpSelectDialogOpen(false)}
         onSelect={handleSelectBusinessPartner}
         authToken={authToken}
+        companyNumber={companyNumber}
       />
     </>
   );

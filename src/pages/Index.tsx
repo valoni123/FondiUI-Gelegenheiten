@@ -7,28 +7,30 @@ import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
-import { getAccessToken, getCompanyNumber } from "@/authorization/authService";
-import { getBusinessPartnerById } from "@/api/businessPartners"; // Import to fetch BP details
+import { getAccessToken } from "@/authorization/authService";
+import { getBusinessPartnerById } from "@/api/businessPartners";
 
-const Index = () => {
+interface IndexProps {
+  companyNumber: string;
+}
+
+const Index: React.FC<IndexProps> = ({ companyNumber }) => {
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
-  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false); // For initial/manual load
+  const [isLoadingOpportunities, setIsLoadingOpportunities] = useState(false);
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const companyNumber = getCompanyNumber();
 
-  // Modified loadOpportunities to accept a silent flag
-  const loadOpportunities = useCallback(async (token: string, silent: boolean = false) => {
+  const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, silent: boolean = false) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
-      const fetchedOpportunities = await getOpportunities(token, companyNumber);
+      const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber);
       setOpportunities(fetchedOpportunities);
       if (!silent) {
         toast.success("Opportunities loaded successfully!", { id: loadingToastId });
@@ -38,7 +40,6 @@ const Index = () => {
       if (!silent) {
         toast.error("Failed to load opportunities.", { id: loadingToastId });
       } else {
-        // For silent refreshes, log error but don't spam toasts
         console.warn("Silent refresh failed:", error);
       }
     } finally {
@@ -46,17 +47,16 @@ const Index = () => {
         setIsLoadingOpportunities(false);
       }
     }
-  }, [companyNumber]);
+  }, []);
 
-  // Initial authentication and data load
   useEffect(() => {
     const authenticateAndLoadData = async () => {
       try {
-        const token = await getAccessToken();
+        const token = await getAccessToken(companyNumber);
         setAuthToken(token);
         const options = await getOpportunityStatusOptions(token);
         setOpportunityStatusOptions(options);
-        await loadOpportunities(token, false); // Initial load, show toast
+        await loadOpportunities(token, companyNumber, false);
       } catch (error) {
         console.error("Authentication or initial data fetch failed:", error);
         toast.error("Failed to initialize application: Could not get auth token or data.");
@@ -65,24 +65,23 @@ const Index = () => {
       }
     };
     authenticateAndLoadData();
-  }, [loadOpportunities]);
+  }, [companyNumber, loadOpportunities]);
 
-  // Periodic silent refresh for opportunities
   useEffect(() => {
-    if (authToken) {
+    if (authToken && companyNumber) {
       const refreshInterval = setInterval(() => {
         console.log("Performing silent opportunities refresh...");
-        loadOpportunities(authToken, true); // Silent refresh
-      }, 30000); // Every 30 seconds
+        loadOpportunities(authToken, companyNumber, true);
+      }, 30000);
 
-      return () => clearInterval(refreshInterval); // Cleanup on unmount
+      return () => clearInterval(refreshInterval);
     }
-  }, [authToken, loadOpportunities]); // Re-run if authToken changes
+  }, [authToken, companyNumber, loadOpportunities]);
 
   const handleUpdateItem = async (
     id: string,
     field: string,
-    value: string | number | boolean // Updated type to include boolean
+    value: string | number | boolean
   ) => {
     if (!authToken) {
       toast.error("Authentication token not available. Please refresh the page.");
@@ -101,17 +100,13 @@ const Index = () => {
 
     try {
       if (field === "SoldtoBusinessPartner") {
-        // Special handling for SoldtoBusinessPartner:
-        // 1. Update the SoldtoBusinessPartner ID via API
         await updateItem(updatedItem, authToken, companyNumber);
 
-        // 2. Fetch the full business partner details to get name and address
         const businessPartnerId = String(value);
         const bpDetails = businessPartnerId
-          ? await getBusinessPartnerById(authToken, businessPartnerId)
+          ? await getBusinessPartnerById(authToken, businessPartnerId, companyNumber)
           : null;
 
-        // 3. Update the local state with the new ID and all derived BP details
         updatedItem = {
           ...updatedItem,
           SoldtoBusinessPartner: businessPartnerId,
@@ -123,7 +118,6 @@ const Index = () => {
         };
         toast.success("Business Partner updated!", { id: loadingToastId });
       } else {
-        // For all other fields, perform a direct update
         await updateItem(updatedItem, authToken, companyNumber);
         toast.success(`Item ${field} updated!`, { id: loadingToastId });
       }
@@ -133,7 +127,7 @@ const Index = () => {
           item.id === id ? updatedItem : item
         )
       );
-    } catch (error: any) { // Catch error and specify type as 'any' for message access
+    } catch (error: any) {
       console.error(`Failed to update item ${field}:`, error);
       toast.error(error.message || `Failed to update item ${field}.`, { id: loadingToastId });
     }
@@ -164,11 +158,10 @@ const Index = () => {
         );
         toast.success("Item details saved!", { id: loadingToastId });
       }
-      setIsDetailDialogOpen(false); // ONLY close dialog on successful save
-    } catch (error: any) { // Catch error and specify type as 'any' for message access
+      setIsDetailDialogOpen(false);
+    } catch (error: any) {
       console.error("Failed to save item changes:", error);
       toast.error(error.message || "Failed to save item changes.", { id: loadingToastId });
-      // Dialog remains open, data is preserved
     }
   };
 
@@ -206,6 +199,7 @@ const Index = () => {
           onViewDetails={handleViewDetails}
           opportunityStatusOptions={opportunityStatusOptions}
           authToken={authToken || ""}
+          companyNumber={companyNumber}
         />
 
         <DetailDialog
@@ -216,6 +210,7 @@ const Index = () => {
           isAddingNewItem={isAddingNewItem}
           opportunityStatusOptions={opportunityStatusOptions}
           authToken={authToken || ""}
+          companyNumber={companyNumber}
         />
       </div>
     </div>

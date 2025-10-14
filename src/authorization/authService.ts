@@ -3,21 +3,21 @@ import ionapiConfig from './ionapi.json';
 // IMPORTANT: Storing client secrets and user credentials directly in frontend code is generally NOT recommended for production environments.
 // For a production application, these credentials should be managed securely on a backend server.
 
-const COMPANY_NUMBER = "1000"; // As requested, hardcoded
-
 interface TokenCache {
   accessToken: string | null;
   expiresAt: number | null; // Unix timestamp in milliseconds
+  cachedCompanyNumber: string | null; // Store company number with token
 }
 
 let tokenCache: TokenCache = {
   accessToken: null,
   expiresAt: null,
+  cachedCompanyNumber: null,
 };
 
-export const getAccessToken = async (): Promise<string> => {
-  // Check if token is still valid
-  if (tokenCache.accessToken && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt) {
+export const getAccessToken = async (companyNumber: string): Promise<string> => { // Accept companyNumber
+  // Check if token is still valid AND for the same company number
+  if (tokenCache.accessToken && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt && tokenCache.cachedCompanyNumber === companyNumber) {
     console.log("Using cached OAuth2 Token.");
     return tokenCache.accessToken;
   }
@@ -70,6 +70,7 @@ export const getAccessToken = async (): Promise<string> => {
     tokenCache = {
       accessToken: data.access_token,
       expiresAt: Date.now() + (data.expires_in * 1000) - (60 * 1000), // Refresh 1 minute before actual expiry
+      cachedCompanyNumber: companyNumber, // Store the company number with the token
     };
     console.log("New OAuth2 Token retrieved and cached successfully.");
     return data.access_token;
@@ -77,9 +78,7 @@ export const getAccessToken = async (): Promise<string> => {
   } catch (error) {
     console.error("Authentication Error: Failed to get access token", error);
     // Clear cache on error to force re-authentication next time
-    tokenCache = { accessToken: null, expiresAt: null };
+    tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null };
     throw error;
   }
 };
-
-export const getCompanyNumber = (): string => COMPANY_NUMBER;

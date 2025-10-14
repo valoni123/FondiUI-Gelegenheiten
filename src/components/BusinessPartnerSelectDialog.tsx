@@ -11,13 +11,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { getActiveBusinessPartners, BusinessPartner } from "@/api/businessPartners";
 import { toast } from "sonner";
 import BusinessPartnerGrid from "./BusinessPartnerGrid";
-import { useDebounce } from "@/hooks/use-debounce"; // Import the new hook
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (businessPartner: BusinessPartner) => void;
   authToken: string;
+  companyNumber: string;
 }
 
 const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = ({
@@ -25,21 +26,21 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
   onClose,
   onSelect,
   authToken,
+  companyNumber,
 }) => {
   const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Debounce the search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 500); // 500ms debounce
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const fetchPartners = useCallback(async (term: string) => {
-    if (!authToken) return;
+    if (!authToken || !companyNumber) return;
 
     setIsLoading(true);
     const loadingToastId = toast.loading("Loading business partners...");
     try {
-      const partners = await getActiveBusinessPartners(authToken, term);
+      const partners = await getActiveBusinessPartners(authToken, companyNumber, term);
       setBusinessPartners(partners);
       toast.success("Business partners loaded!", { id: loadingToastId });
     } catch (error) {
@@ -48,11 +49,10 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
     } finally {
       setIsLoading(false);
     }
-  }, [authToken]);
+  }, [authToken, companyNumber]);
 
   useEffect(() => {
     if (isOpen) {
-      // Fetch partners when dialog opens or debounced search term changes
       fetchPartners(debouncedSearchTerm);
     }
   }, [isOpen, debouncedSearchTerm, fetchPartners]);
