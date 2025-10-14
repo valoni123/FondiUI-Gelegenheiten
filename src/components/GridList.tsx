@@ -53,7 +53,8 @@ const GridList: React.FC<GridListProps> = ({
 
   const getColumnLabel = (key: string) => {
     if (key === "id") return "Genehmigung";
-    if (key === "Project") return "Projekt"; // Renamed Project to Projekt
+    if (key === "Project") return "Projekt";
+    if (key === "description") return "Bezeichnung"; // Renamed description to Bezeichnung
     return key.replace(/([A-Z])/g, ' $1').trim();
   };
 
