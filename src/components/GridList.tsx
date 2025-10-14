@@ -52,14 +52,14 @@ const GridList: React.FC<GridListProps> = ({
     const keys = new Set<string>();
     items.forEach((item) => {
       for (const key in item) {
-        // Exclude internal OData keys and 'name' which is derived from 'Opportunity'
-        if (key !== "@odata.etag" && key !== "@odata.context" && key !== "name" && key !== "opportunityText") {
+        if (key !== "@odata.etag" && key !== "@odata.context" && key !== "name") { // Exclude 'name' from grid columns
           keys.add(key);
         }
       }
     });
     // Order the keys: id, description first, then others alphabetically
-    const orderedKeys = ["id", "description"].filter(k => keys.has(k));
+    // Ensure new date field names are considered if they appear in the initial items
+    const orderedKeys = ["id", "description", "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate"].filter(k => keys.has(k));
     const otherKeys = Array.from(keys).filter(k => !orderedKeys.includes(k)).sort();
     return [...orderedKeys, ...otherKeys];
   }, [items]);

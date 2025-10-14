@@ -37,7 +37,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     "description", "opportunityText",
-    "Description", "OpportunityText", "Project", // Exclude Project from generic loop if already mapped
+    "Description", "OpportunityText",
   ]);
 
   for (const key in itemDataCopy) {
@@ -106,13 +106,12 @@ export const createItem = async (
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
-      Project: odataResponse.Project || "", // Map Project field
     };
 
     const keysToExcludeFromNewItem = new Set([
       "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-      "tdsmi110.text", "Project"
+      "tdsmi110.text"
     ]);
 
     for (const key in odataResponse) {
@@ -168,30 +167,7 @@ export const updateItem = async (
 
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  
-  let selectFields: string;
-
-  if (cloudEnvironment === "GAC_DEM") {
-    selectFields = "Opportunity,Description";
-  } else if (cloudEnvironment === "FON_TRN") {
-    // Select only direct properties of the Opportunity entity for FON_TRN
-    selectFields = [
-      "Opportunity", "Description", "OpportunityText", "SoldtoBusinessPartner",
-      "AssignedTo", "Type", "Source",
-      "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate", "Status",
-      "SalesProcess", "Phase", "ProbabilityPercentage", "Reason",
-      "IncludeInForecast", "ExpectedRevenue", "WeightedRevenue", "ItemRevenue",
-      "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate", "Project"
-    ].join(',');
-    // Fields like BusinessPartnerStatus, SoldtoBusinessPartnerName, SoldtoBusinessPartnerStreet, etc.
-    // are NOT direct properties of the Opportunity entity and cannot be selected here.
-    // They are fetched separately in DetailDialog via getBusinessPartnerById.
-  } else {
-    // Fallback for any other environment, though GAC_DEM is the default
-    selectFields = "Opportunity,Description";
-  }
-
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=${selectFields}`;
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=*`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {
@@ -215,18 +191,26 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
     const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
-        name: odataItem.Opportunity || "N/A",
+        name: odataItem.Name || odataItem.Opportunity || "N/A",
         description: odataItem.Description || "No description",
-        opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "",
-        Project: odataItem.Project || "",
-        // Dynamically add other properties from odataItem that were selected
-        ...odataItem
+        opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "No Allgemeine Daten text",
+        "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text (raw)",
+        DateOfFirstContact: odataItem.DateOfFirstContact,
+        ExpectedCloseDate: odataItem.ExpectedCloseDate,
+        ActualCloseDate: odataItem.ActualCloseDate,
       };
 
-      // Ensure 'id' and 'name' are correctly mapped from 'Opportunity'
-      mappedItem.id = odataItem.Opportunity;
-      mappedItem.name = odataItem.Opportunity; 
+      const keysToExcludeFromNewItem = new Set([
+        "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
+        "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
+        "tdsmi110.text"
+      ]);
 
+      for (const key in odataItem) {
+        if (!keysToExcludeFromNewItem.has(key)) {
+          mappedItem[key] = odataItem[key];
+        }
+      }
       return mappedItem;
     });
     return opportunities;
