@@ -188,7 +188,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           Gelegenheiten
         </h1>
 
-        <div className="flex justify-end gap-2 mb-4">
+        <div className="flex justify-start gap-2 mb-4"> {/* Changed justify-end to justify-start */}
           <Button onClick={handleAddItem}>
             <PlusCircle className="mr-2 h-4 w-4" /> Add New Opportunity
           </Button>
