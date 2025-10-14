@@ -1,4 +1,4 @@
-import ionapiConfig from './ionapi.json';
+import { getIonApiConfig, getSsoProxyPath, CloudEnvironment } from './configLoader';
 
 // IMPORTANT: Storing client secrets and user credentials directly in frontend code is generally NOT recommended for production environments.
 // For a production application, these credentials should be managed securely on a backend server.
@@ -7,24 +7,32 @@ interface TokenCache {
   accessToken: string | null;
   expiresAt: number | null; // Unix timestamp in milliseconds
   cachedCompanyNumber: string | null; // Store company number with token
+  cachedCloudEnvironment: CloudEnvironment | null; // Store cloud environment with token
 }
 
 let tokenCache: TokenCache = {
   accessToken: null,
   expiresAt: null,
   cachedCompanyNumber: null,
+  cachedCloudEnvironment: null,
 };
 
-export const getAccessToken = async (companyNumber: string): Promise<string> => { // Accept companyNumber
-  // Check if token is still valid AND for the same company number
-  if (tokenCache.accessToken && tokenCache.expiresAt && Date.now() < tokenCache.expiresAt && tokenCache.cachedCompanyNumber === companyNumber) {
+export const getAccessToken = async (companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<string> => {
+  // Check if token is still valid AND for the same company number and cloud environment
+  if (
+    tokenCache.accessToken &&
+    tokenCache.expiresAt &&
+    Date.now() < tokenCache.expiresAt &&
+    tokenCache.cachedCompanyNumber === companyNumber &&
+    tokenCache.cachedCloudEnvironment === cloudEnvironment
+  ) {
     console.log("Using cached OAuth2 Token.");
     return tokenCache.accessToken;
   }
 
   try {
-    // Use the proxy path for the token endpoint
-    const PROXY_TOKEN_PATH = `/infor-sso/TTFMRW9QWR47VL78_DEM/as/${ionapiConfig.ot}`;
+    const ionapiConfig = getIonApiConfig(cloudEnvironment);
+    const PROXY_TOKEN_PATH = getSsoProxyPath(cloudEnvironment);
     const CLIENT_ID = ionapiConfig.ci;
     const CLIENT_SECRET = ionapiConfig.cs;
     const USERNAME = ionapiConfig.saak;
@@ -71,6 +79,7 @@ export const getAccessToken = async (companyNumber: string): Promise<string> => 
       accessToken: data.access_token,
       expiresAt: Date.now() + (data.expires_in * 1000) - (60 * 1000), // Refresh 1 minute before actual expiry
       cachedCompanyNumber: companyNumber, // Store the company number with the token
+      cachedCloudEnvironment: cloudEnvironment, // Store the cloud environment with the token
     };
     console.log("New OAuth2 Token retrieved and cached successfully.");
     return data.access_token;
@@ -78,7 +87,7 @@ export const getAccessToken = async (companyNumber: string): Promise<string> => 
   } catch (error) {
     console.error("Authentication Error: Failed to get access token", error);
     // Clear cache on error to force re-authentication next time
-    tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null };
+    tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null, cachedCloudEnvironment: null };
     throw error;
   }
 };

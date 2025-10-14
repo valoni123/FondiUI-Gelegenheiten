@@ -12,6 +12,7 @@ import { getActiveBusinessPartners, BusinessPartner } from "@/api/businessPartne
 import { toast } from "sonner";
 import BusinessPartnerGrid from "./BusinessPartnerGrid";
 import { useDebounce } from "@/hooks/use-debounce";
+import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface BusinessPartnerSelectDialogProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface BusinessPartnerSelectDialogProps {
   onSelect: (businessPartner: BusinessPartner) => void;
   authToken: string;
   companyNumber: string;
+  cloudEnvironment: CloudEnvironment;
 }
 
 const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = ({
@@ -27,6 +29,7 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
   onSelect,
   authToken,
   companyNumber,
+  cloudEnvironment,
 }) => {
   const [businessPartners, setBusinessPartners] = useState<BusinessPartner[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,12 +38,12 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const fetchPartners = useCallback(async (term: string) => {
-    if (!authToken || !companyNumber) return;
+    if (!authToken || !companyNumber || !cloudEnvironment) return;
 
     setIsLoading(true);
     const loadingToastId = toast.loading("Loading business partners...");
     try {
-      const partners = await getActiveBusinessPartners(authToken, companyNumber, term);
+      const partners = await getActiveBusinessPartners(authToken, companyNumber, cloudEnvironment, term);
       setBusinessPartners(partners);
       toast.success("Business partners loaded!", { id: loadingToastId });
     } catch (error) {
@@ -49,7 +52,7 @@ const BusinessPartnerSelectDialog: React.FC<BusinessPartnerSelectDialogProps> = 
     } finally {
       setIsLoading(false);
     }
-  }, [authToken, companyNumber]);
+  }, [authToken, companyNumber, cloudEnvironment]);
 
   useEffect(() => {
     if (isOpen) {

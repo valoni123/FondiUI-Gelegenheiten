@@ -1,13 +1,14 @@
-const METADATA_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp/$metadata";
+import { getMetadataUrl, CloudEnvironment } from "@/authorization/configLoader";
 
-export const getOpportunityStatusOptions = async (authToken: string): Promise<string[]> => {
+export const getOpportunityStatusOptions = async (authToken: string, cloudEnvironment: CloudEnvironment): Promise<string[]> => {
+  const METADATA_URL = getMetadataUrl(cloudEnvironment);
   try {
     const response = await fetch(METADATA_URL, {
       method: "GET",
       headers: {
         "Accept": "application/xml",
         "Authorization": `Bearer ${authToken}`,
-        "Content-Language": "de-DE", // Changed from en-US to de-DE
+        "Content-Language": "de-DE",
       },
     });
 

@@ -1,4 +1,4 @@
-export const BUSINESS_PARTNERS_API_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/tcapi.comBusinessPartner/BusinessPartners";
+import { getBusinessPartnersApiUrl, CloudEnvironment } from "@/authorization/configLoader";
 
 export interface AddressRef {
   Street?: string;
@@ -18,9 +18,11 @@ export interface BusinessPartner {
 export const getActiveBusinessPartners = async (
   authToken: string,
   companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
   searchTerm: string = "",
   top: number = 50
 ): Promise<BusinessPartner[]> => {
+  const BUSINESS_PARTNERS_API_URL = getBusinessPartnersApiUrl(cloudEnvironment);
   let filter = "BusinessPartnerStatus eq tcapi.comBusinessPartner.BusinessPartnerStatus'Active'";
   
   if (searchTerm) {
@@ -69,7 +71,9 @@ export const getBusinessPartnerById = async (
   authToken: string,
   businessPartnerId: string,
   companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
 ): Promise<BusinessPartner | null> => {
+  const BUSINESS_PARTNERS_API_URL = getBusinessPartnersApiUrl(cloudEnvironment);
   const expand = "AddressRef";
   const url = `${BUSINESS_PARTNERS_API_URL}('${businessPartnerId}')?$select=BusinessPartner,Name&$expand=${encodeURIComponent(expand)}`;
 

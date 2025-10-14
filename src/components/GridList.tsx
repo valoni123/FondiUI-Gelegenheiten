@@ -22,6 +22,7 @@ import {
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner } from "@/api/businessPartners";
 import EditableCellInput from "./EditableCellInput"; // Import the new component
+import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface GridListProps {
   items: Item[];
@@ -29,6 +30,8 @@ interface GridListProps {
   onViewDetails: (item: Item) => void;
   opportunityStatusOptions: string[];
   authToken: string;
+  companyNumber: string;
+  cloudEnvironment: CloudEnvironment;
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -37,6 +40,8 @@ const GridList: React.FC<GridListProps> = ({
   onViewDetails,
   opportunityStatusOptions,
   authToken,
+  companyNumber,
+  cloudEnvironment,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -236,6 +241,8 @@ const GridList: React.FC<GridListProps> = ({
         onClose={() => setIsBpSelectDialogOpen(false)}
         onSelect={handleSelectBusinessPartnerFromGrid}
         authToken={authToken}
+        companyNumber={companyNumber}
+        cloudEnvironment={cloudEnvironment}
       />
     </div>
   );

@@ -2,15 +2,20 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import SettingsDialog from "./SettingsDialog";
+import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface SettingsButtonProps {
   currentCompanyNumber: string;
   onSaveCompanyNumber: (newCompanyNumber: string) => void;
+  currentCloudEnvironment: CloudEnvironment;
+  onSaveCloudEnvironment: (newEnvironment: CloudEnvironment) => void;
 }
 
 const SettingsButton: React.FC<SettingsButtonProps> = ({
   currentCompanyNumber,
   onSaveCompanyNumber,
+  currentCloudEnvironment,
+  onSaveCloudEnvironment,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -29,7 +34,9 @@ const SettingsButton: React.FC<SettingsButtonProps> = ({
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         currentCompanyNumber={currentCompanyNumber}
-        onSave={onSaveCompanyNumber}
+        onSaveCompanyNumber={onSaveCompanyNumber}
+        currentCloudEnvironment={currentCloudEnvironment}
+        onSaveCloudEnvironment={onSaveCloudEnvironment}
       />
     </>
   );

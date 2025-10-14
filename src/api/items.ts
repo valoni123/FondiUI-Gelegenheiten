@@ -1,6 +1,5 @@
 import { Item } from "@/types";
-
-const API_BASE_URL = "https://mingle-ionapi.eu1.inforcloudsuite.com/TTFMRW9QWR47VL78_DEM/LN/lnapi/odata/txsmi.opp";
+import { getApiBaseUrl, CloudEnvironment } from "@/authorization/configLoader";
 
 const preparePayload = (itemData: Item): Record<string, any> => {
   const payload: Record<string, any> = {};
@@ -71,8 +70,10 @@ export const createItem = async (
   itemData: Item,
   authToken: string,
   companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
 ): Promise<Item> => {
   try {
+    const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
     const payload = preparePayload(itemData);
 
     console.log("API: Creating item with payload:", payload);
@@ -129,8 +130,10 @@ export const updateItem = async (
   itemData: Item,
   authToken: string,
   companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
 ): Promise<Item> => {
   try {
+    const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
     const opportunityId = itemData.id; 
     const payload = preparePayload(itemData);
 
@@ -162,7 +165,8 @@ export const updateItem = async (
   }
 };
 
-export const getOpportunities = async (authToken: string, companyNumber: string): Promise<Item[]> => {
+export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
+  const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
   const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=*`;
 
   try {

@@ -28,6 +28,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface DetailDialogProps {
   item: Item | null;
@@ -38,6 +39,7 @@ interface DetailDialogProps {
   opportunityStatusOptions: string[];
   authToken: string;
   companyNumber: string;
+  cloudEnvironment: CloudEnvironment;
 }
 
 const DetailDialog: React.FC<DetailDialogProps> = ({
@@ -49,6 +51,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   opportunityStatusOptions,
   authToken,
   companyNumber,
+  cloudEnvironment,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
@@ -108,10 +111,10 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   }, [item, isAddingNewItem, isOpen, opportunityStatusOptions]);
 
   useEffect(() => {
-    if (editedItem?.SoldtoBusinessPartner && authToken && companyNumber) {
+    if (editedItem?.SoldtoBusinessPartner && authToken && companyNumber && cloudEnvironment) {
       const fetchBpDetails = async () => {
         try {
-          const bp = await getBusinessPartnerById(authToken, editedItem.SoldtoBusinessPartner, companyNumber);
+          const bp = await getBusinessPartnerById(authToken, editedItem.SoldtoBusinessPartner, companyNumber, cloudEnvironment);
           if (bp) {
             setEditedItem(prev => ({
               ...prev!,
@@ -154,7 +157,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         SoldtoBusinessPartnerCountry: "",
       }));
     }
-  }, [editedItem?.SoldtoBusinessPartner, authToken, companyNumber]);
+  }, [editedItem?.SoldtoBusinessPartner, authToken, companyNumber, cloudEnvironment]);
 
   const handleChange = (field: string, value: string | number | boolean) => {
     if (editedItem) {
@@ -568,6 +571,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         onSelect={handleSelectBusinessPartner}
         authToken={authToken}
         companyNumber={companyNumber}
+        cloudEnvironment={cloudEnvironment}
       />
     </>
   );

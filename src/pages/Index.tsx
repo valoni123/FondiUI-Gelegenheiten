@@ -9,12 +9,14 @@ import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getAccessToken } from "@/authorization/authService";
 import { getBusinessPartnerById } from "@/api/businessPartners";
+import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface IndexProps {
   companyNumber: string;
+  cloudEnvironment: CloudEnvironment;
 }
 
-const Index: React.FC<IndexProps> = ({ companyNumber }) => {
+const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -24,13 +26,13 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, silent: boolean = false) => {
+  const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
-      const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber);
+      const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
       setOpportunities(fetchedOpportunities);
       if (!silent) {
         toast.success("Opportunities loaded successfully!", { id: loadingToastId });
@@ -52,11 +54,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
   useEffect(() => {
     const authenticateAndLoadData = async () => {
       try {
-        const token = await getAccessToken(companyNumber);
+        const token = await getAccessToken(companyNumber, cloudEnvironment);
         setAuthToken(token);
-        const options = await getOpportunityStatusOptions(token);
+        const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
-        await loadOpportunities(token, companyNumber, false);
+        await loadOpportunities(token, companyNumber, cloudEnvironment, false);
       } catch (error) {
         console.error("Authentication or initial data fetch failed:", error);
         toast.error("Failed to initialize application: Could not get auth token or data.");
@@ -65,18 +67,18 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
       }
     };
     authenticateAndLoadData();
-  }, [companyNumber, loadOpportunities]);
+  }, [companyNumber, cloudEnvironment, loadOpportunities]);
 
   useEffect(() => {
-    if (authToken && companyNumber) {
+    if (authToken && companyNumber && cloudEnvironment) {
       const refreshInterval = setInterval(() => {
         console.log("Performing silent opportunities refresh...");
-        loadOpportunities(authToken, companyNumber, true);
+        loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
       }, 30000);
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, loadOpportunities]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities]);
 
   const handleUpdateItem = async (
     id: string,
@@ -100,11 +102,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
 
     try {
       if (field === "SoldtoBusinessPartner") {
-        await updateItem(updatedItem, authToken, companyNumber);
+        await updateItem(updatedItem, authToken, companyNumber, cloudEnvironment);
 
         const businessPartnerId = String(value);
         const bpDetails = businessPartnerId
-          ? await getBusinessPartnerById(authToken, businessPartnerId, companyNumber)
+          ? await getBusinessPartnerById(authToken, businessPartnerId, companyNumber, cloudEnvironment)
           : null;
 
         updatedItem = {
@@ -118,7 +120,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
         };
         toast.success("Business Partner updated!", { id: loadingToastId });
       } else {
-        await updateItem(updatedItem, authToken, companyNumber);
+        await updateItem(updatedItem, authToken, companyNumber, cloudEnvironment);
         toast.success(`Item ${field} updated!`, { id: loadingToastId });
       }
 
@@ -148,11 +150,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
     const loadingToastId = toast.loading(isAddingNewItem ? "Adding new item..." : "Saving item changes...");
     try {
       if (isAddingNewItem) {
-        const newItem = await createItem(updatedItem, authToken, companyNumber);
+        const newItem = await createItem(updatedItem, authToken, companyNumber, cloudEnvironment);
         setOpportunities((prevItems) => [...prevItems, newItem]);
         toast.success("New item added!", { id: loadingToastId });
       } else {
-        await updateItem(updatedItem, authToken, companyNumber);
+        await updateItem(updatedItem, authToken, companyNumber, cloudEnvironment);
         setOpportunities((prevItems) =>
           prevItems.map((item) => (item.id === updatedItem.id ? updatedItem : item))
         );
@@ -200,6 +202,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
           opportunityStatusOptions={opportunityStatusOptions}
           authToken={authToken || ""}
           companyNumber={companyNumber}
+          cloudEnvironment={cloudEnvironment}
         />
 
         <DetailDialog
@@ -211,6 +214,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber }) => {
           opportunityStatusOptions={opportunityStatusOptions}
           authToken={authToken || ""}
           companyNumber={companyNumber}
+          cloudEnvironment={cloudEnvironment}
         />
       </div>
     </div>
