@@ -42,6 +42,21 @@ interface DetailDialogProps {
   cloudEnvironment: CloudEnvironment;
 }
 
+// Define a comprehensive interface for all possible field configurations
+interface FieldConfig {
+  key: keyof Item | string; // Allow string for keys not directly in Item, like 'tdsmi110.text'
+  label: string;
+  type: "text" | "number" | "textarea" | "select" | "date" | "datetime" | "checkbox" | "businessPartner";
+  disabled?: boolean;
+  defaultValue?: string | number | boolean;
+  hasSearch?: boolean;
+  hasAssignButton?: boolean;
+  suffix?: string;
+  isRequired?: boolean;
+  options?: string[]; // For select type
+  displaySuffix?: string; // For text/number inputs with a fixed suffix
+}
+
 const DetailDialog: React.FC<DetailDialogProps> = ({
   item,
   isOpen,
@@ -177,14 +192,14 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     Object.values(structuredFields).forEach(section => {
       section.forEach(fieldConfig => {
         if (fieldConfig.isRequired) {
-          const value = editedItem[fieldConfig.key];
+          const value = editedItem[fieldConfig.key as keyof Item]; // Cast to keyof Item for direct access
           if (
             value === null ||
             value === undefined ||
             (typeof value === 'string' && value.trim() === '') ||
             (typeof value === 'number' && isNaN(value))
           ) {
-            newErrors[fieldConfig.key] = `${fieldConfig.label} is required.`;
+            newErrors[fieldConfig.key as string] = `${fieldConfig.label} is required.`; // Cast to string for error key
           }
         }
       });
@@ -227,11 +242,11 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 
   if (!editedItem) return null;
 
-  const structuredFields = {
+  const structuredFields: Record<string, FieldConfig[]> = {
     general: [
       { key: "opportunityText", label: "Allgemeine Daten", type: "textarea" },
       { key: "description", label: "Beschreibung", type: "textarea" },
-      { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner" },
+      { key: "SoldtoBusinessPartner", label: "Kunde", type: "businessPartner", isRequired: true }, // Added isRequired
       { key: "SoldtoBusinessPartnerStreet", label: "Straße", type: "text", disabled: true },
       { key: "SoldtoBusinessPartnerHouseNumber", label: "Hausnummer", type: "text", disabled: true },
       { key: "SoldtoBusinessPartnerZIPCodePostalCode", label: "PLZ", type: "text", disabled: true },
@@ -271,7 +286,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
 
   const structuredKeys = new Set<string>();
   Object.values(structuredFields).forEach(section => {
-    section.forEach(field => structuredKeys.add(field.key));
+    section.forEach(field => structuredKeys.add(field.key as string));
   });
 
   const otherKeys = Object.keys(editedItem).filter(key =>
@@ -284,13 +299,13 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     key !== "OpportunityText"
   ).sort();
 
-  const renderField = (fieldConfig: typeof structuredFields.general[0]) => {
+  const renderField = (fieldConfig: FieldConfig) => { // Use the new FieldConfig interface
     const { key, label, type, disabled, options, hasSearch, hasAssignButton, suffix, isRequired, defaultValue, displaySuffix } = fieldConfig;
-    const value = editedItem[key] !== null && editedItem[key] !== undefined ? editedItem[key] : (isAddingNewItem ? defaultValue : "");
-    const hasError = !!validationErrors[key];
+    const value = editedItem[key as keyof Item] !== null && editedItem[key as keyof Item] !== undefined ? editedItem[key as keyof Item] : (isAddingNewItem ? defaultValue : "");
+    const hasError = !!validationErrors[key as string];
 
     const commonInputProps = {
-      id: key,
+      id: key as string,
       className: cn("w-full", hasError && "border-red-500"),
       placeholder: `Enter ${label.toLowerCase()}`,
       disabled: disabled || key === "Opportunity" || key === "Guid",
@@ -301,7 +316,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         {...commonInputProps}
         type={type === "number" ? "number" : "text"}
         value={String(value)}
-        onChange={(e) => handleChange(key, type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
+        onChange={(e) => handleChange(key as string, type === "number" ? parseFloat(e.target.value) || 0 : e.target.value)}
         className={cn(
           commonInputProps.className,
           (hasSearch || displaySuffix) && "pr-10",
@@ -317,7 +332,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           <Textarea
             {...commonInputProps}
             value={String(value)}
-            onChange={(e) => handleChange(key, e.target.value)}
+            onChange={(e) => handleChange(key as string, e.target.value)}
             rows={3}
           />
         );
@@ -325,7 +340,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         return (
           <Select
             value={String(value)}
-            onValueChange={(val) => handleChange(key, val)}
+            onValueChange={(val) => handleChange(key as string, val)}
             disabled={disabled}
           >
             <SelectTrigger className={cn("w-full", hasError && "border-red-500")}>
@@ -341,7 +356,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
           </Select>
         );
       case "date":
-        const dateValue = value ? new Date(value) : undefined;
+        const dateValue = value ? new Date(value as string) : undefined;
         return (
           <Popover>
             <PopoverTrigger asChild>
@@ -362,14 +377,14 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Calendar
                 mode="single"
                 selected={dateValue}
-                onSelect={(date) => handleChange(key, date ? format(date, "yyyy-MM-dd'T'00:00:00'Z'") : "")}
+                onSelect={(date) => handleChange(key as string, date ? format(date, "yyyy-MM-dd'T'00:00:00'Z'") : "")}
                 initialFocus
               />
             </PopoverContent>
           </Popover>
         );
       case "datetime":
-        const dateTimeValue = value ? new Date(value) : undefined;
+        const dateTimeValue = value ? new Date(value as string) : undefined;
         return (
           <Input
             {...commonInputProps}
@@ -381,13 +396,13 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
         return (
           <div className="flex items-center space-x-2">
             <Checkbox
-              id={key}
+              id={key as string}
               checked={Boolean(value)}
-              onCheckedChange={(checked) => handleChange(key, checked)}
+              onCheckedChange={(checked) => handleChange(key as string, checked)}
               disabled={disabled}
               className={cn(hasError && "border-red-500")}
             />
-            <Label htmlFor={key}>{label}</Label>
+            <Label htmlFor={key as string}>{label}</Label>
           </div>
         );
       case "businessPartner":
@@ -398,7 +413,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
                 {...commonInputProps}
                 value={String(editedItem.SoldtoBusinessPartner || "")}
                 onChange={(e) => {
-                  handleChange(key, e.target.value);
+                  handleChange(key as string, e.target.value);
                 }}
                 className={cn(commonInputProps.className, "pr-10 w-full")}
               />
@@ -424,7 +439,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               {...commonInputProps}
               type="number"
               value={String(value)}
-              onChange={(e) => handleChange(key, parseFloat(e.target.value) || 0)}
+              onChange={(e) => handleChange(key as string, parseFloat(e.target.value) || 0)}
               className={cn(commonInputProps.className, "w-40")}
             />
             {suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
@@ -462,21 +477,21 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     }
   };
 
-  const renderSection = (title: string, fields: typeof structuredFields.general) => (
+  const renderSection = (title: string, fields: FieldConfig[]) => ( // Use FieldConfig[]
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2 mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-4">
         {fields.map((fieldConfig) => (
-          <div className="grid grid-cols-[150px_1fr] items-start gap-4" key={fieldConfig.key}>
+          <div className="grid grid-cols-[150px_1fr] items-start gap-4" key={fieldConfig.key as string}>
             {fieldConfig.type !== "checkbox" && (
-              <Label htmlFor={fieldConfig.key} className={cn("text-right", fieldConfig.isRequired && "after:content-['*'] after:ml-0.5 after:text-red-500")}>
+              <Label htmlFor={fieldConfig.key as string} className={cn("text-right", fieldConfig.isRequired && "after:content-['*'] after:ml-0.5 after:text-red-500")}>
                 {fieldConfig.label}
               </Label>
             )}
             <div>
               {renderField(fieldConfig)}
-              {validationErrors[fieldConfig.key] && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors[fieldConfig.key]}</p>
+              {validationErrors[fieldConfig.key as string] && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors[fieldConfig.key as string]}</p>
               )}
             </div>
           </div>
