@@ -51,6 +51,11 @@ const GridList: React.FC<GridListProps> = ({
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
 
+  const getColumnLabel = (key: string) => {
+    if (key === "id") return "Genehmigung";
+    return key.replace(/([A-Z])/g, ' $1').trim();
+  };
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -136,7 +141,7 @@ const GridList: React.FC<GridListProps> = ({
                     onClick={() => handleSort(key)}
                     className="flex items-center gap-1 justify-start px-2"
                   >
-                    {key.replace(/([A-Z])/g, ' $1').trim()}
+                    {getColumnLabel(key)}
                     {sortConfig?.key === key && (
                       <ArrowDownUp
                         className={cn(
@@ -150,7 +155,7 @@ const GridList: React.FC<GridListProps> = ({
                     value={filters[key] || ""}
                     onChange={(e) => handleFilterChange(key, e.target.value)}
                     className="h-8 text-xs"
-                    placeholder={`Filter ${key.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}`}
+                    placeholder={`Filter ${getColumnLabel(key).toLowerCase()}`}
                   />
                 </div>
               </TableHead>
