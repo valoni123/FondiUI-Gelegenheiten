@@ -169,18 +169,26 @@ export const updateItem = async (
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
   
-  let selectFields = "Opportunity,Description"; // Default for GAC_DEM
+  let selectFields: string;
 
-  if (cloudEnvironment === "FON_TRN") {
-    // For FON_TRN, select all relevant fields from the Item interface
+  if (cloudEnvironment === "GAC_DEM") {
+    selectFields = "Opportunity,Description";
+  } else if (cloudEnvironment === "FON_TRN") {
+    // Select only direct properties of the Opportunity entity for FON_TRN
     selectFields = [
       "Opportunity", "Description", "OpportunityText", "SoldtoBusinessPartner",
-      "BusinessPartnerStatus", "AssignedTo", "Type", "Source",
+      "AssignedTo", "Type", "Source",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate", "Status",
       "SalesProcess", "Phase", "ProbabilityPercentage", "Reason",
       "IncludeInForecast", "ExpectedRevenue", "WeightedRevenue", "ItemRevenue",
       "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate", "Project"
     ].join(',');
+    // Fields like BusinessPartnerStatus, SoldtoBusinessPartnerName, SoldtoBusinessPartnerStreet, etc.
+    // are NOT direct properties of the Opportunity entity and cannot be selected here.
+    // They are fetched separately in DetailDialog via getBusinessPartnerById.
+  } else {
+    // Fallback for any other environment, though GAC_DEM is the default
+    selectFields = "Opportunity,Description";
   }
 
   const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=${selectFields}`;
@@ -211,13 +219,13 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
         description: odataItem.Description || "No description",
         opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "",
         Project: odataItem.Project || "",
-        // Dynamically add other properties from odataItem
+        // Dynamically add other properties from odataItem that were selected
         ...odataItem
       };
 
       // Ensure 'id' and 'name' are correctly mapped from 'Opportunity'
       mappedItem.id = odataItem.Opportunity;
-      mappedItem.name = odataItem.Opportunity; // Or odataItem.Name if available and desired for 'name'
+      mappedItem.name = odataItem.Opportunity; 
 
       return mappedItem;
     });
