@@ -54,7 +54,7 @@ const GridList: React.FC<GridListProps> = ({
   const getColumnLabel = (key: string) => {
     if (key === "id") return "Genehmigung";
     if (key === "Project") return "Projekt";
-    if (key === "description") return "Bezeichnung"; // Renamed description to Bezeichnung
+    if (key === "description") return "Bezeichnung";
     return key.replace(/([A-Z])/g, ' $1').trim();
   };
 
@@ -157,7 +157,7 @@ const GridList: React.FC<GridListProps> = ({
                     value={filters[key] || ""}
                     onChange={(e) => handleFilterChange(key, e.target.value)}
                     className="h-8 text-xs"
-                    placeholder={`Filter ${getColumnLabel(key).toLowerCase()}`}
+                    // Removed placeholder prop
                   />
                 </div>
               </TableHead>
