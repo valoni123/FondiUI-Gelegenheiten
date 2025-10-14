@@ -137,6 +137,7 @@ const GridList: React.FC<GridListProps> = ({
                 className={cn(
                   "min-w-[100px]", // Default width
                   key === "id" && "min-w-[180px]", // Wider for ID
+                  key === "Project" && "min-w-[180px]", // Wider for Project
                   key === "description" && "min-w-[250px]" // Wider for description
                 )}
               >
