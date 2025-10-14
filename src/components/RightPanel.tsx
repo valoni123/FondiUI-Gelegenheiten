@@ -30,7 +30,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose 
       </div>
       <Card className="flex-grow">
         <CardHeader>
-          <CardTitle>Related Information</CardTitle>
+          <CardTitle></CardTitle>
         </CardHeader>
         <CardContent className="h-[calc(100%-80px)]">
           <ScrollArea className="h-full w-full pr-4">
