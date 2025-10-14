@@ -121,132 +121,134 @@ const GridList: React.FC<GridListProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px] text-center"></TableHead>
-            {visibleKeys.map((key) => (
-              <TableHead
-                key={key}
-                className={cn(
-                  "min-w-[100px]", // Default width
-                  key === "id" && "min-w-[180px]", // Wider for ID
-                  key === "Project" && "min-w-[180px]", // Wider for Project
-                  key === "description" && "min-w-[250px]" // Wider for description
-                )}
-              >
-                <div className="flex flex-col space-y-1">
+    <React.Fragment>
+      <div className="space-y-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[50px] text-center"></TableHead>
+              {visibleKeys.map((key) => (
+                <TableHead
+                  key={key}
+                  className={cn(
+                    "min-w-[100px]", // Default width
+                    key === "id" && "min-w-[180px]", // Wider for ID
+                    key === "Project" && "min-w-[180px]", // Wider for Project
+                    key === "description" && "min-w-[250px]" // Wider for description
+                  )}
+                >
+                  <div className="flex flex-col space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort(key)}
+                      className="flex items-center gap-1 justify-start px-2 font-bold"
+                    >
+                      {getColumnLabel(key)}
+                      {sortConfig?.key === key && (
+                        <ArrowDownUp
+                          className={cn(
+                            "h-3 w-3",
+                            sortConfig.direction === "desc" ? "rotate-180" : ""
+                          )}
+                        />
+                      )}
+                    </Button>
+                    <Input
+                      value={filters[key] || ""}
+                      onChange={(e) => handleFilterChange(key, e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredAndSortedItems.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell className="text-center">
                   <Button
                     variant="ghost"
-                    size="sm"
-                    onClick={() => handleSort(key)}
-                    className="flex items-center gap-1 justify-start px-2 font-bold" {/* Added font-bold here */}
+                    size="icon"
+                    onClick={() => onViewDetails(item)}
                   >
-                    {getColumnLabel(key)}
-                    {sortConfig?.key === key && (
-                      <ArrowDownUp
-                        className={cn(
-                          "h-3 w-3",
-                          sortConfig.direction === "desc" ? "rotate-180" : ""
-                        )}
-                      />
-                    )}
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
-                  <Input
-                    value={filters[key] || ""}
-                    onChange={(e) => handleFilterChange(key, e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredAndSortedItems.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell className="text-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onViewDetails(item)}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </TableCell>
-              {visibleKeys.map((key) => (
-                <TableCell key={`${item.id}-${key}`}>
-                  {key === "Status" && opportunityStatusOptions.length > 0 ? (
-                    <Select
-                      value={String(item[key])}
-                      onValueChange={(value) => onUpdateItem(item.id, key, value)}
-                    >
-                      <SelectTrigger className="w-full h-8 text-xs">
-                        <SelectValue placeholder="Select Status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {opportunityStatusOptions.map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : key === "SoldtoBusinessPartner" ? (
-                    <div className="flex items-center gap-2">
+                </TableCell>
+                {visibleKeys.map((key) => (
+                  <TableCell key={`${item.id}-${key}`}>
+                    {key === "Status" && opportunityStatusOptions.length > 0 ? (
+                      <Select
+                        value={String(item[key])}
+                        onValueChange={(value) => onUpdateItem(item.id, key, value)}
+                      >
+                        <SelectTrigger className="w-full h-8 text-xs">
+                          <SelectValue placeholder="Select Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {opportunityStatusOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : key === "SoldtoBusinessPartner" ? (
+                      <div className="flex items-center gap-2">
+                        <EditableCellInput
+                          itemId={item.id}
+                          fieldKey={key}
+                          initialValue={item[key] || ""}
+                          onUpdateItem={onUpdateItem}
+                          className="pr-10 w-full"
+                          disabled={false}
+                          hasSearchButton={true}
+                          onSearchButtonClick={handleOpenBpSelectDialog}
+                        />
+                        {item.SoldtoBusinessPartnerName && (
+                          <p className="text-sm text-muted-foreground whitespace-nowrap">{item.SoldtoBusinessPartnerName}</p>
+                        )}
+                      </div>
+                    ) : (
                       <EditableCellInput
                         itemId={item.id}
                         fieldKey={key}
                         initialValue={item[key] || ""}
                         onUpdateItem={onUpdateItem}
-                        className="pr-10 w-full"
-                        disabled={false}
-                        hasSearchButton={true}
-                        onSearchButtonClick={handleOpenBpSelectDialog}
+                        type={typeof item[key] === "number" ? "number" : "text"}
+                        className="w-full"
+                        disabled={
+                          key === "id" ||
+                          key === "Opportunity" ||
+                          key === "Guid" ||
+                          key === "CreationDate" ||
+                          key === "LastTransactionDate" ||
+                          key === "CreatedBy" ||
+                          key === "LastModifiedBy"
+                        }
                       />
-                      {item.SoldtoBusinessPartnerName && (
-                        <p className="text-sm text-muted-foreground whitespace-nowrap">{item.SoldtoBusinessPartnerName}</p>
-                      )}
-                    </div>
-                  ) : (
-                    <EditableCellInput
-                      itemId={item.id}
-                      fieldKey={key}
-                      initialValue={item[key] || ""}
-                      onUpdateItem={onUpdateItem}
-                      type={typeof item[key] === "number" ? "number" : "text"}
-                      className="w-full"
-                      disabled={
-                        key === "id" ||
-                        key === "Opportunity" ||
-                        key === "Guid" ||
-                        key === "CreationDate" ||
-                        key === "LastTransactionDate" ||
-                        key === "CreatedBy" ||
-                        key === "LastModifiedBy"
-                      }
-                    />
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {filteredAndSortedItems.length === 0 && (
-        <p className="text-center text-muted-foreground py-4">No items found.</p>
-      )}
+                    )}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {filteredAndSortedItems.length === 0 && (
+          <p className="text-center text-muted-foreground py-4">No items found.</p>
+        )}
 
-      <BusinessPartnerSelectDialog
-        isOpen={isBpSelectDialogOpen}
-        onClose={() => setIsBpSelectDialogOpen(false)}
-        onSelect={handleSelectBusinessPartnerFromGrid}
-        authToken={authToken}
-        companyNumber={companyNumber}
-        cloudEnvironment={cloudEnvironment}
-      />
-    </div>
+        <BusinessPartnerSelectDialog
+          isOpen={isBpSelectDialogOpen}
+          onClose={() => setIsBpSelectDialogOpen(false)}
+          onSelect={handleSelectBusinessPartnerFromGrid}
+          authToken={authToken}
+          companyNumber={companyNumber}
+          cloudEnvironment={cloudEnvironment}
+        />
+      </div>
+    </React.Fragment>
   );
 };
 
