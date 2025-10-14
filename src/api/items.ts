@@ -169,9 +169,18 @@ export const updateItem = async (
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
   
-  let selectFields = "Opportunity,Description";
+  let selectFields = "Opportunity,Description"; // Default for GAC_DEM
+
   if (cloudEnvironment === "FON_TRN") {
-    selectFields += ",Project";
+    // For FON_TRN, select all relevant fields from the Item interface
+    selectFields = [
+      "Opportunity", "Description", "OpportunityText", "SoldtoBusinessPartner",
+      "BusinessPartnerStatus", "AssignedTo", "Type", "Source",
+      "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate", "Status",
+      "SalesProcess", "Phase", "ProbabilityPercentage", "Reason",
+      "IncludeInForecast", "ExpectedRevenue", "WeightedRevenue", "ItemRevenue",
+      "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate", "Project"
+    ].join(',');
   }
 
   const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=${selectFields}`;
@@ -198,25 +207,18 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
     const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
-        name: odataItem.Opportunity || "N/A", // Name will be the Opportunity ID if 'Name' is not selected
+        name: odataItem.Opportunity || "N/A",
         description: odataItem.Description || "No description",
-        Project: odataItem.Project || "", // Map Project field
-        // Other fields will be undefined as they are not selected
+        opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "",
+        Project: odataItem.Project || "",
+        // Dynamically add other properties from odataItem
+        ...odataItem
       };
 
-      // Only include explicitly selected fields or those derived from them
-      const keysToInclude = new Set([
-        "Opportunity", "Description", "Project"
-      ]);
+      // Ensure 'id' and 'name' are correctly mapped from 'Opportunity'
+      mappedItem.id = odataItem.Opportunity;
+      mappedItem.name = odataItem.Opportunity; // Or odataItem.Name if available and desired for 'name'
 
-      for (const key in odataItem) {
-        if (keysToInclude.has(key)) {
-          // These are already mapped above, but this ensures any other selected fields are included
-          // if the $select query were to change.
-          // For now, this loop is mostly redundant for the specific $select=Opportunity,Description,Project
-          // but good for robustness.
-        }
-      }
       return mappedItem;
     });
     return opportunities;
