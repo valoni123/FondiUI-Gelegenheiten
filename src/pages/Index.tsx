@@ -10,6 +10,12 @@ import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getAccessToken } from "@/authorization/authService";
 import { getBusinessPartnerById } from "@/api/businessPartners";
 import { CloudEnvironment } from "@/authorization/configLoader";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable"; // Import Resizable components
+import RightPanel from "@/components/RightPanel"; // Import the new RightPanel
 
 interface IndexProps {
   companyNumber: string;
@@ -25,7 +31,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null); // New state for selected opportunity
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [leftPanelSize, setLeftPanelSize] = useState<number>(100);
+  const [rightPanelSize, setRightPanelSize] = useState<number>(0);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -80,6 +88,17 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       return () => clearInterval(refreshInterval);
     }
   }, [authToken, companyNumber, cloudEnvironment, loadOpportunities]);
+
+  // Effect to manage panel sizes based on selectedOpportunityId
+  useEffect(() => {
+    if (selectedOpportunityId) {
+      setLeftPanelSize(70);
+      setRightPanelSize(30);
+    } else {
+      setLeftPanelSize(100);
+      setRightPanelSize(0);
+    }
+  }, [selectedOpportunityId]);
 
   const handleUpdateItem = async (
     id: string,
@@ -188,28 +207,36 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 space-y-6">
+      <div className="w-full px-4 space-y-6 flex flex-col flex-grow"> {/* Added flex-grow */}
         <h1 className="text-4xl font-bold text-center mb-6">
           Gelegenheiten
         </h1>
 
-        <div className="flex justify-start gap-2 mb-4">
+        <div className="flex justify-start gap-2 mb-4 flex-shrink-0"> {/* Added flex-shrink-0 */}
           <Button onClick={handleAddItem}>
             <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
           </Button>
         </div>
 
-        <GridList
-          items={opportunities}
-          onUpdateItem={handleUpdateItem}
-          onViewDetails={handleViewDetails}
-          opportunityStatusOptions={opportunityStatusOptions}
-          authToken={authToken || ""}
-          companyNumber={companyNumber}
-          cloudEnvironment={cloudEnvironment}
-          selectedOpportunityId={selectedOpportunityId} // Pass new prop
-          onSelectOpportunity={handleSelectOpportunity} // Pass new handler
-        />
+        <ResizablePanelGroup direction="horizontal" className="flex-grow">
+          <ResizablePanel size={leftPanelSize} onResize={setLeftPanelSize} minSize={50}>
+            <GridList
+              items={opportunities}
+              onUpdateItem={handleUpdateItem}
+              onViewDetails={handleViewDetails}
+              opportunityStatusOptions={opportunityStatusOptions}
+              authToken={authToken || ""}
+              companyNumber={companyNumber}
+              cloudEnvironment={cloudEnvironment}
+              selectedOpportunityId={selectedOpportunityId}
+              onSelectOpportunity={handleSelectOpportunity}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel size={rightPanelSize} onResize={setRightPanelSize} minSize={0} collapsible={true} collapsedSize={0}>
+            {selectedOpportunityId && <RightPanel selectedOpportunityId={selectedOpportunityId} />}
+          </ResizablePanel>
+        </ResizablePanelGroup>
 
         <DetailDialog
           item={selectedItem}
