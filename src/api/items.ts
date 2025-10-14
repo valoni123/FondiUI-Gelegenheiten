@@ -37,7 +37,7 @@ const preparePayload = (itemData: Item): Record<string, any> => {
     "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
     "BusinessPartnerStatus", "WeightedRevenue", "ItemRevenue", "CreatedBy", "CreationDate", "LastModifiedBy", "LastTransactionDate",
     "description", "opportunityText",
-    "Description", "OpportunityText",
+    "Description", "OpportunityText", "Project", // Exclude Project from generic loop if already mapped
   ]);
 
   for (const key in itemDataCopy) {
@@ -106,12 +106,13 @@ export const createItem = async (
       DateOfFirstContact: odataResponse.DateOfFirstContact,
       ExpectedCloseDate: odataResponse.ExpectedCloseDate,
       ActualCloseDate: odataResponse.ActualCloseDate,
+      Project: odataResponse.Project || "", // Map Project field
     };
 
     const keysToExcludeFromNewItem = new Set([
       "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
       "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-      "tdsmi110.text"
+      "tdsmi110.text", "Project"
     ]);
 
     for (const key in odataResponse) {
@@ -167,7 +168,8 @@ export const updateItem = async (
 
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=*`;
+  // Fetch only 'Opportunity' (for ID), 'Description', and 'Project'
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=Opportunity,Description,Project`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {
@@ -191,24 +193,23 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
     const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
-        name: odataItem.Name || odataItem.Opportunity || "N/A",
+        name: odataItem.Opportunity || "N/A", // Name will be the Opportunity ID if 'Name' is not selected
         description: odataItem.Description || "No description",
-        opportunityText: odataItem.OpportunityText || odataItem["tdsmi110.text"] || "No Allgemeine Daten text",
-        "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text (raw)",
-        DateOfFirstContact: odataItem.DateOfFirstContact,
-        ExpectedCloseDate: odataItem.ExpectedCloseDate,
-        ActualCloseDate: odataItem.ActualCloseDate,
+        Project: odataItem.Project || "", // Map Project field
+        // Other fields will be undefined as they are not selected
       };
 
-      const keysToExcludeFromNewItem = new Set([
-        "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
-        "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
-        "tdsmi110.text"
+      // Only include explicitly selected fields or those derived from them
+      const keysToInclude = new Set([
+        "Opportunity", "Description", "Project"
       ]);
 
       for (const key in odataItem) {
-        if (!keysToExcludeFromNewItem.has(key)) {
-          mappedItem[key] = odataItem[key];
+        if (keysToInclude.has(key)) {
+          // These are already mapped above, but this ensures any other selected fields are included
+          // if the $select query were to change.
+          // For now, this loop is mostly redundant for the specific $select=Opportunity,Description,Project
+          // but good for robustness.
         }
       }
       return mappedItem;

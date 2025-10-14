@@ -35,6 +35,7 @@ export interface Item {
   "tdsmi110.text"?: string; // This will be a read-only field from API, used as fallback for 'opportunityText'
   Description?: string; // This is the API field that 'description' maps to for writing
   OpportunityText?: string; // This is the API field that 'opportunityText' maps to for writing
+  Project?: string; // Added Project field
 
   // Allow for any other properties that might come from the API
   [key: string]: any;
