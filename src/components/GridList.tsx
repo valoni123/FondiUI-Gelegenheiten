@@ -132,7 +132,13 @@ const GridList: React.FC<GridListProps> = ({
           <TableRow>
             <TableHead className="w-[50px] text-center"></TableHead>
             {allKeys.map((key) => (
-              <TableHead key={key} className="min-w-[100px]">
+              <TableHead
+                key={key}
+                className={cn(
+                  "min-w-[100px]", // Default width
+                  key === "id" && "min-w-[180px]" // Wider for ID
+                )}
+              >
                 <div className="flex flex-col space-y-1">
                   <Button
                     variant="ghost"
