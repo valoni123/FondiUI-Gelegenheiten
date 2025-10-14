@@ -194,7 +194,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-semibold mb-4">Fetched Opportunities</h2>
+        {/* Removed the "Fetched Opportunities" label */}
         <GridList
           items={opportunities}
           onUpdateItem={handleUpdateItem}
