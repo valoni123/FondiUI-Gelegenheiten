@@ -18,7 +18,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose 
   return (
     <div className="h-full flex flex-col p-4">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Opportunity Details</h3>
+        <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
         <Button
           variant="ghost"
           size="icon"
