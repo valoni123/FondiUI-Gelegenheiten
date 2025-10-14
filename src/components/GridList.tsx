@@ -52,7 +52,7 @@ const GridList: React.FC<GridListProps> = ({
   const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
 
   const getColumnLabel = (key: string) => {
-    if (key === "id") return "Genehmigung";
+    if (key === "id") return "Gelegenheit"; // Changed from "Genehmigung" to "Gelegenheit"
     if (key === "Project") return "Projekt";
     if (key === "description") return "Bezeichnung";
     return key.replace(/([A-Z])/g, ' $1').trim();
