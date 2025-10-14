@@ -48,21 +48,8 @@ const GridList: React.FC<GridListProps> = ({
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
 
-  const allKeys = useMemo(() => {
-    const keys = new Set<string>();
-    items.forEach((item) => {
-      for (const key in item) {
-        if (key !== "@odata.etag" && key !== "@odata.context" && key !== "name") { // Exclude 'name' from grid columns
-          keys.add(key);
-        }
-      }
-    });
-    // Order the keys: id, Project, description first, then others alphabetically
-    const preferredOrder = ["id", "Project", "description", "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate"];
-    const orderedKeys = preferredOrder.filter(k => keys.has(k));
-    const otherKeys = Array.from(keys).filter(k => !preferredOrder.includes(k)).sort();
-    return [...orderedKeys, ...otherKeys];
-  }, [items]);
+  // Define the specific keys to be displayed in the grid
+  const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -82,6 +69,7 @@ const GridList: React.FC<GridListProps> = ({
     currentItems = currentItems.filter((item) => {
       for (const key in filters) {
         const filterValue = filters[key].toLowerCase();
+        // Ensure we check against the actual item data, not just visible keys
         const itemValue = String(item[key] || "").toLowerCase();
         if (filterValue && !itemValue.includes(filterValue)) {
           return false;
@@ -131,7 +119,7 @@ const GridList: React.FC<GridListProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead className="w-[50px] text-center"></TableHead>
-            {allKeys.map((key) => (
+            {visibleKeys.map((key) => (
               <TableHead
                 key={key}
                 className={cn(
@@ -181,7 +169,7 @@ const GridList: React.FC<GridListProps> = ({
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </TableCell>
-              {allKeys.map((key) => (
+              {visibleKeys.map((key) => (
                 <TableCell key={`${item.id}-${key}`}>
                   {key === "Status" && opportunityStatusOptions.length > 0 ? (
                     <Select
