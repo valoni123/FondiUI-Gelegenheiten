@@ -131,7 +131,7 @@ const BusinessPartnerGrid: React.FC<BusinessPartnerGridProps> = ({
         </TableHeader>
         <TableBody>
           {filteredAndSortedPartners.map((partner) => (
-            <TableRow key={partner.BusinessPartner} className="hover:bg-primary hover:text-primary-foreground"> {/* Changed to hover:bg-primary */}
+            <TableRow key={partner.BusinessPartner} className="hover:bg-muted"> {/* Changed to hover:bg-muted */}
               <TableCell className="text-center">
                 <Button
                   variant="ghost"
