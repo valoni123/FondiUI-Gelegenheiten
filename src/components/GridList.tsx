@@ -141,7 +141,7 @@ const GridList: React.FC<GridListProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleSort(key)}
-                    className="flex items-center gap-1 justify-start px-2"
+                    className="flex items-center gap-1 justify-start px-2 font-bold" {/* Added font-bold here */}
                   >
                     {getColumnLabel(key)}
                     {sortConfig?.key === key && (
@@ -157,7 +157,6 @@ const GridList: React.FC<GridListProps> = ({
                     value={filters[key] || ""}
                     onChange={(e) => handleFilterChange(key, e.target.value)}
                     className="h-8 text-xs"
-                    // Removed placeholder prop
                   />
                 </div>
               </TableHead>
