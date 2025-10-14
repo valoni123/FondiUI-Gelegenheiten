@@ -136,7 +136,8 @@ const GridList: React.FC<GridListProps> = ({
                 key={key}
                 className={cn(
                   "min-w-[100px]", // Default width
-                  key === "id" && "min-w-[180px]" // Wider for ID
+                  key === "id" && "min-w-[180px]", // Wider for ID
+                  key === "description" && "min-w-[250px]" // Wider for description
                 )}
               >
                 <div className="flex flex-col space-y-1">
