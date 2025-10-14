@@ -185,7 +185,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
       <div className="w-full px-4 space-y-6">
         <h1 className="text-4xl font-bold text-center mb-6">
-          Gelegenheiten
+          Opportunity List
         </h1>
 
         <div className="flex justify-end gap-2 mb-4">
@@ -194,7 +194,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           </Button>
         </div>
 
-        <h2 className="text-2xl font-semibold mb-4">Gelegenheiten</h2>
+        <h2 className="text-2xl font-semibold mb-4">Fetched Opportunities</h2>
         <GridList
           items={opportunities}
           onUpdateItem={handleUpdateItem}
