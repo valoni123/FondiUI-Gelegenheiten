@@ -59,6 +59,7 @@ const GridList: React.FC<GridListProps> = ({
     });
     // Order the keys: id, description first, then others alphabetically
     // Ensure new date field names are considered if they appear in the initial items
+    // Removed 'Project' from hardcoded list to allow dynamic inclusion based on data presence
     const orderedKeys = ["id", "description", "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate"].filter(k => keys.has(k));
     const otherKeys = Array.from(keys).filter(k => !orderedKeys.includes(k)).sort();
     return [...orderedKeys, ...otherKeys];
