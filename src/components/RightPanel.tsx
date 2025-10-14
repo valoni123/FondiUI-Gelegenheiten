@@ -7,20 +7,13 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface RightPanelProps {
-  selectedOpportunityId: string | null;
+  selectedOpportunityId: string; // Now guaranteed to be a string when rendered
   onClose: () => void;
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose }) => {
-  if (!selectedOpportunityId) {
-    return (
-      <div className="h-full flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-800">
-        <p className="text-sm text-muted-foreground text-center">
-          Select an opportunity to view details
-        </p>
-      </div>
-    );
-  }
+  // The parent component (Index.tsx) now handles conditional rendering,
+  // so selectedOpportunityId is guaranteed to be non-null here.
 
   return (
     <div className="h-full flex flex-col p-4">
