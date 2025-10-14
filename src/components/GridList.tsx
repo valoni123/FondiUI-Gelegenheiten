@@ -166,7 +166,7 @@ const GridList: React.FC<GridListProps> = ({
           </TableHeader>
           <TableBody>
             {filteredAndSortedItems.map((item) => (
-              <TableRow key={item.id} className="hover:bg-accent/70"> {/* Changed to hover:bg-accent/70 */}
+              <TableRow key={item.id} className="hover:bg-primary hover:text-primary-foreground"> {/* Changed to hover:bg-primary */}
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
