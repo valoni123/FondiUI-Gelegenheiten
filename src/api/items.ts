@@ -168,8 +168,13 @@ export const updateItem = async (
 
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  // Fetch only 'Opportunity' (for ID), 'Description', and 'Project'
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=Opportunity,Description,Project`;
+  
+  let selectFields = "Opportunity,Description";
+  if (cloudEnvironment === "FON_TRN") {
+    selectFields += ",Project";
+  }
+
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=${selectFields}`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {
