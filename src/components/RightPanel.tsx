@@ -6,8 +6,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChevronLeft, Upload, FileText, FileWarning, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
-import { showSuccess, showError } from "@/utils/toast";
-import { searchIdmItemsForOpportunityUnion, type IdmDocPreview } from "@/api/idm";
+import { showSuccess } from "@/utils/toast";
+import { searchIdmItemsByEntityJson, type IdmDocPreview } from "@/api/idm";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import {
   Dialog,
@@ -62,7 +62,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
     let cancelled = false;
 
     const loadPreviews = async () => {
-      // DEBUG: Log useEffect entry and conditions
       console.log("[RightPanel] loadPreviews useEffect triggered");
       console.log("[RightPanel] Conditions - selectedOpportunityId:", selectedOpportunityId, "authToken:", authToken ? "PRESENT" : "MISSING", "entityNames.length:", entityNames?.length);
 
@@ -71,27 +70,37 @@ const RightPanel: React.FC<RightPanelProps> = ({
         setDocPreviews([]);
         return;
       }
-      console.log("[RightPanel] Conditions MET, starting API call.");
+
+      console.log("[RightPanel] Conditions MET, starting per-entity API calls.");
       setIsPreviewsLoading(true);
+
       try {
-        const previews = await searchIdmItemsForOpportunityUnion(
-          authToken,
-          cloudEnvironment,
-          selectedOpportunityId,
-          entityNames
+        // Query all entities in parallel; continue on errors
+        const results = await Promise.allSettled(
+          entityNames.map((name) =>
+            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+          )
         );
+
         if (cancelled) {
-          console.log("[RightPanel] API call completed but component was cancelled.");
+          console.log("[RightPanel] Calls completed but component was cancelled.");
           return;
         }
-        console.log("[RightPanel] API call successful, setting previews:", previews);
-        setDocPreviews(previews);
-      } catch (e) {
-        console.error("[RightPanel] Failed to load IDM union previews", e);
-        if (!cancelled) {
-          setDocPreviews([]);
-          showError("Konnte die Vorschauen aus IDM nicht laden.");
-        }
+
+        const merged: IdmDocPreview[] = [];
+        results.forEach((r, idx) => {
+          const entityName = entityNames[idx];
+          if (r.status === "fulfilled") {
+            if (Array.isArray(r.value) && r.value.length) {
+              merged.push(...r.value);
+            }
+          } else {
+            console.warn(`[RightPanel] items/search failed for entity '${entityName}':`, r.reason);
+          }
+        });
+
+        console.log("[RightPanel] Setting previews; count:", merged.length);
+        setDocPreviews(merged);
       } finally {
         if (!cancelled) {
           console.log("[RightPanel] Setting loading state to false.");

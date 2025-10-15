@@ -55,26 +55,16 @@ export const getIdmEntities = async (
 
   const entities = getEntitiesArray(json);
 
-  const validNames: string[] = [];
+  // Return ALL entity names (no attribute filtering)
+  const names: string[] = [];
   for (const e of entities) {
-    if (!e?.name) continue;
-
-    // Check for attributes
-    const attrs = e.attr;
-    if (!Array.isArray(attrs)) continue;
-
-    const hasProjekt = attrs.some((a: any) => a?.name === "Projekt");
-    const hasDokumentenpaket = attrs.some((a: any) => a?.name === "Dokumentenpaket");
-
-    // Include entities that have EITHER Projekt OR Dokumentenpaket attribute
-    if (hasProjekt || hasDokumentenpaket) {
-      validNames.push(String(e.name));
+    if (e?.name) {
+      names.push(String(e.name));
     }
   }
 
-  // Deduplicate and filter empties
-  const unique = Array.from(new Set(validNames.filter(Boolean)));
-  console.log("[getIdmEntities] Returning entities:", unique); // Add this log
+  const unique = Array.from(new Set(names.filter(Boolean)));
+  console.log("[getIdmEntities] Returning entities:", unique);
   return unique;
 };
 
@@ -232,3 +222,64 @@ export const getIdmFullPreviewForOpportunity = async (
     return null;
   }
 };
+
+// New: JSON search per single entity, collecting SmallPreview/Preview URLs
+export const searchIdmItemsByEntityJson = async (
+  token: string,
+  environment: CloudEnvironment,
+  opportunityId: string,
+  entityName: string,
+  offset: number = 0,
+  limit: number = 50,
+  language: string = "de-DE"
+): Promise<IdmDocPreview[]> => {
+  const base = buildIdmBase(environment);
+  const query = `/${entityName}[@Gelegenheit = "${opportunityId}"]`;
+  const url =
+    `${base}/api/items/search?` +
+    `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    // Let caller decide to continue on error
+    throw new Error(`[IDM] items/search failed for entity '${entityName}': ${res.status} ${res.statusText}`);
+  }
+
+  const json = await res.json();
+
+  // Robustly extract items array: items.item[] or item[]
+  const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
+  const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  const previews: IdmDocPreview[] = [];
+  for (const item of items) {
+    // resrs may contain res[] or resr[]
+    const resrs = item?.resrs ?? {};
+    const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
+    const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
+
+    // Prefer SmallPreview; fallback to Preview
+    const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
+    const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+
+    const chosen = small || preview;
+    if (chosen?.url) {
+      previews.push({
+        smallUrl: String(chosen.url),
+        fullUrl: preview?.url ? String(preview.url) : undefined,
+        contentType: String(chosen.mimetype || preview?.mimetype || item?.mimetype || ""),
+        filename: String(chosen.filename || preview?.filename || item?.filename || ""),
+        entityName: String(entityName),
+      });
+    }
+  }
+
+  return previews;
+}
