@@ -18,6 +18,7 @@ const pickPreviewFromEntry = (entry: Element): { href: string | null; typeHint: 
   for (const rel of priorityRels) {
     const link = byRel(rel);
     if (link?.getAttribute("href")) {
+      console.log(`Found link with rel="${rel}":`, { href: link.getAttribute("href"), typeHint: link.getAttribute("type") });
       return { href: link.getAttribute("href"), typeHint: link.getAttribute("type") };
     }
   }
@@ -25,15 +26,18 @@ const pickPreviewFromEntry = (entry: Element): { href: string | null; typeHint: 
   // Fallback: first link with href
   const anyLink = links.find((l) => l.getAttribute("href"));
   if (anyLink) {
+    console.log("Found any link with href:", { href: anyLink.getAttribute("href"), typeHint: anyLink.getAttribute("type") });
     return { href: anyLink.getAttribute("href"), typeHint: anyLink.getAttribute("type") };
   }
 
   // Fallback: content src
   const content = entry.getElementsByTagNameNS("*", "content")[0];
   if (content?.getAttribute("src")) {
+    console.log("Found content src:", { href: content.getAttribute("src"), typeHint: content.getAttribute("type") });
     return { href: content.getAttribute("src"), typeHint: content.getAttribute("type") };
   }
 
+  console.log("No preview link or content src found in entry.");
   return { href: null, typeHint: null };
 };
 
@@ -62,34 +66,38 @@ export const getIdmThumbnailForOpportunity = async (
   }
 
   const xml = await res.text();
+  console.log("IDM XML Response:", xml); // Log the raw XML
 
-  // Namespace-aware XML parsing
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, "application/xml");
 
-  // Try to find an <entry> regardless of namespace
   const entry =
     xmlDoc.getElementsByTagNameNS("*", "entry")[0] ??
     xmlDoc.querySelector("entry"); // very last resort
 
   if (!entry) {
+    console.log("No <entry> element found in IDM XML.");
+    return null;
+  }
+  console.log("Found <entry> element:", entry);
+
+  const { href, typeHint } = pickPreviewFromEntry(entry);
+  console.log("Extracted href and typeHint:", { href, typeHint });
+
+  if (!href) {
     return null;
   }
 
-  const { href, typeHint } = pickPreviewFromEntry(entry);
-  if (!href) return null;
-
-  // Fetch the resource to get a blob and real content type
   const thumbRes = await fetch(href, {
     method: "GET",
     headers: {
-      // Accept all types; we'll read the header
       Accept: "*/*",
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!thumbRes.ok) {
+    console.error(`Failed to fetch thumbnail from ${href}: ${thumbRes.status} ${thumbRes.statusText}`);
     return null;
   }
 
