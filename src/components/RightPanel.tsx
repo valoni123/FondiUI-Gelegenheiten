@@ -7,15 +7,71 @@ import { ChevronLeft, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
+import { showError } from "@/utils/toast";
+import { getIdmThumbnailForOpportunity } from "@/api/idm";
+import { type CloudEnvironment } from "@/authorization/configLoader";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
   onClose: () => void;
+  authToken: string;
+  cloudEnvironment: CloudEnvironment;
 }
 
-const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose }) => {
+const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose, authToken, cloudEnvironment }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(null);
+  const [isThumbLoading, setIsThumbLoading] = React.useState<boolean>(false);
+  const lastThumbUrlRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadThumb = async () => {
+      if (!selectedOpportunityId || !authToken) {
+        if (lastThumbUrlRef.current) {
+          URL.revokeObjectURL(lastThumbUrlRef.current);
+          lastThumbUrlRef.current = null;
+        }
+        setThumbnailUrl(null);
+        return;
+      }
+      setIsThumbLoading(true);
+      try {
+        const url = await getIdmThumbnailForOpportunity(
+          authToken,
+          cloudEnvironment,
+          selectedOpportunityId
+        );
+        if (cancelled) return;
+
+        if (lastThumbUrlRef.current) {
+          URL.revokeObjectURL(lastThumbUrlRef.current);
+          lastThumbUrlRef.current = null;
+        }
+
+        if (url) {
+          setThumbnailUrl(url);
+          lastThumbUrlRef.current = url;
+        } else {
+          setThumbnailUrl(null);
+        }
+      } catch (e) {
+        console.error("Failed to load IDM thumbnail", e);
+        setThumbnailUrl(null);
+        showError("Konnte die Vorschau aus IDM nicht laden.");
+      } finally {
+        if (!cancelled) setIsThumbLoading(false);
+      }
+    };
+
+    loadThumb();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOpportunityId, authToken, cloudEnvironment]);
 
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
@@ -76,6 +132,20 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose 
           </CardTitle>
         </CardHeader>
         <CardContent className="flex h-[calc(100%-56px)] flex-col gap-4">
+          <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-md border bg-accent/30">
+            {isThumbLoading ? (
+              <div className="text-sm text-muted-foreground">Vorschau wird geladen…</div>
+            ) : thumbnailUrl ? (
+              <img
+                src={thumbnailUrl}
+                alt={`Vorschau zu ${selectedOpportunityId}`}
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">Keine Vorschau gefunden.</div>
+            )}
+          </div>
+
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
 
           <div className="min-h-0 flex-1">

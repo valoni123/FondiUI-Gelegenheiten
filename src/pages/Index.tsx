@@ -235,7 +235,12 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           <ResizableHandle withHandle />
           <ResizablePanel size={rightPanelSize} onResize={setRightPanelSize} minSize={0} collapsible={true} collapsedSize={0}>
             {selectedOpportunityId && (
-              <RightPanel selectedOpportunityId={selectedOpportunityId} onClose={() => setSelectedOpportunityId(null)} />
+              <RightPanel
+                selectedOpportunityId={selectedOpportunityId}
+                onClose={() => setSelectedOpportunityId(null)}
+                authToken={authToken || ""}
+                cloudEnvironment={cloudEnvironment}
+              />
             )}
           </ResizablePanel>
         </ResizablePanelGroup>
