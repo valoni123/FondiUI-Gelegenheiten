@@ -3,14 +3,19 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileText } from "lucide-react";
+import { ChevronLeft, Upload, FileText, FileWarning, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
-import { showSuccess } from "@/utils/toast";
-import { showError } from "@/utils/toast";
-import { getIdmThumbnailForOpportunity } from "@/api/idm";
+import { showSuccess, showError } from "@/utils/toast";
+import { getIdmThumbnailForOpportunity, getIdmFullPreviewForOpportunity } from "@/api/idm"; // Import new function
 import { type CloudEnvironment } from "@/authorization/configLoader";
-import { FileWarning } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"; // Import Dialog components
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -25,6 +30,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
   const [thumbnailData, setThumbnailData] = React.useState<{ url: string; contentType: string } | null>(null);
   const [isThumbLoading, setIsThumbLoading] = React.useState<boolean>(false);
   const lastThumbUrlRef = React.useRef<string | null>(null);
+
+  const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
+  const [fullPreviewData, setFullPreviewData] = React.useState<{ url: string; contentType: string } | null>(null);
+  const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -47,14 +56,11 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
         );
         if (cancelled) return;
 
-        if (lastThumbUrlRef.current) {
-          URL.revokeObjectURL(lastThumbUrlRef.current);
-          lastThumbUrlRef.current = null;
-        }
+        // No need to revokeObjectURL here as we are not creating blob URLs anymore
+        // The URL is directly from the API and managed by the browser's cache
 
         if (data) {
           setThumbnailData(data);
-          lastThumbUrlRef.current = data.url; // Store the object URL for revoking
         } else {
           setThumbnailData(null);
         }
@@ -71,12 +77,35 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
 
     return () => {
       cancelled = true;
-      if (lastThumbUrlRef.current) {
-        URL.revokeObjectURL(lastThumbUrlRef.current);
-        lastThumbUrlRef.current = null;
-      }
+      // No need to revokeObjectURL here as we are not creating blob URLs anymore
     };
   }, [selectedOpportunityId, authToken, cloudEnvironment]);
+
+  const handleThumbnailClick = async () => {
+    if (!selectedOpportunityId || !authToken || !thumbnailData) return;
+
+    setIsFullPreviewLoading(true);
+    setIsFullPreviewDialogOpen(true); // Open dialog immediately with loading state
+    setFullPreviewData(null); // Clear previous data
+
+    try {
+      const data = await getIdmFullPreviewForOpportunity(
+        authToken,
+        cloudEnvironment,
+        selectedOpportunityId
+      );
+      if (data) {
+        setFullPreviewData(data);
+      } else {
+        showError("Konnte die vollständige Vorschau nicht laden.");
+      }
+    } catch (e) {
+      console.error("Failed to load full preview", e);
+      showError("Fehler beim Laden der vollständigen Vorschau.");
+    } finally {
+      setIsFullPreviewLoading(false);
+    }
+  };
 
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
@@ -137,9 +166,15 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           </CardTitle>
         </CardHeader>
         <CardContent className="flex h-[calc(100%-56px)] flex-col gap-4">
-          <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-md border bg-accent/30">
+          <div
+            className="flex h-48 w-full items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
+            onClick={handleThumbnailClick}
+            title="Vorschau öffnen"
+          >
             {isThumbLoading ? (
-              <div className="text-sm text-muted-foreground">Vorschau wird geladen…</div>
+              <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Vorschau wird geladen…
+              </div>
             ) : thumbnailData ? (
               thumbnailData.contentType.startsWith('image/') ? (
                 <img
@@ -156,6 +191,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline text-sm"
+                    onClick={(e) => e.stopPropagation()} // Prevent dialog from opening when clicking link
                   >
                     Dokument öffnen
                   </a>
@@ -169,6 +205,7 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline text-sm"
+                    onClick={(e) => e.stopPropagation()} // Prevent dialog from opening when clicking link
                   >
                     Dokument öffnen
                   </a>
@@ -204,6 +241,54 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           </div>
         </CardContent>
       </Card>
+
+      {/* Full Preview Dialog */}
+      <Dialog open={isFullPreviewDialogOpen} onOpenChange={setIsFullPreviewDialogOpen}>
+        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Vollständige Vorschau</DialogTitle>
+            <DialogDescription>
+              {selectedOpportunityId ? `Vorschau für: ${selectedOpportunityId}` : "Vorschau"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 flex items-center justify-center overflow-hidden">
+            {isFullPreviewLoading ? (
+              <div className="text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-6 w-6 animate-spin" /> Vorschau wird geladen…
+              </div>
+            ) : fullPreviewData ? (
+              fullPreviewData.contentType.startsWith('image/') ? (
+                <img
+                  src={fullPreviewData.url}
+                  alt="Vollständige Vorschau"
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : fullPreviewData.contentType === 'application/pdf' ? (
+                <iframe
+                  src={fullPreviewData.url}
+                  title="Vollständige PDF-Vorschau"
+                  className="w-full h-full border-none"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4 text-muted-foreground">
+                  <FileWarning className="h-16 w-16" />
+                  <span className="text-lg">Dateityp für Vorschau nicht unterstützt.</span>
+                  <a
+                    href={fullPreviewData.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-base"
+                  >
+                    Dokument in neuem Tab öffnen
+                  </a>
+                </div>
+              )
+            ) : (
+              <div className="text-muted-foreground">Keine vollständige Vorschau verfügbar.</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
