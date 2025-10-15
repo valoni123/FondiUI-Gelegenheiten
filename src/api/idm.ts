@@ -10,6 +10,7 @@ const buildIdmBase = (environment: CloudEnvironment) => {
 
 /**
  * Load all IDM entities and return their names.
+ * Only entities that have BOTH attributes 'Projekt' and 'Dokumentenpaket' are returned.
  */
 export const getIdmEntities = async (
   token: string,
@@ -33,35 +34,41 @@ export const getIdmEntities = async (
 
   const json = await res.json();
 
-  // Try to extract entity names in a robust way
-  const candidates: string[] = [];
-
-  if (Array.isArray(json?.entities)) {
-    for (const e of json.entities) {
-      if (e?.name) candidates.push(String(e.name));
-    }
-  } else if (Array.isArray(json?.entities?.entity)) {
-    for (const e of json.entities.entity) {
-      if (e?.name) candidates.push(String(e.name));
-    }
-  } else if (Array.isArray(json)) {
-    for (const e of json) {
-      if (e?.name) candidates.push(String(e.name));
-    }
-  } else if (json && typeof json === "object") {
-    const maybeEntities = (json as any).entities;
-    if (maybeEntities && typeof maybeEntities === "object") {
-      const list = Array.isArray((maybeEntities as any).entity)
-        ? (maybeEntities as any).entity
-        : Object.values(maybeEntities);
-      for (const e of Array.isArray(list) ? list : [list]) {
-        if (e && e.name) candidates.push(String(e.name));
+  // Helper to extract entities array robustly
+  const getEntitiesArray = (obj: any): any[] => {
+    if (Array.isArray(obj?.entities)) return obj.entities;
+    if (Array.isArray(obj?.entities?.entity)) return obj.entities.entity;
+    if (Array.isArray(obj)) return obj;
+    if (obj && typeof obj === "object") {
+      const maybe = obj.entities;
+      if (maybe && typeof maybe === "object") {
+        const list = Array.isArray(maybe.entity) ? maybe.entity : Object.values(maybe);
+        return Array.isArray(list) ? list : [list];
       }
+    }
+    return [];
+  };
+
+  const entities = getEntitiesArray(json);
+
+  const validNames: string[] = [];
+  for (const e of entities) {
+    if (!e?.name) continue;
+
+    // Check for attributes
+    const attrs = e.attr;
+    if (!Array.isArray(attrs)) continue;
+
+    const hasProjekt = attrs.some((a: any) => a?.name === "Projekt");
+    const hasDokumentenpaket = attrs.some((a: any) => a?.name === "Dokumentenpaket");
+
+    if (hasProjekt && hasDokumentenpaket) {
+      validNames.push(String(e.name));
     }
   }
 
   // Deduplicate and filter empties
-  const unique = Array.from(new Set(candidates.filter(Boolean)));
+  const unique = Array.from(new Set(validNames.filter(Boolean)));
   return unique;
 };
 
