@@ -179,32 +179,34 @@ const GridList: React.FC<GridListProps> = ({
                   "hover:bg-muted cursor-pointer",
                   selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900" // Visual feedback for selected row
                 )}
-                onClick={() => onSelectOpportunity(item.id)} // Make entire row clickable
+                onClick={() => {
+                  // Toggle selection: if already selected, deselect; otherwise, select
+                  if (selectedOpportunityId === item.id) {
+                    onSelectOpportunity(null);
+                  } else {
+                    onSelectOpportunity(item.id);
+                  }
+                }}
               >
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent row click when button is clicked
+                      e.stopPropagation(); // Prevent row click from triggering detail view
                       onViewDetails(item);
                     }}
                   >
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </TableCell>
-                <TableCell className="text-center"> {/* New TableCell for checkbox */}
+                <TableCell className="text-center">
+                  {/* Checkbox is now purely visual, reflecting the selected state */}
                   <Checkbox
                     checked={selectedOpportunityId === item.id}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        onSelectOpportunity(item.id);
-                      } else if (selectedOpportunityId === item.id) {
-                        onSelectOpportunity(null);
-                      }
-                    }}
+                    // No onCheckedChange here, selection is handled by row click
                     aria-label={`Select opportunity ${item.id}`}
-                    onClick={(e) => e.stopPropagation()} // Prevent row click when checkbox is clicked
+                    onClick={(e) => e.stopPropagation()} // Prevent row click from triggering twice
                   />
                 </TableCell>
                 {visibleKeys.map((key) => (
