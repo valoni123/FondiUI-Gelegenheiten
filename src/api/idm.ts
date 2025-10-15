@@ -74,6 +74,7 @@ export type IdmDocPreview = {
   contentType?: string;
   filename?: string;
   entityName?: string;
+  attributes?: { name: string; value: string }[];
 };
 
 /**
@@ -269,6 +270,22 @@ export const searchIdmItemsByEntityJson = async (
     const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
 
+    // Extract attributes robustly
+    const attrsRaw =
+      item?.attrs?.attr ??
+      item?.attrs ??
+      item?.attr ??
+      [];
+    const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const attributes =
+      attrsList
+        .map((a) => {
+          const n = a?.name ?? a?.n ?? a?.key ?? "";
+          const v = a?.value ?? a?.val ?? a?.v ?? a?._ ?? a?.text ?? "";
+          return { name: String(n ?? ""), value: String(v ?? "") };
+        })
+        .filter((a) => a.name || a.value) as { name: string; value: string }[];
+
     const chosen = small || preview;
     if (chosen?.url) {
       previews.push({
@@ -277,6 +294,7 @@ export const searchIdmItemsByEntityJson = async (
         contentType: String(chosen.mimetype || preview?.mimetype || item?.mimetype || ""),
         filename: String(chosen.filename || preview?.filename || item?.filename || ""),
         entityName: String(entityName),
+        attributes,
       });
     }
   }

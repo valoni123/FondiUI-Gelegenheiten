@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import DocAttributesGrid from "./DocAttributesGrid";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -229,25 +230,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
 
           <div className="min-h-0 flex-1">
-            <ScrollArea className="h-full w-full pr-4">
-              {files.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  Noch keine Dateien hochgeladen.
-                </div>
-              ) : (
-                <ul className="divide-y">
-                  {files.map((file, idx) => (
-                    <li key={`${file.name}-${file.size}-${file.lastModified}-${idx}`} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{file.name}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </ScrollArea>
+            <DocAttributesGrid docs={docPreviews} />
           </div>
         </CardContent>
       </Card>
