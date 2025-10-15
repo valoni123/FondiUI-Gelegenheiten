@@ -44,6 +44,59 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [fullPreviewData, setFullPreviewData] = React.useState<{ url: string; contentType: string } | null>(null);
   const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
 
+  // ADD: helper to reload previews for the current opportunity
+  const reloadPreviews = React.useCallback(async () => {
+    if (!selectedOpportunityId || !authToken || !entityNames?.length) return;
+    setIsPreviewsLoading(true);
+    try {
+      const results = await Promise.allSettled(
+        entityNames.map((name) =>
+          searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+        )
+      );
+      const merged: IdmDocPreview[] = [];
+      results.forEach((r) => {
+        if (r.status === "fulfilled" && Array.isArray(r.value)) {
+          merged.push(...r.value);
+        }
+      });
+      setDocPreviews(merged);
+    } finally {
+      setIsPreviewsLoading(false);
+    }
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+
+  // keep existing useEffect for initial load
+  React.useEffect(() => {
+    let cancelled = false;
+    const loadPreviews = async () => {
+      if (!selectedOpportunityId || !authToken || !entityNames?.length) {
+        setDocPreviews([]);
+        return;
+      }
+      setIsPreviewsLoading(true);
+      try {
+        const results = await Promise.allSettled(
+          entityNames.map((name) =>
+            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+          )
+        );
+        if (cancelled) return;
+        const merged: IdmDocPreview[] = [];
+        results.forEach((r) => {
+          if (r.status === "fulfilled" && Array.isArray(r.value)) {
+            merged.push(...r.value);
+          }
+        });
+        setDocPreviews(merged);
+      } finally {
+        if (!cancelled) setIsPreviewsLoading(false);
+      }
+    };
+    loadPreviews();
+    return () => { cancelled = true; };
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+
   // DEBUG: Log component mount/unmount
   React.useEffect(() => {
     console.log("[RightPanel] Component MOUNTED");
@@ -58,64 +111,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
       cloudEnvironment,
       entityNames,
     });
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-
-    const loadPreviews = async () => {
-      console.log("[RightPanel] loadPreviews useEffect triggered");
-      console.log("[RightPanel] Conditions - selectedOpportunityId:", selectedOpportunityId, "authToken:", authToken ? "PRESENT" : "MISSING", "entityNames.length:", entityNames?.length);
-
-      if (!selectedOpportunityId || !authToken || !entityNames?.length) {
-        console.log("[RightPanel] Conditions NOT met, clearing previews and returning.");
-        setDocPreviews([]);
-        return;
-      }
-
-      console.log("[RightPanel] Conditions MET, starting per-entity API calls.");
-      setIsPreviewsLoading(true);
-
-      try {
-        // Query all entities in parallel; continue on errors
-        const results = await Promise.allSettled(
-          entityNames.map((name) =>
-            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
-          )
-        );
-
-        if (cancelled) {
-          console.log("[RightPanel] Calls completed but component was cancelled.");
-          return;
-        }
-
-        const merged: IdmDocPreview[] = [];
-        results.forEach((r, idx) => {
-          const entityName = entityNames[idx];
-          if (r.status === "fulfilled") {
-            if (Array.isArray(r.value) && r.value.length) {
-              merged.push(...r.value);
-            }
-          } else {
-            console.warn(`[RightPanel] items/search failed for entity '${entityName}':`, r.reason);
-          }
-        });
-
-        console.log("[RightPanel] Setting previews; count:", merged.length);
-        setDocPreviews(merged);
-      } finally {
-        if (!cancelled) {
-          console.log("[RightPanel] Setting loading state to false.");
-          setIsPreviewsLoading(false);
-        }
-      }
-    };
-
-    loadPreviews();
-    return () => {
-      console.log("[RightPanel] useEffect cleanup (setting cancelled = true).");
-      cancelled = true;
-    };
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
@@ -147,6 +142,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
         ), 
         variant: "success" 
       });
+      // reload previews so updated values appear immediately
+      await reloadPreviews();
       return { ok: true };
     } catch (err: any) {
       // Extrahiere message und detail aus XML-Fehlerantwort
