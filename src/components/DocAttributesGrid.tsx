@@ -123,12 +123,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           if (updates.length) {
                             const ok = await onSaveRow(doc, updates);
                             if (ok) {
-                              // Reset local edits for this row
-                              setEdited((prev) => {
-                                const next = { ...prev };
-                                delete next[idx];
-                                return next;
-                              });
+                              // Reset local edits for this row to initial values
+                              setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
                             }
                           }
                         }}
