@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
-import ArrowOverlay from "@/components/ArrowOverlay";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -49,13 +48,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
-  // NEW: Fehler-Highlights pro Zeile/Spalte
+  // NEW: Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
-
-  // NEW: Refs zu jedem Input-Wrapper und Overlay-Zustand
-  const inputRefs = React.useRef<Record<number, Record<string, HTMLDivElement | null>>>({});
-  const [overlayTarget, setOverlayTarget] = React.useState<DOMRect | null>(null);
-  const [overlayKey, setOverlayKey] = React.useState<number>(0);
 
   const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
     if (!cols.length) return;
@@ -66,16 +60,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
       next[rowIdx] = Array.from(current);
       return next;
     });
-
-    // Bestimme das erste fehlerhafte Feld für den langen Pfeil (ausgehend von Toast unten rechts)
-    const firstCol = cols[0];
-    const el = inputRefs.current[rowIdx]?.[firstCol] ?? null;
-    if (el) {
-      setOverlayTarget(el.getBoundingClientRect());
-      setOverlayKey((k) => k + 1); // re-mount für erneute Animation
-    }
-
-    // Entferne Highlight und Overlay nach kurzer Zeit (~1.8s)
+    // Entferne Highlight nach kurzer Zeit
     setTimeout(() => {
       setErrorHighlights((prev) => {
         const next = { ...prev };
@@ -85,7 +70,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         if (!next[rowIdx]?.length) delete next[rowIdx];
         return next;
       });
-      setOverlayTarget(null);
     }, 1800);
   }, []);
 
@@ -156,9 +140,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   return (
     <div className="h-full w-full">
-      {/* Overlay-Pfeil von Toast unten rechts zum Ziel-Feld */}
-      {overlayTarget ? <ArrowOverlay key={overlayKey} targetRect={overlayTarget} /> : null}
-
       <div className="flex justify-end mb-2 pr-4">
         <Button
           variant="default"
@@ -270,14 +251,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
                     {/* Attribute inputs */}
                     {columns.map((col) => (
-                      <div
-                        key={`${idx}-${col}`}
-                        className="px-2 relative overflow-visible"
-                        ref={(el) => {
-                          if (!inputRefs.current[idx]) inputRefs.current[idx] = {};
-                          inputRefs.current[idx][col] = el;
-                        }}
-                      >
+                      <div key={`${idx}-${col}`} className="px-2">
                         <Input
                           value={rowEdited[col] ?? ""}
                           onChange={(e) =>
@@ -295,29 +269,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           aria-label={`Attribut ${col}`}
                           placeholder="-"
                         />
-
-                        {(errorHighlights[idx] ?? []).includes(col) && (
-                          <div className="pointer-events-none absolute left-[calc(100%+4px)] top-1/2 -translate-y-1/2 z-10">
-                            <svg width="80" height="50" viewBox="0 0 80 50" fill="none" aria-hidden="true">
-                              <path
-                                d="M75 35 C 65 25, 50 20, 10 18"
-                                stroke="#ef4444"
-                                strokeWidth="4"
-                                strokeLinecap="round"
-                                fill="none"
-                                style={{ strokeDasharray: 150, strokeDashoffset: 150 }}
-                                className="animate-[arrow-draw_0.6s_ease-out_forwards]"
-                              />
-                              <path
-                                d="M10 18 L20 13 M10 18 L20 23"
-                                stroke="#ef4444"
-                                strokeWidth="4"
-                                strokeLinecap="round"
-                                fill="none"
-                              />
-                            </svg>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
