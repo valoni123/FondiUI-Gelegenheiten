@@ -16,6 +16,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable"; // Import Resizable components
 import RightPanel from "@/components/RightPanel"; // Import the new RightPanel
+import { getIdmEntities } from "@/api/idm";
 
 interface IndexProps {
   companyNumber: string;
@@ -34,6 +35,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [leftPanelSize, setLeftPanelSize] = useState<number>(100);
   const [rightPanelSize, setRightPanelSize] = useState<number>(0);
+  const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -67,6 +69,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         setAuthToken(token);
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
+        // Load IDM entity names once after auth
+        const entities = await getIdmEntities(token, cloudEnvironment);
+        setIdmEntityNames(entities);
         await loadOpportunities(token, companyNumber, cloudEnvironment, false);
       } catch (error) {
         console.error("Authentication or initial data fetch failed:", error);
@@ -240,6 +245,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 onClose={() => setSelectedOpportunityId(null)}
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
+                entityNames={idmEntityNames}
               />
             )}
           </ResizablePanel>

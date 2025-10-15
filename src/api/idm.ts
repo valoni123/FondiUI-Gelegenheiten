@@ -1,12 +1,140 @@
 "use client";
 
 import { getIonApiConfig, type CloudEnvironment } from "@/authorization/configLoader";
+import { parseStringPromise } from "xml2js";
 
 const buildIdmBase = (environment: CloudEnvironment) => {
   const cfg = getIonApiConfig(environment);
   return `${cfg.iu}/${cfg.ti}/IDM`;
 };
 
+/**
+ * Load all IDM entities and return their names.
+ */
+export const getIdmEntities = async (
+  token: string,
+  environment: CloudEnvironment,
+  language: string = "de-DE"
+): Promise<string[]> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/datamodel/entities?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`[IDM] entities request failed: ${res.status} ${res.statusText}`);
+  }
+
+  const json = await res.json();
+
+  // Try to extract entity names in a robust way
+  const candidates: string[] = [];
+
+  if (Array.isArray(json?.entities)) {
+    for (const e of json.entities) {
+      if (e?.name) candidates.push(String(e.name));
+    }
+  } else if (Array.isArray(json?.entities?.entity)) {
+    for (const e of json.entities.entity) {
+      if (e?.name) candidates.push(String(e.name));
+    }
+  } else if (Array.isArray(json)) {
+    for (const e of json) {
+      if (e?.name) candidates.push(String(e.name));
+    }
+  } else if (json && typeof json === "object") {
+    const maybeEntities = (json as any).entities;
+    if (maybeEntities && typeof maybeEntities === "object") {
+      const list = Array.isArray((maybeEntities as any).entity)
+        ? (maybeEntities as any).entity
+        : Object.values(maybeEntities);
+      for (const e of Array.isArray(list) ? list : [list]) {
+        if (e && e.name) candidates.push(String(e.name));
+      }
+    }
+  }
+
+  // Deduplicate and filter empties
+  const unique = Array.from(new Set(candidates.filter(Boolean)));
+  return unique;
+};
+
+export type IdmDocPreview = {
+  smallUrl: string;
+  fullUrl?: string;
+  contentType?: string;
+  filename?: string;
+  entityName?: string;
+};
+
+/**
+ * Search union of entities for a given opportunity and return SmallPreview + Preview URLs per item.
+ */
+export const searchIdmItemsForOpportunityUnion = async (
+  token: string,
+  environment: CloudEnvironment,
+  opportunityId: string,
+  entityNames: string[],
+  offset: number = 0,
+  limit: number = 50
+): Promise<IdmDocPreview[]> => {
+  const base = buildIdmBase(environment);
+  const segments = (entityNames || []).map((name) => `/${name}[@Gelegenheit = "${opportunityId}"]`);
+  if (!segments.length) return [];
+
+  const query = segments.join(" UNION ");
+  const url =
+    `${base}/api/items/search?` +
+    `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/xml;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`[IDM] union search failed: ${res.status} ${res.statusText}`);
+  }
+
+  const xml = await res.text();
+  const parsed = await parseStringPromise(xml, { explicitArray: false, trim: true });
+
+  // Try common layouts: items.item[]
+  const itemsNode = (parsed as any)?.items?.item ?? (parsed as any)?.item ?? [];
+  const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  const previews: IdmDocPreview[] = [];
+  for (const item of items) {
+    const resArray = item?.resrs?.res;
+    const resList: any[] = Array.isArray(resArray) ? resArray : resArray ? [resArray] : [];
+
+    const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
+    const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+
+    if (small?.url) {
+      previews.push({
+        smallUrl: String(small.url),
+        fullUrl: preview?.url ? String(preview.url) : undefined,
+        contentType: String(small.mimetype || preview?.mimetype || item?.mimetype || ""),
+        filename: String(small.filename || preview?.filename || item?.filename || ""),
+        entityName: String(item?.entityName || item?.name || ""),
+      });
+    }
+  }
+
+  return previews;
+};
+
+// Kept helpers for direct single-entity previews when needed
 export const getIdmThumbnailForOpportunity = async (
   token: string,
   environment: CloudEnvironment,
@@ -34,8 +162,6 @@ export const getIdmThumbnailForOpportunity = async (
     }
 
     const json = await res.json();
-    console.log("[IDM] JSON response:", json);
-
     const previewUrl: string | undefined = json?.res?.url;
     const previewType: string = json?.res?.mimetype || "image/*";
 
@@ -60,7 +186,7 @@ export const getIdmFullPreviewForOpportunity = async (
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
   const url =
-    `${base}/api/items/search/item/resource/Preview?` + // Changed to /Preview
+    `${base}/api/items/search/item/resource/Preview?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
   try {
@@ -78,8 +204,6 @@ export const getIdmFullPreviewForOpportunity = async (
     }
 
     const json = await res.json();
-    console.log("[IDM] full preview JSON response:", json);
-
     const previewUrl: string | undefined = json?.res?.url;
     const previewType: string = json?.res?.mimetype || "image/*";
 

@@ -7,7 +7,7 @@ import { ChevronLeft, Upload, FileText, FileWarning, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess, showError } from "@/utils/toast";
-import { getIdmThumbnailForOpportunity, getIdmFullPreviewForOpportunity } from "@/api/idm"; // Import new function
+import { searchIdmItemsForOpportunityUnion, type IdmDocPreview } from "@/api/idm";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import {
   Dialog,
@@ -15,21 +15,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog"; // Import Dialog components
+} from "@/components/ui/dialog";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
   onClose: () => void;
   authToken: string;
   cloudEnvironment: CloudEnvironment;
+  entityNames: string[];
 }
 
-const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose, authToken, cloudEnvironment }) => {
+const RightPanel: React.FC<RightPanelProps> = ({
+  selectedOpportunityId,
+  onClose,
+  authToken,
+  cloudEnvironment,
+  entityNames,
+}) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
-  const [thumbnailData, setThumbnailData] = React.useState<{ url: string; contentType: string } | null>(null);
-  const [isThumbLoading, setIsThumbLoading] = React.useState<boolean>(false);
-  const lastThumbUrlRef = React.useRef<string | null>(null);
+
+  const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
+  const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
 
   const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
   const [fullPreviewData, setFullPreviewData] = React.useState<{ url: string; contentType: string } | null>(null);
@@ -38,79 +45,53 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
   React.useEffect(() => {
     let cancelled = false;
 
-    const loadThumb = async () => {
-      if (!selectedOpportunityId || !authToken) {
-        if (lastThumbUrlRef.current) {
-          URL.revokeObjectURL(lastThumbUrlRef.current);
-          lastThumbUrlRef.current = null;
-        }
-        setThumbnailData(null);
+    const loadPreviews = async () => {
+      if (!selectedOpportunityId || !authToken || !entityNames?.length) {
+        setDocPreviews([]);
         return;
       }
-      setIsThumbLoading(true);
+      setIsPreviewsLoading(true);
       try {
-        const data = await getIdmThumbnailForOpportunity(
+        const previews = await searchIdmItemsForOpportunityUnion(
           authToken,
           cloudEnvironment,
-          selectedOpportunityId
+          selectedOpportunityId,
+          entityNames
         );
         if (cancelled) return;
-
-        // No need to revokeObjectURL here as we are not creating blob URLs anymore
-        // The URL is directly from the API and managed by the browser's cache
-
-        if (data) {
-          setThumbnailData(data);
-        } else {
-          setThumbnailData(null);
-        }
+        setDocPreviews(previews);
       } catch (e) {
-        console.error("Failed to load IDM thumbnail", e);
-        setThumbnailData(null);
-        showError("Konnte die Vorschau aus IDM nicht laden.");
+        console.error("Failed to load IDM union previews", e);
+        if (!cancelled) {
+          setDocPreviews([]);
+          showError("Konnte die Vorschauen aus IDM nicht laden.");
+        }
       } finally {
-        if (!cancelled) setIsThumbLoading(false);
+        if (!cancelled) setIsPreviewsLoading(false);
       }
     };
 
-    loadThumb();
-
+    loadPreviews();
     return () => {
       cancelled = true;
-      // No need to revokeObjectURL here as we are not creating blob URLs anymore
     };
-  }, [selectedOpportunityId, authToken, cloudEnvironment]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
-  const handleThumbnailClick = async () => {
-    if (!selectedOpportunityId || !authToken || !thumbnailData) return;
+  const openFullPreview = (doc: IdmDocPreview) => {
+    const url = doc.fullUrl || doc.smallUrl;
+    const contentType = doc.contentType || (doc.fullUrl ? "image/*" : "image/*");
+    if (!url) return;
 
     setIsFullPreviewLoading(true);
-    setIsFullPreviewDialogOpen(true); // Open dialog immediately with loading state
-    setFullPreviewData(null); // Clear previous data
-
-    try {
-      const data = await getIdmFullPreviewForOpportunity(
-        authToken,
-        cloudEnvironment,
-        selectedOpportunityId
-      );
-      if (data) {
-        setFullPreviewData(data);
-      } else {
-        showError("Konnte die vollständige Vorschau nicht laden.");
-      }
-    } catch (e) {
-      console.error("Failed to load full preview", e);
-      showError("Fehler beim Laden der vollständigen Vorschau.");
-    } finally {
-      setIsFullPreviewLoading(false);
-    }
+    setIsFullPreviewDialogOpen(true);
+    setFullPreviewData({ url, contentType });
+    // No extra fetch here; we directly show presigned URL
+    setIsFullPreviewLoading(false);
   };
 
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
     setFiles((prev) => {
-      // Deduplicate by name + size + lastModified to avoid duplicates on re-select
       const existingKeys = new Set(prev.map((f) => `${f.name}-${f.size}-${f.lastModified}`));
       const toAdd = incoming.filter(
         (f) => !existingKeys.has(`${f.name}-${f.size}-${f.lastModified}`)
@@ -166,53 +147,43 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           </CardTitle>
         </CardHeader>
         <CardContent className="flex h-[calc(100%-56px)] flex-col gap-4">
-          <div
-            className="flex h-48 w-full items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
-            onClick={handleThumbnailClick}
-            title="Vorschau öffnen"
-          >
-            {isThumbLoading ? (
-              <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Vorschau wird geladen…
+          <div className="min-h-0">
+            {isPreviewsLoading ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Vorschauen werden geladen…
               </div>
-            ) : thumbnailData ? (
-              thumbnailData.contentType.startsWith('image/') ? (
-                <img
-                  src={thumbnailData.url}
-                  alt={`Vorschau zu ${selectedOpportunityId}`}
-                  className="max-h-full max-w-full object-contain"
-                />
-              ) : thumbnailData.contentType === 'application/pdf' ? (
-                <div className="flex flex-col items-center gap-2">
-                  <FileText className="h-12 w-12 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">PDF-Dokument</span>
-                  <a
-                    href={thumbnailData.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm"
-                    onClick={(e) => e.stopPropagation()} // Prevent dialog from opening when clicking link
-                  >
-                    Dokument öffnen
-                  </a>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2">
-                  <FileWarning className="h-12 w-12 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Dateityp nicht unterstützt</span>
-                  <a
-                    href={thumbnailData.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm"
-                    onClick={(e) => e.stopPropagation()} // Prevent dialog from opening when clicking link
-                  >
-                    Dokument öffnen
-                  </a>
-                </div>
-              )
+            ) : docPreviews.length === 0 ? (
+              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                Keine Vorschauen gefunden.
+              </div>
             ) : (
-              <div className="text-sm text-muted-foreground">Keine Vorschau gefunden.</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {docPreviews.map((doc, idx) => (
+                  <div
+                    key={`${doc.smallUrl}-${idx}`}
+                    className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
+                    onClick={() => openFullPreview(doc)}
+                    title={doc.filename || "Vorschau öffnen"}
+                  >
+                    {doc.smallUrl ? (
+                      <img
+                        src={doc.smallUrl}
+                        alt={doc.filename || `Vorschau ${idx + 1}`}
+                        className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <FileWarning className="h-10 w-10 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
+                      </div>
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {doc.filename || doc.entityName || "Dokument"}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
@@ -257,13 +228,13 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
                 <Loader2 className="h-6 w-6 animate-spin" /> Vorschau wird geladen…
               </div>
             ) : fullPreviewData ? (
-              fullPreviewData.contentType.startsWith('image/') ? (
+              fullPreviewData.contentType?.startsWith("image/") ? (
                 <img
                   src={fullPreviewData.url}
                   alt="Vollständige Vorschau"
                   className="max-h-full max-w-full object-contain"
                 />
-              ) : fullPreviewData.contentType === 'application/pdf' ? (
+              ) : fullPreviewData.contentType === "application/pdf" ? (
                 <iframe
                   src={fullPreviewData.url}
                   title="Vollständige PDF-Vorschau"

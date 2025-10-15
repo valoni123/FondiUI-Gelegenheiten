@@ -1,0 +1,123 @@
+{
+  "items": {
+    "searchXQuery": "/Anfrage_Kunde[@Gelegenheit = \"M00000007\"]",
+    "item": [
+      {
+        "createdBy": "ED8D1E33-515D-423C-986B-E4D60F4ACEB4",
+        "createdByName": "Valon Kajtazaj",
+        "createdTS": "2025-10-15T07:08:05.686Z",
+        "lastChangedBy": "ED8D1E33-515D-423C-986B-E4D60F4ACEB4",
+        "lastChangedByName": "Valon Kajtazaj",
+        "lastChangedTS": "2025-10-15T07:14:23.806Z",
+        "filename": "Anfrage_lah___205_805_615____3_v5_6_Zeichnung.pdf",
+        "size": "469630",
+        "pid": "Anfrage_Kunde-430-2-LATEST",
+        "pid2": "Anfrage_Kunde-8c8b7c1f-cf6e-45b8-9750-b6a36272dff1",
+        "id": "430",
+        "version": "2",
+        "drillbackurl": "https://mingle-portal.eu1.inforcloudsuite.com/FONDIUM_TRN/?LogicalId=lid://infor.daf.daf&$pid=Anfrage_Kunde-430-2-LATEST",
+        "reprItem": "Titel",
+        "isArchived": "false",
+        "editable": "true",
+        "virusScanStatus": "NOTSUPPORTED",
+        "itemInfected": "false",
+        "entityName": "Anfrage_Kunde",
+        "attrs": {
+          "attr": [
+            {
+              "name": "Projekt",
+              "type": "1",
+              "qual": "Projekt",
+              "value": "M25006"
+            },
+            {
+              "name": "MDS_ID",
+              "type": "21",
+              "qual": "MDS_ID",
+              "value": "8c8b7c1f-cf6e-45b8-9750-b6a36272dff1"
+            },
+            {
+              "name": "Status",
+              "type": "3",
+              "qual": "Status",
+              "value": "10"
+            },
+            {
+              "name": "Werk",
+              "type": "1",
+              "qual": "Werk",
+              "value": "10"
+            },
+            {
+              "name": "Belegnummer",
+              "type": "1",
+              "qual": "Belegnummer"
+            },
+            {
+              "name": "Belegdatum",
+              "type": "7",
+              "qual": "Belegdatum",
+              "value": "2025-10-15"
+            },
+            {
+              "name": "Kunde",
+              "type": "1",
+              "qual": "Kunde"
+            },
+            {
+              "name": "Titel",
+              "type": "1",
+              "qual": "Titel"
+            },
+            {
+              "name": "Dokumentenpaket",
+              "type": "1",
+              "qual": "Dokumentenpaket",
+              "value": "req_customer"
+            },
+            {
+              "name": "Gelegenheit",
+              "type": "1",
+              "qual": "Gelegenheit",
+              "value": "M00000007"
+            }
+          ]
+        },
+        "resrs": {
+          "res": [
+            {
+              "name": "",
+              "size": "469630",
+              "mimetype": "application/pdf",
+              "filename": "Anfrage_lah___205_805_615____3_v5_6_Zeichnung.pdf",
+              "url": "https://idm.eu1.inforcloudsuite.com/ca/api/resources/Anfrage_Kunde-430-2-LATEST?$token=Aey7DcUs0a02Pim2Gk55jdBZjx3659T6WReJbXu0NXe6TiEBbsxm17ciMXSMAfu3J5%2Bf1jeZVx4dDiKfUfjiMxlBfOseaY0Nlhx1fXmTohEVJf6DCz8MuM2dEaCy7NmtiMxkJWCX92aFz6dHLjnsqJjYTKeEQwojpZkXWDN%2BfapliVBRqs2HlQxmt4%2FO%2FweiTG%2B26%2BhSRnIcfI4mj8TaFFw3kXwQHYvv5uLRuwIFcdVarF9IMTtw9yQsnZ%2B9137DqgGVJjqtoCbz482aYQHQb7lDr27LBx6oc2DzQtgnuIXgOjQ3EkHA5Iwt2u6bOpThdvLk6dFlK2VLdKZS787GAdY5F93skOug5ifRFsNuQd0XWQ%3D%3D&$tenant=FONDIUM_TRN",
+              "sha256": "099469e2f7d1572e9b1f5a3d8c05bfccc4a8e39fac1e0fe1c9c58e192e845229"
+            },
+            {
+              "name": "Preview",
+              "mimetype": "image/png",
+              "filename": "Anfrage_Kunde-430-2-LATEST_Preview.png",
+              "url": "https://idm.eu1.inforcloudsuite.com/ca/api/resources/Anfrage_Kunde-430-2-LATEST/Preview?$token=AUStYdHUMU7PaUoNy3kAD%2BtOfxnLAOhzTEVHS22L6YmgaqxSEJFsUxr5ypDm%2FCgB0VQsholPeJ2BXTgh00mj%2FCBNR9anlfMGJp529Hy1Uk0%2BsL3%2FfRAQ5%2B5394nHyUJooXogOMoaCWnpD2RnoZVVshFXjgjyfuXNGOe3mhzneNTyFH52FWt7RlYsXWodawJWmkCV3fRY5WxMjwIY27bWCfrAluANmzaRNdSjJc5Sdzx8%2F4ZmvfKeDD870VH4ZNkpPI4B%2F3VWn7J1e47FJ%2FQyq92GKOBFdBLYAqcmgTG1Q3BZ9AHuqa9MIhcvToAX70Wzk3tpZRkvYvz6YG%2BMIkvO6dGSLdqJBgzRmfMR%2FbqfDk%2BacQ%3D%3D&$tenant=FONDIUM_TRN"
+            },
+            {
+              "name": "SmallPreview",
+              "mimetype": "image/png",
+              "filename": "Anfrage_Kunde-430-2-LATEST_SmallPreview.png",
+              "url": "https://idm.eu1.inforcloudsuite.com/ca/api/resources/Anfrage_Kunde-430-2-LATEST/SmallPreview?$token=ASJ7RjGErkvEvuhKi%2F%2BTR7pox8nNrPg%2B6A%2BUAQbbF78U91Pj24A2uHLa5B%2FREppRr1744bvxMmlmYTTM00o9LE8tKeHcDKTH%2B4a1VKnX6RdFQ8cZ6Kc9iNjkOViT7IugeWVkkt4NGHzijgqARpwEgA%2FAOY%2BVdRlCrgqOT25NAVMRVdLtRH7qQZ6sxtJHitDg%2Bp%2FgDiYtLzyszO8ulFxcx5qDFhQ7nxAhbEb7yF4AK75FzqVDE202py%2FaQSpWt5HyM8k0znZWaTlTQ1cml3fNcw6u9p8FxYOgOI0Ew8e8Ee6Q0axxkVMQo%2Bwe%2FgGBWs6%2BuOAxbVLjcHSQjh0whPiBTj1uxfqMRVh1u5TLUxFukqlwEw%3D%3D&$tenant=FONDIUM_TRN"
+            },
+            {
+              "name": "Thumbnail",
+              "mimetype": "image/png",
+              "filename": "Anfrage_Kunde-430-2-LATEST_Thumbnail.png",
+              "url": "https://idm.eu1.inforcloudsuite.com/ca/api/resources/Anfrage_Kunde-430-2-LATEST/Thumbnail?$token=AVWTS5U3BQ9wfd0kqJzjBoVHchFZ6x1Py2C2lYGL4ga1vuXH1zXSVEfHkmAfL8eFfDoljitl6hB3%2FSRQ0Q2AmKJjwPFWLg2e31TIz8bhFH59H6p95PoALQOuCI3ugm%2BezbEue3gYTdUcoRQOedQ5zq1BPU1fAhHIfrxZYljkPGNyyobU%2B9hLjTasiKV%2FVaOnzLtv9k%2Fh37sK6wpCC1Xri6HV%2FyhWquhuHI3zb0ErHs0sbe12qDrRq3%2FY9TgoPCGbBIXyVX68OWLiEG9BMYU7N3CX0GdSrzBYjy2MTDIDgW2Wvl%2BKmjBFrLludrRKDc0xtM1mhoVQVZ1qOziFvOzSFNy%2BHdEoYmOVN44v1WbAhOzElA%3D%3D&$tenant=FONDIUM_TRN"
+            }
+          ]
+        },
+        "acl": {
+          "id": "304",
+          "name": "Anfrage (Kunde)"
+        }
+      }
+    ]
+  }
+}
