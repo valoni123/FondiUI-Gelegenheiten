@@ -15,8 +15,9 @@ export const getIdmThumbnailForOpportunity = async (
 ): Promise<{ url: string; contentType: string } | null> => {
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
+  // Updated URL to include /Thumbnail
   const url =
-    `${base}/api/items/search/item/resource?` +
+    `${base}/api/items/search/item/resource/Thumbnail?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
   try {
@@ -44,6 +45,7 @@ export const getIdmThumbnailForOpportunity = async (
       return null;
     }
 
+    // Fetch the actual file (thumbnail) using the URL from the response
     const fileRes = await fetch(previewUrl, {
       method: "GET",
       headers: {
