@@ -176,15 +176,19 @@ const GridList: React.FC<GridListProps> = ({
               <TableRow
                 key={item.id}
                 className={cn(
-                  "hover:bg-muted",
-                  selectedOpportunityId === item.id && "bg-gray-200 dark:bg-gray-700" // Conditional highlight
+                  "hover:bg-muted cursor-pointer",
+                  selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900" // Visual feedback for selected row
                 )}
+                onClick={() => onSelectOpportunity(item.id)} // Make entire row clickable
               >
                 <TableCell className="text-center">
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onViewDetails(item)}
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent row click when button is clicked
+                      onViewDetails(item);
+                    }}
                   >
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -200,6 +204,7 @@ const GridList: React.FC<GridListProps> = ({
                       }
                     }}
                     aria-label={`Select opportunity ${item.id}`}
+                    onClick={(e) => e.stopPropagation()} // Prevent row click when checkbox is clicked
                   />
                 </TableCell>
                 {visibleKeys.map((key) => (
