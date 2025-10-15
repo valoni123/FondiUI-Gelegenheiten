@@ -155,7 +155,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       toast({ 
         title: (
           <span className="inline-flex items-center gap-2">
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-white" />
             {userMsg}
           </span>
         ), 
