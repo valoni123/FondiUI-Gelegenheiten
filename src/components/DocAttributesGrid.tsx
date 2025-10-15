@@ -27,7 +27,7 @@ type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
-  onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
+  onReplaceDoc: (doc: IdmDocPreview, file: File, uploadRow: number) => Promise<boolean>;
 };
 
 const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc }) => {
@@ -380,10 +380,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
               const doc = docs[uploadRow];
               if (!doc?.pid) return;
               setIsReplacing(true);
-              const ok = await onReplaceDoc(doc, file);
+              const ok = await onReplaceDoc(doc, file, uploadRow);
               setIsReplacing(false);
               if (ok) {
                 setUploadRow(null);
+                flashSuccess(uploadRow);
               }
             }}
           />
