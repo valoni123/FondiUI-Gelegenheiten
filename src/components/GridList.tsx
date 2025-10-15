@@ -130,14 +130,15 @@ const GridList: React.FC<GridListProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] text-center"></TableHead> {/* For view details button */}
-              <TableHead className="w-[50px] text-center">
+              <TableHead className="w-[50px] text-center px-2 py-1"></TableHead> {/* For view details button */}
+              <TableHead className="w-[50px] text-center px-2 py-1">
                 <span className="sr-only">Select</span> {/* New TableHead for checkbox */}
               </TableHead>
               {visibleKeys.map((key) => (
                 <TableHead
                   key={key}
                   className={cn(
+                    "px-2 py-1", // Reduced padding
                     "min-w-[80px]",
                     key === "id" && "min-w-[120px]",
                     key === "Project" && "min-w-[120px]",
@@ -188,7 +189,7 @@ const GridList: React.FC<GridListProps> = ({
                   }
                 }}
               >
-                <TableCell className="text-center">
+                <TableCell className="text-center px-2 py-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -200,7 +201,7 @@ const GridList: React.FC<GridListProps> = ({
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-center px-2 py-1">
                   {/* Checkbox is now purely visual, reflecting the selected state */}
                   <Checkbox
                     checked={selectedOpportunityId === item.id}
@@ -210,7 +211,7 @@ const GridList: React.FC<GridListProps> = ({
                   />
                 </TableCell>
                 {visibleKeys.map((key) => (
-                  <TableCell key={`${item.id}-${key}`}>
+                  <TableCell key={`${item.id}-${key}`} className="px-2 py-1"> {/* Reduced padding */}
                     {key === "Status" && opportunityStatusOptions.length > 0 ? (
                       <Select
                         value={String(item[key])}
