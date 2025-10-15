@@ -66,7 +66,8 @@ export const getIdmEntities = async (
     const hasProjekt = attrs.some((a: any) => a?.name === "Projekt");
     const hasDokumentenpaket = attrs.some((a: any) => a?.name === "Dokumentenpaket");
 
-    if (hasProjekt && hasDokumentenpaket) {
+    // Include entities that have EITHER Projekt OR Dokumentenpaket attribute
+    if (hasProjekt || hasDokumentenpaket) {
       validNames.push(String(e.name));
     }
   }
