@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ArrowOverlay from "@/components/ArrowOverlay";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -48,8 +49,13 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
-  // NEW: Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+  // NEW: Fehler-Highlights pro Zeile/Spalte
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+
+  // NEW: Refs zu jedem Input-Wrapper und Overlay-Zustand
+  const inputRefs = React.useRef<Record<number, Record<string, HTMLDivElement | null>>>({});
+  const [overlayTarget, setOverlayTarget] = React.useState<DOMRect | null>(null);
+  const [overlayKey, setOverlayKey] = React.useState<number>(0);
 
   const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
     if (!cols.length) return;
@@ -60,7 +66,16 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
       next[rowIdx] = Array.from(current);
       return next;
     });
-    // Entferne Highlight nach kurzer Zeit
+
+    // Bestimme das erste fehlerhafte Feld für den langen Pfeil (ausgehend von Toast unten rechts)
+    const firstCol = cols[0];
+    const el = inputRefs.current[rowIdx]?.[firstCol] ?? null;
+    if (el) {
+      setOverlayTarget(el.getBoundingClientRect());
+      setOverlayKey((k) => k + 1); // re-mount für erneute Animation
+    }
+
+    // Entferne Highlight und Overlay nach kurzer Zeit (~1.8s)
     setTimeout(() => {
       setErrorHighlights((prev) => {
         const next = { ...prev };
@@ -70,6 +85,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         if (!next[rowIdx]?.length) delete next[rowIdx];
         return next;
       });
+      setOverlayTarget(null);
     }, 1800);
   }, []);
 
@@ -140,6 +156,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   return (
     <div className="h-full w-full">
+      {/* Overlay-Pfeil von Toast unten rechts zum Ziel-Feld */}
+      {overlayTarget ? <ArrowOverlay key={overlayKey} targetRect={overlayTarget} /> : null}
+
       <div className="flex justify-end mb-2 pr-4">
         <Button
           variant="default"
@@ -251,7 +270,14 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
                     {/* Attribute inputs */}
                     {columns.map((col) => (
-                      <div key={`${idx}-${col}`} className="px-2 relative overflow-visible">
+                      <div
+                        key={`${idx}-${col}`}
+                        className="px-2 relative overflow-visible"
+                        ref={(el) => {
+                          if (!inputRefs.current[idx]) inputRefs.current[idx] = {};
+                          inputRefs.current[idx][col] = el;
+                        }}
+                      >
                         <Input
                           value={rowEdited[col] ?? ""}
                           onChange={(e) =>
