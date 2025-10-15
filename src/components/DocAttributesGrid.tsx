@@ -81,14 +81,18 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
                 {/* Dokumenttyp */}
                 <div className="px-2 flex flex-col items-start gap-1">
                   <TooltipProvider>
-                    <Tooltip>
+                    <Tooltip delayDuration={0}>
                       <TooltipTrigger asChild>
-                        <Badge variant="secondary" className="text-[10px] font-normal cursor-help">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-normal cursor-help"
+                          title=""
+                        >
                           {doc.entityName || "Entity"}
                         </Badge>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{doc.filename || "Dokument"}</p>
+                        <span>{doc.filename || "Dokument"}</span>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
