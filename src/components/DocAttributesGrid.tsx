@@ -19,7 +19,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
       });
     }
     // Filter out "Gelegenheit" as requested
-    return Array.from(names).filter(col => col !== "Gelegenheit");
+    return Array.from(names).filter(col => col !== "Gelegenheit" && col !== "MDS_ID");
   }, [docs]);
 
   const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
@@ -47,7 +47,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
 
   // Spaltenbreiten: erste fix 160px, restliche je 60px
   const gridTemplate =
-    `160px ` + (columns.length ? columns.map(() => "60px").join(" ") : "");
+    `160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
@@ -60,7 +60,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
           >
             <div className="px-2">Dokumenttyp</div>
             {columns.map((col) => (
-              <div key={col} className="px-2 truncate">{col}</div>
+              <div key={col} className="px-2">{col}</div>
             ))}
           </div>
 
