@@ -7,12 +7,42 @@ const buildIdmBase = (environment: CloudEnvironment) => {
   return `${cfg.iu}/${cfg.ti}/IDM`;
 };
 
+type PreviewResult = { url: string; contentType: string } | null;
+
+const pickPreviewFromEntry = (entry: Element): { href: string | null; typeHint: string | null } => {
+  const links = Array.from(entry.getElementsByTagNameNS("*", "link"));
+  const byRel = (rel: string) => links.find((l) => l.getAttribute("rel") === rel);
+
+  // Priority: thumbnail -> preview -> enclosure -> alternate
+  const priorityRels = ["thumbnail", "preview", "enclosure", "alternate"];
+  for (const rel of priorityRels) {
+    const link = byRel(rel);
+    if (link?.getAttribute("href")) {
+      return { href: link.getAttribute("href"), typeHint: link.getAttribute("type") };
+    }
+  }
+
+  // Fallback: first link with href
+  const anyLink = links.find((l) => l.getAttribute("href"));
+  if (anyLink) {
+    return { href: anyLink.getAttribute("href"), typeHint: anyLink.getAttribute("type") };
+  }
+
+  // Fallback: content src
+  const content = entry.getElementsByTagNameNS("*", "content")[0];
+  if (content?.getAttribute("src")) {
+    return { href: content.getAttribute("src"), typeHint: content.getAttribute("type") };
+  }
+
+  return { href: null, typeHint: null };
+};
+
 export const getIdmThumbnailForOpportunity = async (
   token: string,
   environment: CloudEnvironment,
   opportunityId: string,
   language: string = "de-DE"
-): Promise<{ url: string; contentType: string } | null> => {
+): Promise<PreviewResult> => {
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
   const url =
@@ -33,51 +63,38 @@ export const getIdmThumbnailForOpportunity = async (
 
   const xml = await res.text();
 
-  // Use DOMParser instead of xml2js for browser compatibility
+  // Namespace-aware XML parsing
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xml, "application/xml");
 
-  const entry = xmlDoc.querySelector("feed > entry");
-  if (!entry) return null;
+  // Try to find an <entry> regardless of namespace
+  const entry =
+    xmlDoc.getElementsByTagNameNS("*", "entry")[0] ??
+    xmlDoc.querySelector("entry"); // very last resort
 
-  let thumbnailHref: string | null = null;
-
-  // Try to find a link with rel="thumbnail" first, then "preview", then "enclosure"
-  for (const relName of ["thumbnail", "preview", "enclosure"]) {
-    const link = entry.querySelector(`link[rel="${relName}"]`);
-    if (link) {
-      thumbnailHref = link.getAttribute("href");
-      if (thumbnailHref) break;
-    }
+  if (!entry) {
+    return null;
   }
 
-  // Fallback: Atom content src
-  if (!thumbnailHref) {
-    const content = entry.querySelector("content");
-    if (content) {
-      thumbnailHref = content.getAttribute("src");
-    }
-  }
+  const { href, typeHint } = pickPreviewFromEntry(entry);
+  if (!href) return null;
 
-  if (!thumbnailHref) return null;
-
-  // Fetch the thumbnail blob and return an object URL along with its content type
-  const thumbRes = await fetch(thumbnailHref, {
+  // Fetch the resource to get a blob and real content type
+  const thumbRes = await fetch(href, {
     method: "GET",
     headers: {
-      // Accept all types, as we'll check Content-Type later
+      // Accept all types; we'll read the header
       Accept: "*/*",
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!thumbRes.ok) {
-    // If thumbnail fetch fails, return null rather than throwing
     return null;
   }
 
   const blob = await thumbRes.blob();
-  const contentType = thumbRes.headers.get('Content-Type') || 'application/octet-stream'; // Default if not provided
+  const contentType = thumbRes.headers.get("Content-Type") || typeHint || "application/octet-stream";
 
   return { url: URL.createObjectURL(blob), contentType };
 };
