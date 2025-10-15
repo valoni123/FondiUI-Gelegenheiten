@@ -12,7 +12,7 @@ export const getIdmThumbnailForOpportunity = async (
   environment: CloudEnvironment,
   opportunityId: string,
   language: string = "de-DE"
-): Promise<string | null> => {
+): Promise<{ url: string; contentType: string } | null> => {
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
   const url =
@@ -61,11 +61,12 @@ export const getIdmThumbnailForOpportunity = async (
 
   if (!thumbnailHref) return null;
 
-  // Fetch the thumbnail blob and return an object URL
+  // Fetch the thumbnail blob and return an object URL along with its content type
   const thumbRes = await fetch(thumbnailHref, {
     method: "GET",
     headers: {
-      Accept: "image/*",
+      // Accept all types, as we'll check Content-Type later
+      Accept: "*/*",
       Authorization: `Bearer ${token}`,
     },
   });
@@ -76,5 +77,7 @@ export const getIdmThumbnailForOpportunity = async (
   }
 
   const blob = await thumbRes.blob();
-  return URL.createObjectURL(blob);
+  const contentType = thumbRes.headers.get('Content-Type') || 'application/octet-stream'; // Default if not provided
+
+  return { url: URL.createObjectURL(blob), contentType };
 };

@@ -10,6 +10,7 @@ import { showSuccess } from "@/utils/toast";
 import { showError } from "@/utils/toast";
 import { getIdmThumbnailForOpportunity } from "@/api/idm";
 import { type CloudEnvironment } from "@/authorization/configLoader";
+import { FileWarning } from "lucide-react";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -21,7 +22,7 @@ interface RightPanelProps {
 const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose, authToken, cloudEnvironment }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
-  const [thumbnailUrl, setThumbnailUrl] = React.useState<string | null>(null);
+  const [thumbnailData, setThumbnailData] = React.useState<{ url: string; contentType: string } | null>(null);
   const [isThumbLoading, setIsThumbLoading] = React.useState<boolean>(false);
   const lastThumbUrlRef = React.useRef<string | null>(null);
 
@@ -34,12 +35,12 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           URL.revokeObjectURL(lastThumbUrlRef.current);
           lastThumbUrlRef.current = null;
         }
-        setThumbnailUrl(null);
+        setThumbnailData(null);
         return;
       }
       setIsThumbLoading(true);
       try {
-        const url = await getIdmThumbnailForOpportunity(
+        const data = await getIdmThumbnailForOpportunity(
           authToken,
           cloudEnvironment,
           selectedOpportunityId
@@ -51,15 +52,15 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           lastThumbUrlRef.current = null;
         }
 
-        if (url) {
-          setThumbnailUrl(url);
-          lastThumbUrlRef.current = url;
+        if (data) {
+          setThumbnailData(data);
+          lastThumbUrlRef.current = data.url; // Store the object URL for revoking
         } else {
-          setThumbnailUrl(null);
+          setThumbnailData(null);
         }
       } catch (e) {
         console.error("Failed to load IDM thumbnail", e);
-        setThumbnailUrl(null);
+        setThumbnailData(null);
         showError("Konnte die Vorschau aus IDM nicht laden.");
       } finally {
         if (!cancelled) setIsThumbLoading(false);
@@ -70,6 +71,10 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
 
     return () => {
       cancelled = true;
+      if (lastThumbUrlRef.current) {
+        URL.revokeObjectURL(lastThumbUrlRef.current);
+        lastThumbUrlRef.current = null;
+      }
     };
   }, [selectedOpportunityId, authToken, cloudEnvironment]);
 
@@ -135,12 +140,40 @@ const RightPanel: React.FC<RightPanelProps> = ({ selectedOpportunityId, onClose,
           <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-md border bg-accent/30">
             {isThumbLoading ? (
               <div className="text-sm text-muted-foreground">Vorschau wird geladen…</div>
-            ) : thumbnailUrl ? (
-              <img
-                src={thumbnailUrl}
-                alt={`Vorschau zu ${selectedOpportunityId}`}
-                className="max-h-full max-w-full object-contain"
-              />
+            ) : thumbnailData ? (
+              thumbnailData.contentType.startsWith('image/') ? (
+                <img
+                  src={thumbnailData.url}
+                  alt={`Vorschau zu ${selectedOpportunityId}`}
+                  className="max-h-full max-w-full object-contain"
+                />
+              ) : thumbnailData.contentType === 'application/pdf' ? (
+                <div className="flex flex-col items-center gap-2">
+                  <FileText className="h-12 w-12 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">PDF-Dokument</span>
+                  <a
+                    href={thumbnailData.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    Dokument öffnen
+                  </a>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <FileWarning className="h-12 w-12 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Dateityp nicht unterstützt</span>
+                  <a
+                    href={thumbnailData.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    Dokument öffnen
+                  </a>
+                </div>
+              )
             ) : (
               <div className="text-sm text-muted-foreground">Keine Vorschau gefunden.</div>
             )}
