@@ -199,7 +199,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                 return (
                   <div
                     key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                    className="grid items-center gap-1 py-2"
+                    className={cn(
+                      "grid items-center gap-1 py-2",
+                      successHighlights.includes(idx) && "animate-[success-blink_0.9s_ease-in-out_2]"
+                    )}
                     style={{ gridTemplateColumns: gridTemplate }}
                   >
                     {/* Detail Button */}
