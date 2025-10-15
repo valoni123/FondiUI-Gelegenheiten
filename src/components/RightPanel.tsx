@@ -180,13 +180,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
         </div>
       </div>
 
-      <Card className="flex-grow">
+      <Card className="flex-grow flex flex-col">
         <CardHeader className="pb-2">
           <CardTitle className="text-base text-muted-foreground">
             Auswahl: {selectedOpportunityId}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex h-[calc(100%-56px)] flex-col gap-4">
+        <CardContent className="flex flex-1 flex-col gap-4">
           <div className="min-h-0">
             {isPreviewsLoading ? (
               <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
