@@ -92,8 +92,8 @@ export const searchIdmItemsForOpportunityUnion = async (
   limit: number = 50
 ): Promise<IdmDocPreview[]> => {
   const base = buildIdmBase(environment);
-  // Adjusting the query to include 'Projekt' attribute
-  const segments = (entityNames || []).map((name) => `/${name}[@Gelegenheit = "${opportunityId}" AND @Projekt = "${opportunityId}"]`);
+  // NEW: query only by Gelegenheit, ignore Projekt value in query
+  const segments = (entityNames || []).map((name) => `/${name}[@Gelegenheit = "${opportunityId}"]`);
   if (!segments.length) return [];
 
   const query = segments.join(" UNION ");
