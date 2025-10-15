@@ -205,9 +205,15 @@ const GridList: React.FC<GridListProps> = ({
                   {/* Checkbox is now purely visual, reflecting the selected state */}
                   <Checkbox
                     checked={selectedOpportunityId === item.id}
-                    // No onCheckedChange here, selection is handled by row click
+                    onCheckedChange={() => {
+                      // Toggle selection when checkbox is clicked
+                      if (selectedOpportunityId === item.id) {
+                        onSelectOpportunity(null);
+                      } else {
+                        onSelectOpportunity(item.id);
+                      }
+                    }}
                     aria-label={`Select opportunity ${item.id}`}
-                    onClick={(e) => e.stopPropagation()} // Prevent row click from triggering twice
                   />
                 </TableCell>
                 {visibleKeys.map((key) => (
