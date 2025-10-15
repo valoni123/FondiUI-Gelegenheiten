@@ -58,7 +58,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
             className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            <div className="px-2">Dokumenttyp</div>
+            <div className="px-2">Dokumenttyp / Name</div>
             {columns.map((col) => (
               <div key={col} className="px-2">{col}</div>
             ))}
@@ -73,7 +73,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
                 style={{ gridTemplateColumns: gridTemplate }}
               >
                 {/* Dokumenttyp */}
-                <div className="px-2 flex items-center gap-2">
+                <div className="px-2 flex flex-col items-start gap-1">
                   <Badge variant="secondary" className="text-[10px] font-normal">
                     {doc.entityName || "Entity"}
                   </Badge>
