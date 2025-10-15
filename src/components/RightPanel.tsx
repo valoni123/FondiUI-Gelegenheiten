@@ -187,7 +187,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       reader.readAsDataURL(file);
     });
 
-  const handleReplaceDoc = async (doc: IdmDocPreview, file: File, docIdx: number) => {
+  const handleReplaceDoc = async (doc: IdmDocPreview, file: File) => {
     if (!doc.pid) return false;
     try {
       const base64 = await fileToBase64(file);
@@ -205,7 +205,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         variant: "success",
       });
       await reloadPreviews();
-      return true; // Return true for success
+      return true;
     } catch (err: any) {
       const errorText = String(err?.message ?? err ?? "Unbekannter Fehler");
       toast({

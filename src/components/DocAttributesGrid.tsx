@@ -27,7 +27,7 @@ type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
-  onReplaceDoc: (doc: IdmDocPreview, file: File, uploadRow: number) => Promise<boolean>;
+  onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
 };
 
 const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc }) => {
@@ -55,45 +55,30 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   }, [docs]);
 
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
-  // Keep a ref of the previous initial to compare
-  const lastInitialRef = React.useRef<Record<number, Record<string, string>>>(initial);
+  React.useEffect(() => setEdited(initial), [initial]);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
-  // Erfolgs-Highlights pro Zeile (kurzes Blink-Highlight)
-  const [successHighlights, setSuccessHighlights] = React.useState<number[]>([]);
 
-  // Only update edited rows to new initial if they currently equal the previous initial.
-  // This preserves unsaved edits on failed rows.
-  React.useEffect(() => {
-    setEdited((prev) => {
-      const next: Record<number, Record<string, string>> = { ...prev };
-      docs.forEach((_, idx) => {
-        // If there are no active error highlights for this row,
-        // or if the initial data has changed (e.g., after a successful save),
-        // we want the edited state to reflect the current initial state.
-        // This ensures save buttons are disabled and inputs show the latest saved values.
-        if (!(errorHighlights[idx] && errorHighlights[idx].length > 0)) {
-          next[idx] = { ...(initial[idx] ?? {}) };
-        } else {
-          // If there are active error highlights, preserve the current edited state
-          // so the user can see and correct the "wrong" values.
-          next[idx] = { ...(prev[idx] ?? {}) };
-        }
-      });
+  const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
+    if (!cols.length) return;
+    setErrorHighlights((prev) => {
+      const next = { ...prev };
+      const current = new Set(next[rowIdx] ?? []);
+      cols.forEach((c) => current.add(c));
+      next[rowIdx] = Array.from(current);
       return next;
     });
-    lastInitialRef.current = initial;
-  }, [initial, columns, docs, errorHighlights]); // Added errorHighlights to dependencies
-
-  // This line was causing the issue by unconditionally resetting edited state.
-  // React.useEffect(() => setEdited(initial), [initial]);
-
-  // Funktion zum Blinken bei Erfolg
-  const flashSuccess = React.useCallback((rowIdx: number) => {
-    setSuccessHighlights((prev) => [...prev, rowIdx]);
+    // Entferne Highlight nach kurzer Zeit
     setTimeout(() => {
-      setSuccessHighlights((prev) => prev.filter((idx) => idx !== rowIdx));
+      setErrorHighlights((prev) => {
+        const next = { ...prev };
+        const current = new Set(next[rowIdx] ?? []);
+        cols.forEach((c) => current.delete(c));
+        next[rowIdx] = Array.from(current);
+        if (!next[rowIdx]?.length) delete next[rowIdx];
+        return next;
+      });
     }, 1800);
   }, []);
 
@@ -132,7 +117,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         const res = await onSaveRow(doc, updates);
         if (res.ok) {
           successfulSaves.push(idx);
-          flashSuccess(idx);
         } else {
           const colsToFlash = res.errorAttributes?.length
             ? res.errorAttributes
@@ -215,10 +199,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                 return (
                   <div
                     key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                    className={cn(
-                      "grid items-center gap-1 py-2",
-                      successHighlights.includes(idx) && "animate-[success-blink_0.9s_ease-in-out_2]"
-                    )}
+                    className="grid items-center gap-1 py-2"
                     style={{ gridTemplateColumns: gridTemplate }}
                   >
                     {/* Detail Button */}
@@ -251,11 +232,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           if (updates.length) {
                             const res = await onSaveRow(doc, updates);
                             if (res.ok) {
-                              // After a successful individual save, the `initial` state will be updated
-                              // by `reloadPreviews`. The `useEffect` above will then correctly
-                              // update the `edited` state for this row to match the new `initial`.
-                              // No explicit setEdited here is needed, as it would use the old `rowInitial`.
-                              flashSuccess(idx);
+                              setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
                             } else {
                               const colsToFlash = res.errorAttributes?.length
                                 ? res.errorAttributes
@@ -388,11 +365,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
               const doc = docs[uploadRow];
               if (!doc?.pid) return;
               setIsReplacing(true);
-              const ok = await onReplaceDoc(doc, file, uploadRow);
+              const ok = await onReplaceDoc(doc, file);
               setIsReplacing(false);
               if (ok) {
                 setUploadRow(null);
-                flashSuccess(uploadRow);
               }
             }}
           />
