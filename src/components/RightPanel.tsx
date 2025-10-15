@@ -221,6 +221,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {doc.filename || doc.entityName || "Dokument"}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFullPreview(doc);
+                      }}
+                      title="Details anzeigen"
+                    >
+                      <ChevronLeft className="h-3 w-3 rotate-180" />
+                    </Button>
                   </div>
                 ))}
               </div>
