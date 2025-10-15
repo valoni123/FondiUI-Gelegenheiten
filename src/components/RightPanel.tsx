@@ -134,7 +134,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const handleSaveRow = async (doc: IdmDocPreview, updates: { name: string; value: string }[]) => {
     if (!doc.pid) return;
     await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
-    toast.success("Änderungen gespeichert");
+    toast({ title: "Änderungen gespeichert", variant: "success" });
   };
 
   const addFiles = (incoming: File[]) => {
