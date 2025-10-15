@@ -219,7 +219,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         </div>
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
-          <ResizablePanel defaultSize={selectedOpportunityId ? 70 : 100} minSize={20}>
+          <ResizablePanel defaultSize={selectedOpportunityId ? 70 : 100} minSize={10}>
             <GridList
               items={opportunities}
               onUpdateItem={handleUpdateItem}

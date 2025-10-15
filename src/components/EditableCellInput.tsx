@@ -64,7 +64,7 @@ const EditableCellInput: React.FC<EditableCellInputProps> = ({
         onKeyDown={handleKeyDown}
         type={type}
         disabled={disabled}
-        className={cn(className, (hasSearchButton || displaySuffix) && "pr-10")}
+        className={cn(className, (hasSearchButton || displaySuffix) && "pr-10", "text-xs")}
       />
       {displaySuffix && <span className="absolute right-2 text-sm text-muted-foreground">{displaySuffix}</span>}
       {hasSearchButton && (

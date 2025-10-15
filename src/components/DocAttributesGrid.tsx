@@ -18,7 +18,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
         if (a?.name) names.add(String(a.name));
       });
     }
-    return Array.from(names);
+    // Filter out "Gelegenheit" as requested
+    return Array.from(names).filter(col => col !== "Gelegenheit");
   }, [docs]);
 
   const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
@@ -44,9 +45,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
     );
   }
 
-  // Spaltenbreiten: erste fix 160px, restliche je 120px
+  // Spaltenbreiten: erste fix 160px, restliche je 60px
   const gridTemplate =
-    `160px ` + (columns.length ? columns.map(() => "80px").join(" ") : "");
+    `160px ` + (columns.length ? columns.map(() => "60px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
@@ -93,7 +94,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
                           return { ...prev, [idx]: row };
                         })
                       }
-                      className="h-7 text-xs px-2"
+                      className="h-6 text-[10px] px-1"
                       aria-label={`Attribut ${col}`}
                       placeholder="-"
                     />
