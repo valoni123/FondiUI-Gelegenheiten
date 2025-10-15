@@ -92,7 +92,8 @@ export const searchIdmItemsForOpportunityUnion = async (
   limit: number = 50
 ): Promise<IdmDocPreview[]> => {
   const base = buildIdmBase(environment);
-  const segments = (entityNames || []).map((name) => `/${name}[@Gelegenheit = "${opportunityId}"]`);
+  // Adjusting the query to include 'Projekt' attribute
+  const segments = (entityNames || []).map((name) => `/${name}[@Gelegenheit = "${opportunityId}" AND @Projekt = "${opportunityId}"]`);
   if (!segments.length) return [];
 
   const query = segments.join(" UNION ");
