@@ -42,14 +42,36 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [fullPreviewData, setFullPreviewData] = React.useState<{ url: string; contentType: string } | null>(null);
   const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
 
+  // DEBUG: Log component mount/unmount
+  React.useEffect(() => {
+    console.log("[RightPanel] Component MOUNTED");
+    return () => console.log("[RightPanel] Component UNMOUNTED");
+  }, []);
+
+  // DEBUG: Log prop changes
+  React.useEffect(() => {
+    console.log("[RightPanel] Props changed:", {
+      selectedOpportunityId,
+      authToken: authToken ? "PRESENT" : "MISSING",
+      cloudEnvironment,
+      entityNames,
+    });
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+
   React.useEffect(() => {
     let cancelled = false;
 
     const loadPreviews = async () => {
+      // DEBUG: Log useEffect entry and conditions
+      console.log("[RightPanel] loadPreviews useEffect triggered");
+      console.log("[RightPanel] Conditions - selectedOpportunityId:", selectedOpportunityId, "authToken:", authToken ? "PRESENT" : "MISSING", "entityNames.length:", entityNames?.length);
+
       if (!selectedOpportunityId || !authToken || !entityNames?.length) {
+        console.log("[RightPanel] Conditions NOT met, clearing previews and returning.");
         setDocPreviews([]);
         return;
       }
+      console.log("[RightPanel] Conditions MET, starting API call.");
       setIsPreviewsLoading(true);
       try {
         const previews = await searchIdmItemsForOpportunityUnion(
@@ -58,21 +80,29 @@ const RightPanel: React.FC<RightPanelProps> = ({
           selectedOpportunityId,
           entityNames
         );
-        if (cancelled) return;
+        if (cancelled) {
+          console.log("[RightPanel] API call completed but component was cancelled.");
+          return;
+        }
+        console.log("[RightPanel] API call successful, setting previews:", previews);
         setDocPreviews(previews);
       } catch (e) {
-        console.error("Failed to load IDM union previews", e);
+        console.error("[RightPanel] Failed to load IDM union previews", e);
         if (!cancelled) {
           setDocPreviews([]);
           showError("Konnte die Vorschauen aus IDM nicht laden.");
         }
       } finally {
-        if (!cancelled) setIsPreviewsLoading(false);
+        if (!cancelled) {
+          console.log("[RightPanel] Setting loading state to false.");
+          setIsPreviewsLoading(false);
+        }
       }
     };
 
     loadPreviews();
     return () => {
+      console.log("[RightPanel] useEffect cleanup (setting cancelled = true).");
       cancelled = true;
     };
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
