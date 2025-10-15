@@ -29,6 +29,8 @@ export const getIdmEntities = async (
   });
 
   if (!res.ok) {
+    const errorText = await res.text(); // Get more details on error
+    console.error(`[IDM] entities request failed: ${res.status} ${res.statusText}`, errorText);
     throw new Error(`[IDM] entities request failed: ${res.status} ${res.statusText}`);
   }
 
@@ -69,6 +71,7 @@ export const getIdmEntities = async (
 
   // Deduplicate and filter empties
   const unique = Array.from(new Set(validNames.filter(Boolean)));
+  console.log("[getIdmEntities] Returning entities:", unique); // Add this log
   return unique;
 };
 
