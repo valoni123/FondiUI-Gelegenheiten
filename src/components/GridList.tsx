@@ -138,10 +138,10 @@ const GridList: React.FC<GridListProps> = ({
                 <TableHead
                   key={key}
                   className={cn(
-                    "min-w-[100px]",
-                    key === "id" && "min-w-[180px]",
-                    key === "Project" && "min-w-[180px]",
-                    key === "description" && "min-w-[250px]"
+                    "min-w-[80px]",
+                    key === "id" && "min-w-[120px]",
+                    key === "Project" && "min-w-[120px]",
+                    key === "description" && "min-w-[180px]"
                   )}
                 >
                   <div className="flex flex-col space-y-1">
