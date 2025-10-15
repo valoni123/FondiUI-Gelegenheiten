@@ -15,7 +15,6 @@ export const getIdmThumbnailForOpportunity = async (
 ): Promise<{ url: string; contentType: string } | null> => {
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
-  // Updated URL to include /Thumbnail
   const url =
     `${base}/api/items/search/item/resource/Thumbnail?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
@@ -24,7 +23,7 @@ export const getIdmThumbnailForOpportunity = async (
     const res = await fetch(url, {
       method: "GET",
       headers: {
-        Accept: "application/json",
+        Accept: "application/json;charset=utf-8",
         Authorization: `Bearer ${token}`,
       },
     });
@@ -37,33 +36,17 @@ export const getIdmThumbnailForOpportunity = async (
     const json = await res.json();
     console.log("[IDM] JSON response:", json);
 
-    const previewUrl = json?.res?.url;
-    const previewType = json?.res?.mimetype || "application/octet-stream";
+    const previewUrl: string | undefined = json?.res?.url;
+    const previewType: string = json?.res?.mimetype || "image/*";
 
     if (!previewUrl) {
       console.warn("[IDM] no res.url in response");
       return null;
     }
 
-    // Fetch the actual file (thumbnail) using the URL from the response
-    const fileRes = await fetch(previewUrl, {
-      method: "GET",
-      headers: {
-        Accept: "*/*",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!fileRes.ok) {
-      console.warn("[IDM] file fetch failed:", fileRes.status, fileRes.statusText, "URL:", previewUrl);
-      return null;
-    }
-
-    const blob = await fileRes.blob();
-    const contentType = fileRes.headers.get("Content-Type") || previewType;
-
-    console.log("[IDM] returning blob URL, type:", contentType);
-    return { url: URL.createObjectURL(blob), contentType };
+    // IMPORTANT: do not fetch the URL here to avoid CORS preflight;
+    // the URL is presigned ($token) and can be used directly as <img src="...">
+    return { url: previewUrl, contentType: previewType };
   } catch (err) {
     console.error("[IDM] unexpected error:", err);
     return null;
