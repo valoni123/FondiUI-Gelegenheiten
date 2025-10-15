@@ -16,7 +16,7 @@ export const getIdmThumbnailForOpportunity = async (
   const base = buildIdmBase(environment);
   const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
   const url =
-    `${base}/api/items/search/item/resource/Thumbnail?` +
+    `${base}/api/items/search/item/resource/SmallPreview?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
   try {
