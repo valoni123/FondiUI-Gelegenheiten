@@ -64,19 +64,22 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     setEdited((prev) => {
       const next: Record<number, Record<string, string>> = { ...prev };
       docs.forEach((_, idx) => {
-        const prevInitialRow = lastInitialRef.current[idx] ?? {};
-        const currEditedRow = prev[idx] ?? {};
-        const editedEqualsPrevInitial = columns.every(
-          (col) => (currEditedRow[col] ?? "") === (prevInitialRow[col] ?? "")
-        );
-        if (editedEqualsPrevInitial) {
+        // If there are no active error highlights for this row,
+        // or if the initial data has changed (e.g., after a successful save),
+        // we want the edited state to reflect the current initial state.
+        // This ensures save buttons are disabled and inputs show the latest saved values.
+        if (!(errorHighlights[idx] && errorHighlights[idx].length > 0)) {
           next[idx] = { ...(initial[idx] ?? {}) };
+        } else {
+          // If there are active error highlights, preserve the current edited state
+          // so the user can see and correct the "wrong" values.
+          next[idx] = { ...(prev[idx] ?? {}) };
         }
       });
       return next;
     });
     lastInitialRef.current = initial;
-  }, [initial, columns, docs]);
+  }, [initial, columns, docs, errorHighlights]); // Added errorHighlights to dependencies
 
   // This line was causing the issue by unconditionally resetting edited state.
   // React.useEffect(() => setEdited(initial), [initial]);
@@ -270,7 +273,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           if (updates.length) {
                             const res = await onSaveRow(doc, updates);
                             if (res.ok) {
-                              setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                              // After a successful individual save, the `initial` state will be updated
+                              // by `reloadPreviews`. The `useEffect` above will then correctly
+                              // update the `edited` state for this row to match the new `initial`.
+                              // No explicit setEdited here is needed, as it would use the old `rowInitial`.
                               flashSuccess(idx);
                             } else {
                               const colsToFlash = res.errorAttributes?.length
