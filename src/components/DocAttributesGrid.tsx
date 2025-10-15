@@ -48,6 +48,54 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
+  // Calculate how many rows have changes
+  const changedRowCount = React.useMemo(() => {
+    let count = 0;
+    docs.forEach((doc, idx) => {
+      const rowEdited = edited[idx] ?? {};
+      const rowInitial = initial[idx] ?? {};
+      const rowHasChanges = columns.some(
+        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
+      );
+      if (rowHasChanges) {
+        count++;
+      }
+    });
+    return count;
+  }, [docs, edited, initial, columns]);
+
+  const enableSaveAllButton = changedRowCount > 1; // Enable if more than one row has changes
+
+  const handleSaveAllChanges = async () => {
+    const successfulSaves: number[] = [];
+    for (let idx = 0; idx < docs.length; idx++) {
+      const doc = docs[idx];
+      const rowEdited = edited[idx] ?? {};
+      const rowInitial = initial[idx] ?? {};
+      const hasChanges = columns.some(
+        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
+      );
+
+      if (hasChanges && doc.pid) {
+        const updates = columns
+          .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
+          .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
+        const ok = await onSaveRow(doc, updates);
+        if (ok) {
+          successfulSaves.push(idx);
+        }
+      }
+    }
+    // After all saves, update the edited state for successfully saved rows
+    setEdited((prev) => {
+      const newEdited = { ...prev };
+      successfulSaves.forEach((idx) => {
+        newEdited[idx] = { ...initial[idx] }; // Reset to initial values
+      });
+      return newEdited;
+    });
+  };
+
   if (!docs.length) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -62,6 +110,20 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   return (
     <div className="h-full w-full">
+      <div className="flex justify-end mb-2 pr-4">
+        <Button
+          variant="default"
+          size="sm"
+          className={cn(
+            "h-8",
+            enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
+          )}
+          disabled={!enableSaveAllButton}
+          onClick={handleSaveAllChanges}
+        >
+          <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+        </Button>
+      </div>
       <TooltipProvider>
         <ScrollArea className="h-full w-full">
           <div className="pr-4">
