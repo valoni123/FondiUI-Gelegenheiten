@@ -1,6 +1,6 @@
 "use client";
 
-import { parseStringPromise } from "xml2js";
+import { parseString } from "xml2js";
 import { getIonApiConfig, type CloudEnvironment } from "@/authorization/configLoader";
 
 const buildIdmBase = (environment: CloudEnvironment) => {
@@ -33,7 +33,14 @@ export const getIdmThumbnailForOpportunity = async (
   }
 
   const xml = await res.text();
-  const parsed = await parseStringPromise(xml, { explicitArray: true });
+
+  // parseString callback wrapped in a promise
+  const parsed = await new Promise<any>((resolve, reject) => {
+    parseString(xml, { explicitArray: true }, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
 
   const entries: any[] = parsed?.feed?.entry ?? [];
   if (!entries.length) return null;
