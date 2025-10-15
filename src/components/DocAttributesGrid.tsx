@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Save } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -110,7 +111,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className={cn(
+                          "h-6 w-6",
+                          hasChanges && "bg-orange-500 hover:bg-orange-600 text-white"
+                        )}
                         disabled={!hasChanges || !doc.pid}
                         onClick={() => {
                           const updates = columns
