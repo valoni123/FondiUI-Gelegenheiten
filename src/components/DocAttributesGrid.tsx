@@ -1,71 +1,128 @@
 "use client";
 
 import React from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, FileWarning } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { type IdmDocPreview } from "@/api/idm";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-interface DocAttributesGridProps {
+type Props = {
   docs: IdmDocPreview[];
-  onRowClick?: (doc: IdmDocPreview) => void;
-}
+};
 
-const DocAttributesGrid: React.FC<DocAttributesGridProps> = ({ docs, onRowClick }) => {
-  if (!docs || docs.length === 0) {
+const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
+  const columns = React.useMemo<string[]>(() => {
+    const names = new Set<string>();
+    for (const d of docs) {
+      (d.attributes ?? []).forEach((a) => {
+        if (a?.name) names.add(String(a.name));
+      });
+    }
+    // Filter out "Gelegenheit" as requested
+    return Array.from(names).filter(col => col !== "Gelegenheit" && col !== "MDS_ID");
+  }, [docs]);
+
+  const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
+    const map: Record<number, Record<string, string>> = {};
+    docs.forEach((d, idx) => {
+      const row: Record<string, string> = {};
+      (d.attributes ?? []).forEach((a) => {
+        if (a?.name) row[a.name] = a.value ?? "";
+      });
+      map[idx] = row;
+    });
+    return map;
+  }, [docs]);
+
+  const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
+  React.useEffect(() => setEdited(initial), [initial]);
+
+  if (!docs.length) {
     return (
-      <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
-        <FileWarning className="h-4 w-4 mr-2" />
-        Keine Dokumente vorhanden.
+      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+        Keine Dokumente gefunden.
       </div>
     );
   }
 
-  const handleRowClick = (doc: IdmDocPreview) => {
-    if (onRowClick) {
-      onRowClick(doc);
-    }
-  };
+  // Spaltenbreiten: erste fix 160px, restliche je 60px
+  const gridTemplate =
+    `160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
-    <ScrollArea className="h-full">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[40px]"></TableHead>
-            <TableHead>Dateiname</TableHead>
-            <TableHead>Entität</TableHead>
-            <TableHead>Größe</TableHead>
-            <TableHead>Typ</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {docs.map((doc, idx) => (
-            <TableRow 
-              key={`${doc.smallUrl}-${idx}`} 
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => handleRowClick(doc)}
+    <div className="h-full w-full">
+      <TooltipProvider>
+        <ScrollArea className="h-full w-full">
+          <div className="pr-4">
+            {/* Header */}
+            <div
+              className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
+              style={{ gridTemplateColumns: gridTemplate }}
             >
-              <TableCell>
-                {doc.smallUrl ? (
-                  <img
-                    src={doc.smallUrl}
-                    alt={doc.filename || `Vorschau ${idx + 1}`}
-                    className="w-8 h-8 object-cover rounded"
-                  />
-                ) : (
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                )}
-              </TableCell>
-              <TableCell className="font-medium">{doc.filename || "Unbenannt"}</TableCell>
-              <TableCell>{doc.entityName || "-"}</TableCell>
-              <TableCell>{doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : "-"}</TableCell>
-              <TableCell>{doc.contentType || "-"}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+              <div className="px-2">Dokumenttyp / Name</div>
+              {columns.map((col) => (
+                <div key={col} className="px-2">{col}</div>
+              ))}
+            </div>
+
+            {/* Rows */}
+            <div className="divide-y">
+              {docs.map((doc, idx) => (
+                <div
+                  key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
+                  className="grid items-center gap-1 py-2"
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
+                  {/* Dokumenttyp */}
+                  <div className="px-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="inline-block">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] font-normal cursor-help"
+                          >
+                            {doc.entityName || "Entity"}
+                          </Badge>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="start">
+                        <p className="text-xs">{doc.filename || "Dokument"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
+                  {/* Attribute inputs */}
+                  {columns.map((col) => (
+                    <div key={`${idx}-${col}`} className="px-2">
+                      <Input
+                        value={edited[idx]?.[col] ?? ""}
+                        onChange={(e) =>
+                          setEdited((prev) => {
+                            const row = { ...(prev[idx] ?? {}) };
+                            row[col] = e.target.value;
+                            return { ...prev, [idx]: row };
+                          })
+                        }
+                        className="h-6 text-[10px] px-1"
+                        aria-label={`Attribut ${col}`}
+                        placeholder="-"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollArea>
+      </TooltipProvider>
+    </div>
   );
 };
 
