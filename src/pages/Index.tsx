@@ -70,6 +70,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         // Load IDM entity names once after auth
         const entities = await getIdmEntities(token, cloudEnvironment);
         setIdmEntityNames(entities);
+        console.log("[Index.tsx] IDM Entities loaded:", entities); // Add this log
         await loadOpportunities(token, companyNumber, cloudEnvironment, false);
       } catch (error) {
         console.error("Authentication or initial data fetch failed:", error);
