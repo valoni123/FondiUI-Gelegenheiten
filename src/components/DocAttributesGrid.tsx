@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
-  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<boolean>;
+  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
 };
 
 const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow }) => {
@@ -47,6 +47,31 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
+
+  // NEW: Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+  const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+
+  const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
+    if (!cols.length) return;
+    setErrorHighlights((prev) => {
+      const next = { ...prev };
+      const current = new Set(next[rowIdx] ?? []);
+      cols.forEach((c) => current.add(c));
+      next[rowIdx] = Array.from(current);
+      return next;
+    });
+    // Entferne Highlight nach kurzer Zeit
+    setTimeout(() => {
+      setErrorHighlights((prev) => {
+        const next = { ...prev };
+        const current = new Set(next[rowIdx] ?? []);
+        cols.forEach((c) => current.delete(c));
+        next[rowIdx] = Array.from(current);
+        if (!next[rowIdx]?.length) delete next[rowIdx];
+        return next;
+      });
+    }, 1800);
+  }, []);
 
   // Calculate how many rows have changes
   const changedRowCount = React.useMemo(() => {
@@ -80,17 +105,22 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         const updates = columns
           .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
           .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
-        const ok = await onSaveRow(doc, updates);
-        if (ok) {
+        const res = await onSaveRow(doc, updates);
+        if (res.ok) {
           successfulSaves.push(idx);
+        } else {
+          const colsToFlash = res.errorAttributes?.length
+            ? res.errorAttributes
+            : updates.map((u) => u.name);
+          flashError(idx, colsToFlash);
         }
       }
     }
-    // After all saves, update the edited state for successfully saved rows
+    // Nach allen Saves: erfolgreich gespeicherte Zeilen zurücksetzen
     setEdited((prev) => {
       const newEdited = { ...prev };
       successfulSaves.forEach((idx) => {
-        newEdited[idx] = { ...initial[idx] }; // Reset to initial values
+        newEdited[idx] = { ...initial[idx] };
       });
       return newEdited;
     });
@@ -183,10 +213,14 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                             .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
                             .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
                           if (updates.length) {
-                            const ok = await onSaveRow(doc, updates);
-                            if (ok) {
-                              // Reset local edits for this row to initial values
+                            const res = await onSaveRow(doc, updates);
+                            if (res.ok) {
                               setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                            } else {
+                              const colsToFlash = res.errorAttributes?.length
+                                ? res.errorAttributes
+                                : updates.map((u) => u.name);
+                              flashError(idx, colsToFlash);
                             }
                           }
                         }}
@@ -227,7 +261,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                               return { ...prev, [idx]: row };
                             })
                           }
-                          className="h-6 text-[10px] px-1"
+                          className={cn(
+                            "h-6 text-[10px] px-1",
+                            (errorHighlights[idx] ?? []).includes(col) &&
+                              "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]"
+                          )}
                           aria-label={`Attribut ${col}`}
                           placeholder="-"
                         />

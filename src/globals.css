@@ -99,3 +99,10 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes error-blink {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.95); } /* red-500 */
+    50% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25); }
+  }
+}

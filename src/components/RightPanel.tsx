@@ -131,8 +131,11 @@ const RightPanel: React.FC<RightPanelProps> = ({
   };
 
   // ADD: Save handler
-  const handleSaveRow = async (doc: IdmDocPreview, updates: { name: string; value: string }[]) => {
-    if (!doc.pid) return;
+  const handleSaveRow = async (
+    doc: IdmDocPreview,
+    updates: { name: string; value: string }[]
+  ) => {
+    if (!doc.pid) return { ok: false, errorAttributes: [] };
     try {
       await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
       toast({ 
@@ -144,7 +147,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         ), 
         variant: "success" 
       });
-      return true;
+      return { ok: true };
     } catch (err: any) {
       // Extrahiere message und detail aus XML-Fehlerantwort
       const xml = err.message || "";
@@ -152,6 +155,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
       const detailMatch = xml.match(/<detail>(.*?)<\/detail>/i);
       const userMsg = messageMatch?.[1] || "Fehler beim Speichern";
       const userDetail = detailMatch?.[1] || "";
+
+      // Versuche, den fehlerhaften Attributnamen aus <detail> zu extrahieren (z. B. "Attribute name: Werk, ...")
+      const detailText = userDetail || "";
+      const attrNameMatch = detailText.match(/Attribute name:\s*([^,]+)/i);
+      const failedAttr = attrNameMatch?.[1]?.trim();
+      const failedAttrs = failedAttr ? [failedAttr] : undefined;
+
       toast({ 
         title: (
           <span className="inline-flex items-center gap-2">
@@ -162,7 +172,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         description: userDetail,
         variant: "destructive" 
       });
-      return false;
+      return { ok: false, errorAttributes: failedAttrs };
     }
   };
 
