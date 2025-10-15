@@ -272,20 +272,20 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
                         {(errorHighlights[idx] ?? []).includes(col) && (
                           <div className="pointer-events-none absolute left-[calc(100%+4px)] top-1/2 -translate-y-1/2 z-10">
-                            <svg width="60" height="40" viewBox="0 0 60 40" fill="none" aria-hidden="true">
+                            <svg width="80" height="50" viewBox="0 0 80 50" fill="none" aria-hidden="true">
                               <path
-                                d="M58 30 C 50 22, 40 18, 8 16"
+                                d="M75 35 C 65 25, 50 20, 10 18"
                                 stroke="#ef4444"
-                                strokeWidth="3"
+                                strokeWidth="4"
                                 strokeLinecap="round"
                                 fill="none"
-                                style={{ strokeDasharray: 120, strokeDashoffset: 120 }}
+                                style={{ strokeDasharray: 150, strokeDashoffset: 150 }}
                                 className="animate-[arrow-draw_0.6s_ease-out_forwards]"
                               />
                               <path
-                                d="M8 16 L16 12 M8 16 L16 20"
+                                d="M10 18 L20 13 M10 18 L20 23"
                                 stroke="#ef4444"
-                                strokeWidth="3"
+                                strokeWidth="4"
                                 strokeLinecap="round"
                                 fill="none"
                               />
