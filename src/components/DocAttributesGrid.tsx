@@ -12,14 +12,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Save } from "lucide-react";
 
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
+  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => void;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -54,10 +55,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview }) => {
     );
   }
 
-  // Spaltenbreiten: erste fix 160px, restliche je 60px
-  // Angepasst: 30px für den Button, dann 160px für Dokumenttyp/Name, dann die Attributspalten
+  // Spaltenbreiten: erste 30px für Pfeil, zweite 30px für Save, dann 160px für Dokumenttyp/Name, rest Attributspalten
   const gridTemplate =
-    `30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
+    `30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
@@ -69,7 +69,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview }) => {
               className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
               style={{ gridTemplateColumns: gridTemplate }}
             >
-              <div className="px-2"></div> {/* Leere Spalte für den Button */}
+              <div className="px-2"></div> {/* Button: Details */}
+              <div className="px-2"></div> {/* Button: Save */}
               <div className="px-2">Dokumenttyp / Name</div>
               {columns.map((col) => (
                 <div key={col} className="px-2">{col}</div>
@@ -78,64 +79,93 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview }) => {
 
             {/* Rows */}
             <div className="divide-y">
-              {docs.map((doc, idx) => (
-                <div
-                  key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                  className="grid items-center gap-1 py-2"
-                  style={{ gridTemplateColumns: gridTemplate }}
-                >
-                  {/* Detail Button */}
-                  <div className="px-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={() => onOpenFullPreview(doc)}
-                      title="Details anzeigen"
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </div>
+              {docs.map((doc, idx) => {
+                const rowEdited = edited[idx] ?? {};
+                const rowInitial = initial[idx] ?? {};
+                const hasChanges = columns.some(
+                  (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
+                );
 
-                  {/* Dokumenttyp */}
-                  <div className="px-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="inline-block">
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] font-normal cursor-help"
-                          >
-                            {doc.entityName || "Entity"}
-                          </Badge>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" align="start">
-                        <p className="text-xs">{doc.filename || "Dokument"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-
-                  {/* Attribute inputs */}
-                  {columns.map((col) => (
-                    <div key={`${idx}-${col}`} className="px-2">
-                      <Input
-                        value={edited[idx]?.[col] ?? ""}
-                        onChange={(e) =>
-                          setEdited((prev) => {
-                            const row = { ...(prev[idx] ?? {}) };
-                            row[col] = e.target.value;
-                            return { ...prev, [idx]: row };
-                          })
-                        }
-                        className="h-6 text-[10px] px-1"
-                        aria-label={`Attribut ${col}`}
-                        placeholder="-"
-                      />
+                return (
+                  <div
+                    key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
+                    className="grid items-center gap-1 py-2"
+                    style={{ gridTemplateColumns: gridTemplate }}
+                  >
+                    {/* Detail Button */}
+                    <div className="px-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => onOpenFullPreview(doc)}
+                        title="Details anzeigen"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              ))}
+
+                    {/* Save Button */}
+                    <div className="px-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={!hasChanges || !doc.pid}
+                        onClick={() => {
+                          const updates = columns
+                            .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
+                            .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
+                          if (updates.length) {
+                            onSaveRow(doc, updates);
+                          }
+                        }}
+                        title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
+                      >
+                        <Save className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Dokumenttyp */}
+                    <div className="px-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="inline-block">
+                            <Badge
+                              variant="secondary"
+                              className="text-[10px] font-normal cursor-help"
+                            >
+                              {doc.entityName || "Entity"}
+                            </Badge>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="start">
+                          <p className="text-xs">{doc.filename || "Dokument"}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    {/* Attribute inputs */}
+                    {columns.map((col) => (
+                      <div key={`${idx}-${col}`} className="px-2">
+                        <Input
+                          value={rowEdited[col] ?? ""}
+                          onChange={(e) =>
+                            setEdited((prev) => {
+                              const row = { ...(prev[idx] ?? {}) };
+                              row[col] = e.target.value;
+                              return { ...prev, [idx]: row };
+                            })
+                          }
+                          className="h-6 text-[10px] px-1"
+                          aria-label={`Attribut ${col}`}
+                          placeholder="-"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </ScrollArea>

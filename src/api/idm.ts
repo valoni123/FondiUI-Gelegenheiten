@@ -75,6 +75,7 @@ export type IdmDocPreview = {
   filename?: string;
   entityName?: string;
   attributes?: { name: string; value: string }[];
+  pid?: string; // NEW: PID used for updates
 };
 
 /**
@@ -287,6 +288,7 @@ export const searchIdmItemsByEntityJson = async (
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
     const chosen = small || preview;
+    const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid; // capture PID
     if (chosen?.url) {
       previews.push({
         smallUrl: String(chosen.url),
@@ -295,9 +297,47 @@ export const searchIdmItemsByEntityJson = async (
         filename: String(chosen.filename || preview?.filename || item?.filename || ""),
         entityName: String(entityName),
         attributes,
+        pid: pidRaw ? String(pidRaw) : undefined,
       });
     }
   }
 
   return previews;
 }
+
+// NEW: Update IDM item attributes using PID
+export const updateIdmItemAttributes = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  updates: { name: string; value: string }[],
+  language: string = "de-DE"
+): Promise<void> => {
+  const base = buildIdmBase(environment);
+  const url =
+    `${base}/api/items/${encodeURIComponent(pid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const body = {
+    item: {
+      attrs: {
+        attr: updates.map((u) => ({ name: u.name, value: u.value })),
+      },
+    },
+  };
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/xml;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] update failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};

@@ -7,7 +7,7 @@ import { ChevronLeft, Upload, FileText, FileWarning, Loader2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
-import { searchIdmItemsByEntityJson, type IdmDocPreview } from "@/api/idm";
+import { searchIdmItemsByEntityJson, type IdmDocPreview, updateIdmItemAttributes } from "@/api/idm";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import {
   Dialog,
@@ -129,6 +129,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
     setIsFullPreviewLoading(false);
   };
 
+  // ADD: Save handler
+  const handleSaveRow = async (doc: IdmDocPreview, updates: { name: string; value: string }[]) => {
+    if (!doc.pid) return;
+    await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
+    showSuccess("Änderungen gespeichert");
+  };
+
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
     setFiles((prev) => {
@@ -242,7 +249,11 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
 
           <div className="min-h-0 flex-1">
-            <DocAttributesGrid docs={docPreviews} onOpenFullPreview={openFullPreview} />
+            <DocAttributesGrid
+              docs={docPreviews}
+              onOpenFullPreview={openFullPreview}
+              onSaveRow={handleSaveRow}
+            />
           </div>
         </CardContent>
       </Card>
