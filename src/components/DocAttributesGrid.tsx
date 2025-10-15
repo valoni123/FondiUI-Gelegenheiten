@@ -251,7 +251,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
                     {/* Attribute inputs */}
                     {columns.map((col) => (
-                      <div key={`${idx}-${col}`} className="px-2">
+                      <div key={`${idx}-${col}`} className="px-2 relative overflow-visible">
                         <Input
                           value={rowEdited[col] ?? ""}
                           onChange={(e) =>
@@ -269,6 +269,29 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           aria-label={`Attribut ${col}`}
                           placeholder="-"
                         />
+
+                        {(errorHighlights[idx] ?? []).includes(col) && (
+                          <div className="pointer-events-none absolute left-[calc(100%+4px)] top-1/2 -translate-y-1/2 z-10">
+                            <svg width="60" height="40" viewBox="0 0 60 40" fill="none" aria-hidden="true">
+                              <path
+                                d="M58 30 C 50 22, 40 18, 8 16"
+                                stroke="#ef4444"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                fill="none"
+                                style={{ strokeDasharray: 120, strokeDashoffset: 120 }}
+                                className="animate-[arrow-draw_0.6s_ease-out_forwards]"
+                              />
+                              <path
+                                d="M8 16 L16 12 M8 16 L16 20"
+                                stroke="#ef4444"
+                                strokeWidth="3"
+                                strokeLinecap="round"
+                                fill="none"
+                              />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
