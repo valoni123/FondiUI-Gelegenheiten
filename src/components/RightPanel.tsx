@@ -135,6 +135,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
     if (!doc.pid) return;
     await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
     toast({ title: "Änderungen gespeichert", variant: "success" });
+
+    // Entferne die Zeile aus dem lokalen edited-Cache, damit der Button wieder grau wird
+    setEdited((prev) => {
+      const next = { ...prev };
+      const idx = docPreviews.findIndex((d) => d.pid === doc.pid);
+      if (idx !== -1) delete next[idx];
+      return next;
+    });
   };
 
   const addFiles = (incoming: File[]) => {
