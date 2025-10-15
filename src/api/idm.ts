@@ -17,6 +17,7 @@ export const getIdmEntities = async (
   environment: CloudEnvironment,
   language: string = "de-DE"
 ): Promise<string[]> => {
+  console.log("[getIdmEntities] Function called."); // Log function entry
   const base = buildIdmBase(environment);
   const url = `${base}/api/datamodel/entities?%24language=${encodeURIComponent(language)}`;
 
@@ -35,6 +36,7 @@ export const getIdmEntities = async (
   }
 
   const json = await res.json();
+  console.log("[getIdmEntities] Raw API response JSON:", json); // Log raw JSON response
 
   // Helper to extract entities array robustly
   const getEntitiesArray = (obj: any): any[] => {
