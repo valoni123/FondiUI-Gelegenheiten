@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileText, FileWarning, Loader2 } from "lucide-react";
+import { ChevronLeft, Upload, FileText, FileWarning, Loader2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -134,15 +134,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const handleSaveRow = async (doc: IdmDocPreview, updates: { name: string; value: string }[]) => {
     if (!doc.pid) return;
     await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
-    toast({ title: "Änderungen gespeichert", variant: "success" });
-
-    // Entferne die Zeile aus dem lokalen edited-Cache, damit der Button wieder grau wird
-    setEdited((prev) => {
-      const next = { ...prev };
-      const idx = docPreviews.findIndex((d) => d.pid === doc.pid);
-      if (idx !== -1) delete next[idx];
-      return next;
+    toast({ 
+      title: (
+        <span className="inline-flex items-center gap-2">
+          <Check className="h-4 w-4" />
+          Änderungen gespeichert
+        </span>
+      ), 
+      variant: "success" 
     });
+    // Entferne die Zeile aus dem lokalen edited-Cache, damit der Button wieder grau wird
+    // Wir rufen die von DocAttributesGrid übergebene Reset-Funktion auf
+    return true; // Signal an Grid, dass Speichern erfolgreich war
   };
 
   const addFiles = (incoming: File[]) => {

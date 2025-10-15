@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
-  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => void;
+  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<boolean>;
 };
 
 const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow }) => {
@@ -116,12 +116,20 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                           hasChanges && "bg-orange-500 hover:bg-orange-600 text-white"
                         )}
                         disabled={!hasChanges || !doc.pid}
-                        onClick={() => {
+                        onClick={async () => {
                           const updates = columns
                             .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
                             .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
                           if (updates.length) {
-                            onSaveRow(doc, updates);
+                            const ok = await onSaveRow(doc, updates);
+                            if (ok) {
+                              // Reset local edits for this row
+                              setEdited((prev) => {
+                                const next = { ...prev };
+                                delete next[idx];
+                                return next;
+                              });
+                            }
                           }
                         }}
                         title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
