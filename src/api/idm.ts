@@ -19,39 +19,51 @@ export const getIdmThumbnailForOpportunity = async (
     `${base}/api/items/search/item/resource?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json", // ask for JSON
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-  if (!res.ok) {
-    throw new Error(`IDM search failed: ${res.status} ${res.statusText}`);
+    if (!res.ok) {
+      console.warn("[IDM] search request failed:", res.status, res.statusText);
+      return null;
+    }
+
+    const json = await res.json();
+    console.log("[IDM] JSON response:", json);
+
+    const previewUrl = json?.res?.url;
+    const previewType = json?.res?.mimetype || "application/octet-stream";
+
+    if (!previewUrl) {
+      console.warn("[IDM] no res.url in response");
+      return null;
+    }
+
+    const fileRes = await fetch(previewUrl, {
+      method: "GET",
+      headers: {
+        Accept: "*/*",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!fileRes.ok) {
+      console.warn("[IDM] file fetch failed:", fileRes.status, fileRes.statusText, "URL:", previewUrl);
+      return null;
+    }
+
+    const blob = await fileRes.blob();
+    const contentType = fileRes.headers.get("Content-Type") || previewType;
+
+    console.log("[IDM] returning blob URL, type:", contentType);
+    return { url: URL.createObjectURL(blob), contentType };
+  } catch (err) {
+    console.error("[IDM] unexpected error:", err);
+    return null;
   }
-
-  const json = await res.json();
-
-  // The preview info is under res
-  const previewUrl = json?.res?.url;
-  const previewType = json?.res?.mimetype || "application/octet-stream";
-
-  if (!previewUrl) return null;
-
-  // Fetch the actual file
-  const fileRes = await fetch(previewUrl, {
-    method: "GET",
-    headers: {
-      Accept: "*/*",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!fileRes.ok) return null;
-
-  const blob = await fileRes.blob();
-  const contentType = fileRes.headers.get("Content-Type") || previewType;
-
-  return { url: URL.createObjectURL(blob), contentType };
 };
