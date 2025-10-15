@@ -33,8 +33,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
-  const [leftPanelSize, setLeftPanelSize] = useState<number>(100);
-  const [rightPanelSize, setRightPanelSize] = useState<number>(0);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
@@ -93,17 +91,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       return () => clearInterval(refreshInterval);
     }
   }, [authToken, companyNumber, cloudEnvironment, loadOpportunities]);
-
-  // Effect to manage panel sizes based on selectedOpportunityId
-  useEffect(() => {
-    if (selectedOpportunityId) {
-      setLeftPanelSize(70);
-      setRightPanelSize(30);
-    } else {
-      setLeftPanelSize(100);
-      setRightPanelSize(0);
-    }
-  }, [selectedOpportunityId]);
 
   const handleUpdateItem = async (
     id: string,
@@ -231,7 +218,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         </div>
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
-          <ResizablePanel size={leftPanelSize} onResize={setLeftPanelSize} minSize={50}>
+          <ResizablePanel defaultSize={selectedOpportunityId ? 70 : 100} minSize={50}>
             <GridList
               items={opportunities}
               onUpdateItem={handleUpdateItem}
@@ -245,7 +232,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel size={rightPanelSize} onResize={setRightPanelSize} minSize={0} collapsible={true} collapsedSize={0}>
+          <ResizablePanel defaultSize={selectedOpportunityId ? 30 : 0} minSize={0} collapsible={true} collapsedSize={0}>
             {selectedOpportunityId && (
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
