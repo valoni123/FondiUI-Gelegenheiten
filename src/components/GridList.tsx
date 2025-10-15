@@ -130,19 +130,19 @@ const GridList: React.FC<GridListProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] text-center px-2 py-1"></TableHead> {/* For view details button */}
-              <TableHead className="w-[50px] text-center px-2 py-1">
+              <TableHead className="w-[40px] text-center px-1 py-1"></TableHead> {/* For view details button */}
+              <TableHead className="w-[40px] text-center px-1 py-1">
                 <span className="sr-only">Select</span> {/* New TableHead for checkbox */}
               </TableHead>
               {visibleKeys.map((key) => (
                 <TableHead
                   key={key}
                   className={cn(
-                    "px-2 py-1", // Reduced padding
-                    "min-w-[80px]",
-                    key === "id" && "min-w-[120px]",
-                    key === "Project" && "min-w-[120px]",
-                    key === "description" && "min-w-[180px]"
+                    "px-1 py-1", // Further reduced padding
+                    "min-w-[60px]",
+                    key === "id" && "min-w-[100px]",
+                    key === "Project" && "min-w-[100px]",
+                    key === "description" && "min-w-[150px]"
                   )}
                 >
                   <div className="flex flex-col space-y-1">
@@ -150,7 +150,7 @@ const GridList: React.FC<GridListProps> = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSort(key)}
-                      className="flex items-center gap-1 justify-start px-2 font-bold"
+                      className="flex items-center gap-1 justify-start px-1 font-bold"
                     >
                       {getColumnLabel(key)}
                       {sortConfig?.key === key && (
@@ -165,7 +165,7 @@ const GridList: React.FC<GridListProps> = ({
                     <Input
                       value={filters[key] || ""}
                       onChange={(e) => handleFilterChange(key, e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-7 text-xs"
                     />
                   </div>
                 </TableHead>
@@ -189,7 +189,7 @@ const GridList: React.FC<GridListProps> = ({
                   }
                 }}
               >
-                <TableCell className="text-center px-2 py-1">
+                <TableCell className="text-center px-1 py-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -201,7 +201,7 @@ const GridList: React.FC<GridListProps> = ({
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </TableCell>
-                <TableCell className="text-center px-2 py-1">
+                <TableCell className="text-center px-1 py-1">
                   {/* Checkbox is now purely visual, reflecting the selected state */}
                   <Checkbox
                     checked={selectedOpportunityId === item.id}
@@ -211,13 +211,13 @@ const GridList: React.FC<GridListProps> = ({
                   />
                 </TableCell>
                 {visibleKeys.map((key) => (
-                  <TableCell key={`${item.id}-${key}`} className="px-2 py-1"> {/* Reduced padding */}
+                  <TableCell key={`${item.id}-${key}`} className="px-1 py-1"> {/* Further reduced padding */}
                     {key === "Status" && opportunityStatusOptions.length > 0 ? (
                       <Select
                         value={String(item[key])}
                         onValueChange={(value) => onUpdateItem(item.id, key, value)}
                       >
-                        <SelectTrigger className="w-full h-8 text-xs">
+                        <SelectTrigger className="w-full h-7 text-xs">
                           <SelectValue placeholder="Select Status" />
                         </SelectTrigger>
                         <SelectContent>
