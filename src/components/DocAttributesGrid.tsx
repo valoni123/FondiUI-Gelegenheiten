@@ -78,7 +78,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     lastInitialRef.current = initial;
   }, [initial, columns, docs]);
 
-  React.useEffect(() => setEdited(initial), [initial]);
+  // This line was causing the issue by unconditionally resetting edited state.
+  // React.useEffect(() => setEdited(initial), [initial]);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
