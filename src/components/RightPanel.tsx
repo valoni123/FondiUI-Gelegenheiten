@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileText, FileWarning, Loader2, Check } from "lucide-react";
+import { ChevronLeft, Upload, FileText, FileWarning, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -133,19 +133,37 @@ const RightPanel: React.FC<RightPanelProps> = ({
   // ADD: Save handler
   const handleSaveRow = async (doc: IdmDocPreview, updates: { name: string; value: string }[]) => {
     if (!doc.pid) return;
-    await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
-    toast({ 
-      title: (
-        <span className="inline-flex items-center gap-2">
-          <Check className="h-4 w-4" />
-          Änderungen gespeichert
-        </span>
-      ), 
-      variant: "success" 
-    });
-    // Entferne die Zeile aus dem lokalen edited-Cache, damit der Button wieder grau wird
-    // Wir rufen die von DocAttributesGrid übergebene Reset-Funktion auf
-    return true; // Signal an Grid, dass Speichern erfolgreich war
+    try {
+      await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
+      toast({ 
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Änderungen gespeichert
+          </span>
+        ), 
+        variant: "success" 
+      });
+      return true;
+    } catch (err: any) {
+      // Extrahiere message und detail aus XML-Fehlerantwort
+      const xml = err.message || "";
+      const messageMatch = xml.match(/<message>(.*?)<\/message>/i);
+      const detailMatch = xml.match(/<detail>(.*?)<\/detail>/i);
+      const userMsg = messageMatch?.[1] || "Fehler beim Speichern";
+      const userDetail = detailMatch?.[1] || "";
+      toast({ 
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <X className="h-4 w-4" />
+            {userMsg}
+          </span>
+        ), 
+        description: userDetail,
+        variant: "destructive" 
+      });
+      return false;
+    }
   };
 
   const addFiles = (incoming: File[]) => {
