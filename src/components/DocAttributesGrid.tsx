@@ -58,6 +58,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   // Keep a ref of the previous initial to compare
   const lastInitialRef = React.useRef<Record<number, Record<string, string>>>(initial);
 
+  // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+  const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+  // Erfolgs-Highlights pro Zeile (kurzes Blink-Highlight)
+  const [successHighlights, setSuccessHighlights] = React.useState<number[]>([]);
+
   // Only update edited rows to new initial if they currently equal the previous initial.
   // This preserves unsaved edits on failed rows.
   React.useEffect(() => {
@@ -83,33 +88,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   // This line was causing the issue by unconditionally resetting edited state.
   // React.useEffect(() => setEdited(initial), [initial]);
-
-  // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
-  const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
-  // Erfolgs-Highlights pro Zeile (kurzes Blink-Highlight)
-  const [successHighlights, setSuccessHighlights] = React.useState<number[]>([]);
-
-  const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
-    if (!cols.length) return;
-    setErrorHighlights((prev) => {
-      const next = { ...prev };
-      const current = new Set(next[rowIdx] ?? []);
-      cols.forEach((c) => current.add(c));
-      next[rowIdx] = Array.from(current);
-      return next;
-    });
-    // Entferne Highlight nach kurzer Zeit
-    setTimeout(() => {
-      setErrorHighlights((prev) => {
-        const next = { ...prev };
-        const current = new Set(next[rowIdx] ?? []);
-        cols.forEach((c) => current.delete(c));
-        next[rowIdx] = Array.from(current);
-        if (!next[rowIdx]?.length) delete next[rowIdx];
-        return next;
-      });
-    }, 1800);
-  }, []);
 
   // Funktion zum Blinken bei Erfolg
   const flashSuccess = React.useCallback((rowIdx: number) => {
