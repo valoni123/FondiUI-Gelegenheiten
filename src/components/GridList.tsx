@@ -191,10 +191,11 @@ const GridList: React.FC<GridListProps> = ({
               >
                 <TableCell className="text-center px-1 py-1">
                   <Button
-                    variant="ghost"
+                    variant="default"
                     size="icon"
+                    className="h-6 w-6"
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevent row click from triggering detail view
+                      e.stopPropagation(); // Verhindert, dass der Zeilenklick die Detailansicht auslöst
                       onViewDetails(item);
                     }}
                   >
