@@ -1,6 +1,5 @@
 "use client";
 
-import { parseString } from "xml2js";
 import { getIonApiConfig, type CloudEnvironment } from "@/authorization/configLoader";
 
 const buildIdmBase = (environment: CloudEnvironment) => {
@@ -34,36 +33,29 @@ export const getIdmThumbnailForOpportunity = async (
 
   const xml = await res.text();
 
-  // parseString callback wrapped in a promise
-  const parsed = await new Promise<any>((resolve, reject) => {
-    parseString(xml, { explicitArray: true }, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
-    });
-  });
+  // Use DOMParser instead of xml2js for browser compatibility
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, "application/xml");
 
-  const entries: any[] = parsed?.feed?.entry ?? [];
-  if (!entries.length) return null;
+  const entry = xmlDoc.querySelector("feed > entry");
+  if (!entry) return null;
 
-  const entry = entries[0];
-
-  // Try to find a link with rel="thumbnail" first, then "preview", then "enclosure"
-  const links: any[] = entry?.link ?? [];
   let thumbnailHref: string | null = null;
 
+  // Try to find a link with rel="thumbnail" first, then "preview", then "enclosure"
   for (const relName of ["thumbnail", "preview", "enclosure"]) {
-    const link = links.find((l) => l?.$?.rel === relName);
-    if (link?.$?.href) {
-      thumbnailHref = link.$.href as string;
-      break;
+    const link = entry.querySelector(`link[rel="${relName}"]`);
+    if (link) {
+      thumbnailHref = link.getAttribute("href");
+      if (thumbnailHref) break;
     }
   }
 
   // Fallback: Atom content src
   if (!thumbnailHref) {
-    const contentSrc = entry?.content?.[0]?.$?.src;
-    if (typeof contentSrc === "string") {
-      thumbnailHref = contentSrc;
+    const content = entry.querySelector("content");
+    if (content) {
+      thumbnailHref = content.getAttribute("src");
     }
   }
 
