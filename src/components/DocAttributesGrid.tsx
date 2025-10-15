@@ -14,6 +14,7 @@ import {
 
 type Props = {
   docs: IdmDocPreview[];
+  onOpenFullPreview: (doc: IdmDocPreview) => void;
 };
 
 const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
