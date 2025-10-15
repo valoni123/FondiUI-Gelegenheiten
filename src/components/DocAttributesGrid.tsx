@@ -59,6 +59,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+  // Erfolgs-Highlights pro Zeile (kurzes Blink-Highlight)
+  const [successHighlights, setSuccessHighlights] = React.useState<number[]>([]);
 
   const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
     if (!cols.length) return;
@@ -79,6 +81,14 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         if (!next[rowIdx]?.length) delete next[rowIdx];
         return next;
       });
+    }, 1800);
+  }, []);
+
+  // Funktion zum Blinken bei Erfolg
+  const flashSuccess = React.useCallback((rowIdx: number) => {
+    setSuccessHighlights((prev) => [...prev, rowIdx]);
+    setTimeout(() => {
+      setSuccessHighlights((prev) => prev.filter((idx) => idx !== rowIdx));
     }, 1800);
   }, []);
 
@@ -117,6 +127,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         const res = await onSaveRow(doc, updates);
         if (res.ok) {
           successfulSaves.push(idx);
+          flashSuccess(idx);
         } else {
           const colsToFlash = res.errorAttributes?.length
             ? res.errorAttributes
@@ -236,6 +247,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                             const res = await onSaveRow(doc, updates);
                             if (res.ok) {
                               setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                              flashSuccess(idx);
                             } else {
                               const colsToFlash = res.errorAttributes?.length
                                 ? res.errorAttributes
