@@ -11,13 +11,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
 
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -53,8 +55,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
   }
 
   // Spaltenbreiten: erste fix 160px, restliche je 60px
+  // Angepasst: 30px für den Button, dann 160px für Dokumenttyp/Name, dann die Attributspalten
   const gridTemplate =
-    `160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
+    `30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
@@ -66,6 +69,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
               className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
               style={{ gridTemplateColumns: gridTemplate }}
             >
+              <div className="px-2"></div> {/* Leere Spalte für den Button */}
               <div className="px-2">Dokumenttyp / Name</div>
               {columns.map((col) => (
                 <div key={col} className="px-2">{col}</div>
@@ -80,6 +84,19 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
                   className="grid items-center gap-1 py-2"
                   style={{ gridTemplateColumns: gridTemplate }}
                 >
+                  {/* Detail Button */}
+                  <div className="px-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => onOpenFullPreview(doc)}
+                      title="Details anzeigen"
+                    >
+                      <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+
                   {/* Dokumenttyp */}
                   <div className="px-2">
                     <Tooltip>

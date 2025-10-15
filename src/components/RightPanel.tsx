@@ -242,7 +242,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
 
           <div className="min-h-0 flex-1">
-            <DocAttributesGrid docs={docPreviews} />
+            <DocAttributesGrid docs={docPreviews} onOpenFullPreview={openFullPreview} />
           </div>
         </CardContent>
       </Card>
