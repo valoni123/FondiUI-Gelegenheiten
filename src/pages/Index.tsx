@@ -100,8 +100,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
     if (selectedOpportunityId) {
-      setLeftPanelSize(30); // 30% für die Gelegenheitsliste
-      setRightPanelSize(70); // 70% für das Detail-Panel
+      setLeftPanelSize(20); // 20% für die Gelegenheitsliste
+      setRightPanelSize(80); // 80% für das Detail-Panel
     } else {
       setLeftPanelSize(100);
       setRightPanelSize(0);
