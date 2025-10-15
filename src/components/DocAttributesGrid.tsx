@@ -57,70 +57,71 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
 
   return (
     <div className="h-full w-full">
-      <ScrollArea className="h-full w-full">
-        <div className="pr-4">
-          {/* Header */}
-          <div
-            className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
-            style={{ gridTemplateColumns: gridTemplate }}
-          >
-            <div className="px-2">Dokumenttyp / Name</div>
-            {columns.map((col) => (
-              <div key={col} className="px-2">{col}</div>
-            ))}
-          </div>
+      <TooltipProvider>
+        <ScrollArea className="h-full w-full">
+          <div className="pr-4">
+            {/* Header */}
+            <div
+              className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
+              style={{ gridTemplateColumns: gridTemplate }}
+            >
+              <div className="px-2">Dokumenttyp / Name</div>
+              {columns.map((col) => (
+                <div key={col} className="px-2">{col}</div>
+              ))}
+            </div>
 
-          {/* Rows */}
-          <div className="divide-y">
-            {docs.map((doc, idx) => (
-              <div
-                key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                className="grid items-center gap-1 py-2"
-                style={{ gridTemplateColumns: gridTemplate }}
-              >
-                {/* Dokumenttyp */}
-                <div className="px-2 flex flex-col items-start gap-1">
-                  <TooltipProvider>
-                    <Tooltip delayDuration={0}>
+            {/* Rows */}
+            <div className="divide-y">
+              {docs.map((doc, idx) => (
+                <div
+                  key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
+                  className="grid items-center gap-1 py-2"
+                  style={{ gridTemplateColumns: gridTemplate }}
+                >
+                  {/* Dokumenttyp */}
+                  <div className="px-2">
+                    <Tooltip>
                       <TooltipTrigger asChild>
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] font-normal cursor-help"
-                          title=""
-                        >
-                          {doc.entityName || "Entity"}
-                        </Badge>
+                        <div className="inline-block">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] font-normal cursor-help"
+                          >
+                            {doc.entityName || "Entity"}
+                          </Badge>
+                        </div>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <span>{doc.filename || "Dokument"}</span>
+                      <TooltipContent side="top" align="start">
+                        <p className="text-xs">{doc.filename || "Dokument"}</p>
                       </TooltipContent>
                     </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                {/* Attribute inputs */}
-                {columns.map((col) => (
-                  <div key={`${idx}-${col}`} className="px-2">
-                    <Input
-                      value={edited[idx]?.[col] ?? ""}
-                      onChange={(e) =>
-                        setEdited((prev) => {
-                          const row = { ...(prev[idx] ?? {}) };
-                          row[col] = e.target.value;
-                          return { ...prev, [idx]: row };
-                        })
-                      }
-                      className="h-6 text-[10px] px-1"
-                      aria-label={`Attribut ${col}`}
-                      placeholder="-"
-                    />
                   </div>
-                ))}
-              </div>
-            ))}
+
+                  {/* Attribute inputs */}
+                  {columns.map((col) => (
+                    <div key={`${idx}-${col}`} className="px-2">
+                      <Input
+                        value={edited[idx]?.[col] ?? ""}
+                        onChange={(e) =>
+                          setEdited((prev) => {
+                            const row = { ...(prev[idx] ?? {}) };
+                            row[col] = e.target.value;
+                            return { ...prev, [idx]: row };
+                          })
+                        }
+                        className="h-6 text-[10px] px-1"
+                        aria-label={`Attribut ${col}`}
+                        placeholder="-"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      </TooltipProvider>
     </div>
   );
 };
