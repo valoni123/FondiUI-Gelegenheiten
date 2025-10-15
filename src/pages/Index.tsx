@@ -35,6 +35,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
+  // New state for panel sizes
+  const [leftPanelSize, setLeftPanelSize] = useState(100);
+  const [rightPanelSize, setRightPanelSize] = useState(0);
+
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
@@ -92,6 +96,17 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       return () => clearInterval(refreshInterval);
     }
   }, [authToken, companyNumber, cloudEnvironment, loadOpportunities]);
+
+  // Effect to update panel sizes based on selectedOpportunityId
+  useEffect(() => {
+    if (selectedOpportunityId) {
+      setLeftPanelSize(70);
+      setRightPanelSize(30);
+    } else {
+      setLeftPanelSize(100);
+      setRightPanelSize(0);
+    }
+  }, [selectedOpportunityId]);
 
   const handleUpdateItem = async (
     id: string,
@@ -219,7 +234,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         </div>
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
-          <ResizablePanel defaultSize={selectedOpportunityId ? 70 : 100} minSize={10}>
+          <ResizablePanel size={leftPanelSize} minSize={10}>
             <GridList
               items={opportunities}
               onUpdateItem={handleUpdateItem}
@@ -233,7 +248,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             />
           </ResizablePanel>
           <ResizableHandle withHandle />
-          <ResizablePanel defaultSize={selectedOpportunityId ? 30 : 0} minSize={0} collapsible={true} collapsedSize={0}>
+          <ResizablePanel size={rightPanelSize} minSize={0} collapsible={true} collapsedSize={0}>
             <RightPanel
               selectedOpportunityId={selectedOpportunityId}
               onClose={() => setSelectedOpportunityId(null)}
