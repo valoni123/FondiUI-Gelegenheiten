@@ -44,19 +44,20 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
     );
   }
 
+  // Spaltenbreiten: erste fix 160px, restliche je 120px
   const gridTemplate =
-    `minmax(220px, 1fr) ` + (columns.length ? columns.map(() => "minmax(160px, 1fr)").join(" ") : "");
+    `160px ` + (columns.length ? columns.map(() => "120px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
       <ScrollArea className="h-full w-full">
-        <div className="min-w-[720px] pr-4">
+        <div className="pr-4">
           {/* Header */}
           <div
-            className="grid gap-2 border-b py-2 text-xs font-medium text-muted-foreground"
+            className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            <div className="px-2">Dokument</div>
+            <div className="px-2">Dokumenttyp</div>
             {columns.map((col) => (
               <div key={col} className="px-2 truncate">{col}</div>
             ))}
@@ -67,10 +68,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
             {docs.map((doc, idx) => (
               <div
                 key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                className="grid items-center gap-2 py-2"
+                className="grid items-center gap-1 py-2"
                 style={{ gridTemplateColumns: gridTemplate }}
               >
-                {/* Doc info cell */}
+                {/* Dokumenttyp */}
                 <div className="px-2 flex items-center gap-2">
                   <Badge variant="secondary" className="text-[10px] font-normal">
                     {doc.entityName || "Entity"}
@@ -92,7 +93,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
                           return { ...prev, [idx]: row };
                         })
                       }
-                      className="h-8 text-xs"
+                      className="h-7 text-xs px-2"
                       aria-label={`Attribut ${col}`}
                       placeholder="-"
                     />
