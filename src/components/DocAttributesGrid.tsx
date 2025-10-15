@@ -5,6 +5,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { type IdmDocPreview } from "@/api/idm";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -74,12 +80,18 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
               >
                 {/* Dokumenttyp */}
                 <div className="px-2 flex flex-col items-start gap-1">
-                  <Badge variant="secondary" className="text-[10px] font-normal">
-                    {doc.entityName || "Entity"}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground truncate">
-                    {doc.filename || "Dokument"}
-                  </span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="secondary" className="text-[10px] font-normal cursor-help">
+                          {doc.entityName || "Entity"}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{doc.filename || "Dokument"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 {/* Attribute inputs */}
