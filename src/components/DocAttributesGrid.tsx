@@ -12,16 +12,25 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Save } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import ReplacementDropzone from "@/components/ReplacementDropzone";
 
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
+  onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -29,8 +38,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         if (a?.name) names.add(String(a.name));
       });
     }
-    // Filter out "Gelegenheit" as requested
-    return Array.from(names).filter(col => col !== "Gelegenheit" && col !== "MDS_ID");
+    // Filter out "Gelegenheit" and "MDS_ID"
+    return Array.from(names).filter((col) => col !== "Gelegenheit" && col !== "MDS_ID");
   }, [docs]);
 
   const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
@@ -48,7 +57,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
-  // NEW: Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+  // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
   const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
@@ -126,6 +135,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     });
   };
 
+  // Replace flow state
+  const [confirmReplaceRow, setConfirmReplaceRow] = React.useState<number | null>(null);
+  const [uploadRow, setUploadRow] = React.useState<number | null>(null);
+  const [isReplacing, setIsReplacing] = React.useState(false);
+
   if (!docs.length) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -134,9 +148,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     );
   }
 
-  // Spaltenbreiten: erste 30px für Pfeil, zweite 30px für Save, dann 160px für Dokumenttyp/Name, rest Attributspalten
+  // Spaltenbreiten: 30px Details, 30px Save, 30px Replace, 160px Dokumenttyp, rest Attribute
   const gridTemplate =
-    `30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
+    `30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
@@ -164,9 +178,12 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
             >
               <div className="px-2"></div> {/* Button: Details */}
               <div className="px-2"></div> {/* Button: Save */}
+              <div className="px-2"></div> {/* Button: Replace */}
               <div className="px-2">Dokumenttyp / Name</div>
               {columns.map((col) => (
-                <div key={col} className="px-2">{col}</div>
+                <div key={col} className="px-2">
+                  {col}
+                </div>
               ))}
             </div>
 
@@ -224,9 +241,30 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                             }
                           }
                         }}
-                        title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
+                        title={
+                          doc.pid
+                            ? hasChanges
+                              ? "Änderungen speichern"
+                              : "Keine Änderungen"
+                            : "PID fehlt – Speichern nicht möglich"
+                        }
                       >
                         <Save className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Replace Button */}
+                    <div className="px-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={!doc.pid}
+                        onClick={() => setConfirmReplaceRow(idx)}
+                        title="Dokument ersetzen"
+                        aria-label="Dokument ersetzen"
+                      >
+                        <ArrowLeftRight className="h-3 w-3" />
                       </Button>
                     </div>
 
@@ -278,6 +316,69 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
           </div>
         </ScrollArea>
       </TooltipProvider>
+
+      {/* Confirm Replace Dialog */}
+      <Dialog
+        open={confirmReplaceRow !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmReplaceRow(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Soll das Dokument ersetzt werden?</DialogTitle>
+            <DialogDescription>Diese Aktion ersetzt den aktuellen Inhalt des Dokuments.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setConfirmReplaceRow(null)}>
+              nein
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setUploadRow(confirmReplaceRow);
+                setConfirmReplaceRow(null);
+              }}
+            >
+              ja
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Dialog */}
+      <Dialog
+        open={uploadRow !== null}
+        onOpenChange={(open) => {
+          if (!open || !isReplacing) setUploadRow(open ? uploadRow : null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dokument ersetzen</DialogTitle>
+            <DialogDescription>Legen Sie eine Datei ab oder klicken Sie, um eine neue Datei auszuwählen.</DialogDescription>
+          </DialogHeader>
+          <ReplacementDropzone
+            disabled={isReplacing}
+            onFileSelected={async (file) => {
+              if (uploadRow === null) return;
+              const doc = docs[uploadRow];
+              if (!doc?.pid) return;
+              setIsReplacing(true);
+              const ok = await onReplaceDoc(doc, file);
+              setIsReplacing(false);
+              if (ok) {
+                setUploadRow(null);
+              }
+            }}
+          />
+          <div className="flex justify-end">
+            <Button variant="ghost" disabled={isReplacing} onClick={() => setUploadRow(null)}>
+              Abbrechen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -162,7 +162,7 @@ export const getIdmThumbnailForOpportunity = async (
       },
     });
 
-    if (!res.ok) {
+  if (!res.ok) {
       console.warn("[IDM] search request failed:", res.status, res.statusText);
       return null;
     }
@@ -339,5 +339,49 @@ export const updateIdmItemAttributes = async (
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`[IDM] update failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};
+
+// NEW: Replace IDM item resource (upload new file as base64)
+export const replaceIdmItemResource = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  file: { filename: string; base64: string },
+  language: string = "de-DE"
+): Promise<void> => {
+  const base = buildIdmBase(environment);
+  const url =
+    `${base}/api/items/${encodeURIComponent(pid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const body = {
+    item: {
+      resrs: {
+        res: [
+          {
+            filename: file.filename,
+            base64: file.base64,
+          },
+        ],
+      },
+    },
+  };
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/xml;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `[IDM] replace resource failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`
+    );
   }
 };

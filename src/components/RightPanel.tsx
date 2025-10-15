@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileText, FileWarning, Loader2, Check, X } from "lucide-react";
+import { ChevronLeft, Upload, FileWarning, Loader2, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -18,6 +18,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import DocAttributesGrid from "./DocAttributesGrid";
+import { replaceIdmItemResource } from "@/api/idm";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -173,6 +174,54 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }
   };
 
+  // ADD: Replace handler
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleReplaceDoc = async (doc: IdmDocPreview, file: File) => {
+    if (!doc.pid) return false;
+    try {
+      const base64 = await fileToBase64(file);
+      await replaceIdmItemResource(authToken, cloudEnvironment, doc.pid, {
+        filename: file.name,
+        base64,
+      });
+      toast({
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Dokument ersetzt
+          </span>
+        ),
+        variant: "success",
+      });
+      await reloadPreviews();
+      return true;
+    } catch (err: any) {
+      const errorText = String(err?.message ?? err ?? "Unbekannter Fehler");
+      toast({
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <X className="h-4 w-4 text-white" />
+            Ersetzen fehlgeschlagen
+          </span>
+        ),
+        description: errorText,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
     setFiles((prev) => {
@@ -290,6 +339,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               docs={docPreviews}
               onOpenFullPreview={openFullPreview}
               onSaveRow={handleSaveRow}
+              onReplaceDoc={handleReplaceDoc}
             />
           </div>
         </CardContent>
