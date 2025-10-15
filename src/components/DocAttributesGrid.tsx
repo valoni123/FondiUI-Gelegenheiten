@@ -55,6 +55,29 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   }, [docs]);
 
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
+  // Keep a ref of the previous initial to compare
+  const lastInitialRef = React.useRef<Record<number, Record<string, string>>>(initial);
+
+  // Only update edited rows to new initial if they currently equal the previous initial.
+  // This preserves unsaved edits on failed rows.
+  React.useEffect(() => {
+    setEdited((prev) => {
+      const next: Record<number, Record<string, string>> = { ...prev };
+      docs.forEach((_, idx) => {
+        const prevInitialRow = lastInitialRef.current[idx] ?? {};
+        const currEditedRow = prev[idx] ?? {};
+        const editedEqualsPrevInitial = columns.every(
+          (col) => (currEditedRow[col] ?? "") === (prevInitialRow[col] ?? "")
+        );
+        if (editedEqualsPrevInitial) {
+          next[idx] = { ...(initial[idx] ?? {}) };
+        }
+      });
+      return next;
+    });
+    lastInitialRef.current = initial;
+  }, [initial, columns, docs]);
+
   React.useEffect(() => setEdited(initial), [initial]);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
