@@ -47,7 +47,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs }) => {
 
   // Spaltenbreiten: erste fix 160px, restliche je 60px
   const gridTemplate =
-    `160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
+    `240px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
 
   return (
     <div className="h-full w-full">
