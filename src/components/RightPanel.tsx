@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight } from "lucide-react";
+import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -45,8 +45,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
 
   const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
-  const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null); // Changed type to IdmDocPreview
+  const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null);
   const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
+  // ADD: track current index in docPreviews
+  const [fullPreviewIndex, setFullPreviewIndex] = React.useState<number | null>(null);
 
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
@@ -121,11 +123,64 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
-    setFullPreviewData(doc); // Store the entire doc object
+    setFullPreviewData(doc);
     setIsFullPreviewDialogOpen(true);
-    // No extra fetch here; we directly show presigned URL
+    // compute index in current docPreviews
+    const byPid = docPreviews.findIndex((d) => d.pid && d.pid === doc.pid);
+    let idx = byPid;
+    if (idx < 0) {
+      idx = docPreviews.findIndex((d) => d.smallUrl === doc.smallUrl && d.filename === doc.filename);
+    }
+    if (idx < 0) {
+      idx = docPreviews.findIndex((d) => d.filename === doc.filename);
+    }
+    setFullPreviewIndex(idx >= 0 ? idx : null);
     setIsFullPreviewLoading(false);
   };
+
+  // Keep index in sync if the list or doc changes (e.g., after replacements or reloads)
+  React.useEffect(() => {
+    if (!fullPreviewData) {
+      setFullPreviewIndex(null);
+      return;
+    }
+    const byPid = docPreviews.findIndex((d) => d.pid && d.pid === fullPreviewData.pid);
+    let idx = byPid;
+    if (idx < 0) {
+      idx = docPreviews.findIndex(
+        (d) => d.smallUrl === fullPreviewData.smallUrl && d.filename === fullPreviewData.filename
+      );
+    }
+    if (idx < 0) {
+      idx = docPreviews.findIndex((d) => d.filename === fullPreviewData.filename);
+    }
+    setFullPreviewIndex(idx >= 0 ? idx : null);
+  }, [docPreviews, fullPreviewData]);
+
+  // Navigation handlers
+  const goToPrev = React.useCallback(() => {
+    if (fullPreviewIndex == null) return;
+    const prevIdx = fullPreviewIndex - 1;
+    if (prevIdx >= 0) {
+      const doc = docPreviews[prevIdx];
+      if (doc) {
+        setFullPreviewData(doc);
+        setFullPreviewIndex(prevIdx);
+      }
+    }
+  }, [fullPreviewIndex, docPreviews]);
+
+  const goToNext = React.useCallback(() => {
+    if (fullPreviewIndex == null) return;
+    const nextIdx = fullPreviewIndex + 1;
+    if (nextIdx < docPreviews.length) {
+      const doc = docPreviews[nextIdx];
+      if (doc) {
+        setFullPreviewData(doc);
+        setFullPreviewIndex(nextIdx);
+      }
+    }
+  }, [fullPreviewIndex, docPreviews]);
 
   // ADD: Save handler
   const handleSaveRow = async (
@@ -374,6 +429,42 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 <DialogDescription>
                   {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
                 </DialogDescription>
+              </div>
+              {/* ADD: navigation label + arrows */}
+              <div className="flex items-center gap-2">
+                {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground">
+                      Dokument {(fullPreviewIndex ?? 0) + 1}/{docPreviews.length}
+                    </span>
+                    <div className="flex items-center">
+                      {fullPreviewIndex > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={goToPrev}
+                          title="Vorheriges Dokument"
+                          aria-label="Vorheriges Dokument"
+                        >
+                          <ChevronLeft className="h-3 w-3" />
+                        </Button>
+                      )}
+                      {fullPreviewIndex < docPreviews.length - 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={goToNext}
+                          title="Nächstes Dokument"
+                          aria-label="Nächstes Dokument"
+                        >
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             {fullPreviewData && (
