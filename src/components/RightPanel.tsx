@@ -28,6 +28,7 @@ interface RightPanelProps {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
+  companyNumber: string; // Add this prop
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -36,6 +37,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   authToken,
   cloudEnvironment,
   entityNames,
+  companyNumber, // Add this prop
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
@@ -142,8 +144,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
       authToken: authToken ? "PRESENT" : "MISSING",
       cloudEnvironment,
       entityNames,
+      companyNumber,
     });
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, companyNumber]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
     setFullPreviewData(doc); // Store the entire doc object

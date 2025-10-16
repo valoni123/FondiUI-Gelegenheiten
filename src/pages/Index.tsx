@@ -259,9 +259,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={() => setSelectedOpportunityId(null)}
-                authToken={authToken || ""}
+                authToken={authToken}
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
+                companyNumber={companyNumber}
               />
             )}
           </ResizablePanel>
