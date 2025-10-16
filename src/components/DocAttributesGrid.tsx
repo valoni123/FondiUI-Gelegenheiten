@@ -57,6 +57,35 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
+  const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
+
+  // Populate edited for new rows without overriding existing edits
+  React.useEffect(() => {
+    setEdited((prev) => {
+      const next = { ...prev };
+      docs.forEach((_, idx) => {
+        if (!(idx in next)) {
+          next[idx] = { ...(initial[idx] ?? {}) };
+        }
+      });
+      return next;
+    });
+  }, [docs, initial]);
+
+  // When initial changes (e.g., after server refresh), only sync rows that were saved successfully
+  React.useEffect(() => {
+    if (!syncWithInitial.size) return;
+    setEdited((prev) => {
+      const next = { ...prev };
+      syncWithInitial.forEach((idx) => {
+        next[idx] = { ...(initial[idx] ?? {}) };
+      });
+      return next;
+    });
+    // clear the sync set after applying
+    setSyncWithInitial(new Set());
+  }, [initial, syncWithInitial]);
+
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
@@ -136,7 +165,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
       }
     }
     
-    // Nur erfolgreich gespeicherte Zeilen zurücksetzen
+    // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
     setEdited((prev) => {
       const newEdited = { ...prev };
       successfulSaves.forEach((idx) => {
@@ -144,6 +173,13 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
       });
       return newEdited;
     });
+    if (successfulSaves.length) {
+      setSyncWithInitial((prev) => {
+        const next = new Set(prev);
+        successfulSaves.forEach((idx) => next.add(idx));
+        return next;
+      });
+    }
   };
 
   // Replace flow state
@@ -244,6 +280,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                             const res = await onSaveRow(doc, updates);
                             if (res.ok) {
                               setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                              setSyncWithInitial((prev) => {
+                                const next = new Set(prev);
+                                next.add(idx);
+                                return next;
+                              });
                             } else {
                               const colsToFlash = res.errorAttributes?.length
                                 ? res.errorAttributes
