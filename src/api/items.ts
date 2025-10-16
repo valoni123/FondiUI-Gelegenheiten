@@ -219,3 +219,32 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
     throw error;
   }
 };
+
+export const getItemById = async (
+  authToken: string,
+  itemId: string,
+  cloudEnvironment: CloudEnvironment
+): Promise<Item> => {
+  const url = `${cloudEnvironment.baseUrl}/api/items/${itemId}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch item: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data as Item;
+  } catch (error) {
+    console.error('Error fetching item by ID:', error);
+    throw error;
+  }
+};
