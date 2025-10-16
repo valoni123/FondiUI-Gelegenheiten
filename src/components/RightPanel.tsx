@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { X, Upload } from "lucide-react";
 import { CloudEnvironment } from "@/authorization/configLoader";
-import { UploadDialog } from "@/components/UploadDialog"; // Import UploadDialog
+import UploadDialog from "@/components/UploadDialog"; // Corrected import
 
 interface RightPanelProps {
   selectedOpportunityId: string;
