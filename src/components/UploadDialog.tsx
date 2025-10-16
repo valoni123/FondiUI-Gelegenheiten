@@ -204,7 +204,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                 <div className="px-2">Dokumententyp</div>
                 <div className="px-2">Dateiname</div>
                 {Array.from({ length: maxAttrCount }).map((_, idx) => (
-                  <div key={`hdr-${idx}`} className="px-2">Attribut</div>
+                  <div key={`hdr-${idx}`} className="px-2"></div>
                 ))}
                 <div className="px-2">Aktion</div>
               </div>
