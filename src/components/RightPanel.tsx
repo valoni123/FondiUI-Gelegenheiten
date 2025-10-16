@@ -20,6 +20,7 @@ import {
 import DocAttributesGrid from "./DocAttributesGrid";
 import { replaceIdmItemResource } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
+import { getItemById } from "@/api/items"; // Add this import
 
 interface RightPanelProps {
   selectedOpportunityId: string;
