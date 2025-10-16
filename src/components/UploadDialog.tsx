@@ -36,6 +36,7 @@ type UploadDialogProps = {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   onCompleted: () => void;
+  selectedOpportunityId?: string | null;
 };
 
 type RowState = {
@@ -59,6 +60,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   authToken,
   cloudEnvironment,
   onCompleted,
+  selectedOpportunityId,
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
 
@@ -102,16 +104,22 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       const attributes = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
       const filtered = attributes.filter((a) => a.name !== "MDS_ID"); // remove MDS_ID
       setRows((prev) =>
-        prev.map((r) =>
-          r.key === rowKey
-            ? {
-                ...r,
-                attrs: filtered,
-                values: Object.fromEntries(filtered.map((a) => [a.name, ""])),
-                loadingAttrs: false,
-              }
-            : r
-        )
+        prev.map((r) => {
+          if (r.key === rowKey) {
+            const initialValues: Record<string, string> = Object.fromEntries(filtered.map((a) => [a.name, ""]));
+            // Pre-fill "Gelegenheit" if selectedOpportunityId is available
+            if (selectedOpportunityId && filtered.some(a => a.name === "Gelegenheit")) {
+              initialValues["Gelegenheit"] = selectedOpportunityId;
+            }
+            return {
+              ...r,
+              attrs: filtered,
+              values: initialValues,
+              loadingAttrs: false,
+            };
+          }
+          return r;
+        })
       );
     } catch (err: any) {
       const msg = String(err?.message ?? "Attribute konnten nicht geladen werden.");
@@ -292,6 +300,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              ) : attr.name === "Gelegenheit" ? (
+                                <Input
+                                  value={row.values[attr.name] ?? ""}
+                                  className="h-8 text-[12px] px-2"
+                                  placeholder=""
+                                  aria-label={`Attribut ${attr.name}`}
+                                  disabled
+                                />
                               ) : attr.name === "Belegdatum" || attr.type === "7" ? (
                                 <Popover>
                                   <PopoverTrigger asChild>
