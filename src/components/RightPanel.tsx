@@ -349,6 +349,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               setFiles([]);
               await reloadPreviews();
             }}
+            defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
           />
 
           <div className="min-h-0 flex-1">
