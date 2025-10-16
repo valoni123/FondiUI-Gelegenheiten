@@ -125,7 +125,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         }
       }
     }
-    // Nach allen Saves: erfolgreich gespeicherte Zeilen zurücksetzen
+    // Nur erfolgreich gespeicherte Zeilen zurücksetzen
     setEdited((prev) => {
       const newEdited = { ...prev };
       successfulSaves.forEach((idx) => {
