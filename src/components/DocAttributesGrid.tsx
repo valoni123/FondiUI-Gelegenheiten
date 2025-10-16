@@ -112,6 +112,29 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     }, 1800);
   }, []);
 
+  // Flash success for the saved columns
+  const flashSuccess = React.useCallback((rowIdx: number, cols: string[]) => {
+    if (!cols.length) return;
+    setErrorHighlights((prev) => {
+      const next = { ...prev };
+      const current = new Set(next[rowIdx] ?? []);
+      cols.forEach((c) => current.add(c));
+      next[rowIdx] = Array.from(current);
+      return next;
+    });
+    // Entferne Highlight nach kurzer Zeit
+    setTimeout(() => {
+      setErrorHighlights((prev) => {
+        const next = { ...prev };
+        const current = new Set(next[rowIdx] ?? []);
+        cols.forEach((c) => current.delete(c));
+        next[rowIdx] = Array.from(current);
+        if (!next[rowIdx]?.length) delete next[rowIdx];
+        return next;
+      });
+    }, 1800);
+  }, []);
+
   // Calculate how many rows have changes
   const changedRowCount = React.useMemo(() => {
     let count = 0;
@@ -133,6 +156,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const handleSaveAllChanges = async () => {
     const successfulSaves: number[] = [];
     const failedRows: number[] = [];
+    const successfulUpdates: { rowIdx: number; cols: string[] }[] = [];
     
     for (let idx = 0; idx < docs.length; idx++) {
       const doc = docs[idx];
@@ -151,6 +175,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
           const res = await onSaveRow(doc, updates);
           if (res.ok) {
             successfulSaves.push(idx);
+            successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
           } else {
             failedRows.push(idx);
             const colsToFlash = res.errorAttributes?.length
@@ -165,6 +190,11 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         }
       }
     }
+    
+    // Flash success for all successful updates
+    successfulUpdates.forEach(({ rowIdx, cols }) => {
+      flashSuccess(rowIdx, cols);
+    });
     
     // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
     setEdited((prev) => {
@@ -288,6 +318,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                                 next.add(idx);
                                 return next;
                               });
+                              // Flash success for the saved columns
+                              flashSuccess(idx, updates.map((u) => u.name));
                             } else {
                               const colsToFlash = res.errorAttributes?.length
                                 ? res.errorAttributes
