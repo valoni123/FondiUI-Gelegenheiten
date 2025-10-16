@@ -225,24 +225,54 @@ export const getItemById = async (
   itemId: string,
   cloudEnvironment: CloudEnvironment
 ): Promise<Item> => {
-  const url = `${cloudEnvironment.baseUrl}/api/items/${itemId}`;
-  
   try {
+    const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
+    const url = `${API_BASE_URL}/Opportunities('${itemId}')`;
+    
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        'Content-Language': 'de-DE',
+        'X-Infor-LnCompany': cloudEnvironment.companyNumber,
       },
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch item: ${response.status} ${response.statusText}`);
+      const errorMessage = await parseApiError(response);
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    return data as Item;
+    const odataResponse = await response.json();
+    
+    // Map the OData response to our Item format
+    const item: Item = {
+      id: odataResponse.Opportunity || itemId,
+      name: odataResponse.Name || odataResponse.Opportunity || "N/A",
+      description: odataResponse.Description || "No description",
+      opportunityText: odataResponse.OpportunityText || odataResponse["tdsmi110.text"] || "No Allgemeine Daten text",
+      "tdsmi110.text": odataResponse["tdsmi110.text"] || "No Allgemeine Daten text (raw)",
+      DateOfFirstContact: odataResponse.DateOfFirstContact,
+      ExpectedCloseDate: odataResponse.ExpectedCloseDate,
+      ActualCloseDate: odataResponse.ActualCloseDate,
+    };
+
+    // Add all other properties from the response
+    const keysToExcludeFromNewItem = new Set([
+      "Opportunity", "Name", "Description", "OpportunityText", "@odata.etag", "@odata.context",
+      "DateOfFirstContact", "ExpectedCloseDate", "ActualCloseDate",
+      "tdsmi110.text"
+    ]);
+
+    for (const key in odataResponse) {
+      if (!keysToExcludeFromNewItem.has(key)) {
+        item[key] = odataResponse[key];
+      }
+    }
+    
+    return item;
   } catch (error) {
     console.error('Error fetching item by ID:', error);
     throw error;
