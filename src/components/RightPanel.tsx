@@ -423,14 +423,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           {/* Custom header area with title, description, and replace button */}
           <div className="flex flex-col pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle>Vollständige Vorschau</DialogTitle>
-                <DialogDescription>
-                  {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
-                </DialogDescription>
-              </div>
-              {/* ADD: navigation label + arrows */}
+            <div className="flex flex-col">
+              <DialogTitle>Vollständige Vorschau</DialogTitle>
+              <DialogDescription>
+                {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
+              </DialogDescription>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              {fullPreviewData && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsReplaceDialogOpen(true)}
+                  title="Dokument ersetzen"
+                >
+                  <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
+                </Button>
+              )}
               <div className="flex items-center gap-2">
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
@@ -467,17 +476,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 )}
               </div>
             </div>
-            {fullPreviewData && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsReplaceDialogOpen(true)}
-                title="Dokument ersetzen"
-                className="mt-2 self-start"
-              >
-                <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
-              </Button>
-            )}
           </div>
 
           {/* The actual preview content */}
