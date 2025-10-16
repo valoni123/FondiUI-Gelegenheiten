@@ -24,6 +24,9 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parse } from "date-fns";
 
 type UploadDialogProps = {
   open: boolean;
@@ -97,10 +100,16 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     );
     try {
       const attributes = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
+      const filtered = attributes.filter((a) => a.name !== "MDS_ID"); // remove MDS_ID
       setRows((prev) =>
         prev.map((r) =>
           r.key === rowKey
-            ? { ...r, attrs: attributes, values: Object.fromEntries(attributes.map((a) => [a.name, ""])), loadingAttrs: false }
+            ? {
+                ...r,
+                attrs: filtered,
+                values: Object.fromEntries(filtered.map((a) => [a.name, ""])),
+                loadingAttrs: false,
+              }
             : r
         )
       );
@@ -137,13 +146,13 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     );
     try {
       const base64 = await fileToBase64(row.file);
-      // Only send attributes that have a value, keep simple
+      // Only send attributes that have a value and are not MDS_ID
       const attrsPayload = Object.entries(row.values)
-        .filter(([, v]) => v !== undefined && v !== null && String(v).length > 0)
+        .filter(([name, v]) => name !== "MDS_ID" && v !== undefined && v !== null && String(v).length > 0)
         .map(([name, value]) => ({ name, value: String(value) }));
 
       await createIdmItem(authToken, cloudEnvironment, {
-        entityName: row.entityName,
+        entityName: row.entityName!,
         attrs: attrsPayload,
         resource: { filename: row.file.name, base64 },
         language: "de-DE",
@@ -283,6 +292,40 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                     ))}
                                   </SelectContent>
                                 </Select>
+                              ) : attr.name === "Belegdatum" || attr.type === "7" ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className="h-8 w-[160px] justify-start text-left text-[12px] px-2"
+                                    >
+                                      {row.values[attr.name]
+                                        ? format(parse(row.values[attr.name], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                        : "Datum wählen"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={
+                                        row.values[attr.name]
+                                          ? parse(row.values[attr.name], "yyyy-MM-dd", new Date())
+                                          : undefined
+                                      }
+                                      onSelect={(date) => {
+                                        const v = date ? format(date, "yyyy-MM-dd") : "";
+                                        setRows((prev) =>
+                                          prev.map((r) =>
+                                            r.key === row.key
+                                              ? { ...r, values: { ...r.values, [attr.name]: v } }
+                                              : r
+                                          )
+                                        );
+                                      }}
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
                               ) : (
                                 <Input
                                   value={row.values[attr.name] ?? ""}

@@ -82,6 +82,7 @@ export type IdmAttribute = {
   name: string;
   desc?: string;
   valueset?: { name: string; desc: string }[];
+  type?: string; // add type to detect date fields
 };
 
 /**
@@ -428,6 +429,7 @@ export const getIdmEntityAttributes = async (
       name: String(a?.name ?? ""),
       desc: String(a?.desc ?? ""),
       valueset,
+      type: String(a?.type ?? ""), // capture type (e.g., "7" for date)
     };
   });
   return attributes.filter((attr) => attr.name.length > 0);
