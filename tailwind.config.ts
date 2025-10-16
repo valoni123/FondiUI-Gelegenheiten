@@ -72,11 +72,16 @@ const config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.3" },
         },
+        "success-blink": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.3" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "error-blink": "error-blink 0.9s ease-in-out 2",
+        "success-blink": "success-blink 0.9s ease-in-out 2",
       },
     },
   },

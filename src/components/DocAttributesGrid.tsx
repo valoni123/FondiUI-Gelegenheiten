@@ -377,29 +377,32 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                     </div>
 
                     {/* Attribute inputs */}
-                    {columns.map((col) => (
-                      <div key={`${idx}-${col}`} className="px-2">
-                        <Input
-                          value={rowEdited[col] ?? ""}
-                          onChange={(e) =>
-                            setEdited((prev) => {
-                              const row = { ...(prev[idx] ?? {}) };
-                              row[col] = e.target.value;
-                              return { ...prev, [idx]: row };
-                            })
-                          }
-                          className={cn(
-                            "h-6 text-[10px] px-1",
-                            (errorHighlights[idx] ?? []).includes(col) &&
-                              "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                            (successHighlights[idx] ?? []).includes(col) &&
-                              "border-success-highlight ring-2 ring-success-highlight animate-[error-blink_0.9s_ease-in-out_2]"
-                          )}
-                          aria-label={`Attribut ${col}`}
-                          placeholder="-"
-                        />
-                      </div>
-                    ))}
+                    {columns.map((col) => {
+                      const hasError = (errorHighlights[idx] ?? []).includes(col);
+                      const hasSuccess = (successHighlights[idx] ?? []).includes(col);
+                      
+                      return (
+                        <div key={`${idx}-${col}`} className="px-2">
+                          <Input
+                            value={rowEdited[col] ?? ""}
+                            onChange={(e) =>
+                              setEdited((prev) => {
+                                const row = { ...(prev[idx] ?? {}) };
+                                row[col] = e.target.value;
+                                return { ...prev, [idx]: row };
+                              })
+                            }
+                            className={cn(
+                              "h-6 text-[10px] px-1",
+                              hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                              hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                            )}
+                            aria-label={`Attribut ${col}`}
+                            placeholder="-"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })}
