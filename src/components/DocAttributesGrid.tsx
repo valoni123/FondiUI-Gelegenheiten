@@ -22,7 +22,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ReplacementDropzone from "@/components/ReplacementDropzone";
-import { Item } from "@/types";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -30,14 +29,9 @@ type Props = {
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
-  authToken: string; // Add authToken prop
-  cloudEnvironment: CloudEnvironment; // Add cloudEnvironment prop
-  entityNames: string[]; // Add entityNames prop
-  opportunityData: Item; // Add opportunityData prop
-  onDataUpdate: (updatedData: Item) => void; // Add onDataUpdate prop
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, authToken, cloudEnvironment, entityNames, opportunityData, onDataUpdate }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -398,29 +392,6 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                                 return { ...prev, [idx]: row };
                               })
                             }
-                            onBlur={async (e) => {
-                              const currentValue = e.target.value;
-                              const initialValue = initial[idx]?.[col] ?? "";
-                              if (currentValue !== initialValue) {
-                                const updates = [{ name: col, value: currentValue }];
-                                const res = await onSaveRow(doc, updates);
-                                if (res.ok) {
-                                  // Update the local state of the opportunityData
-                                  const updatedOpportunityData = { ...opportunityData };
-                                  if (!updatedOpportunityData.attributes) {
-                                    updatedOpportunityData.attributes = {};
-                                  }
-                                  if (!updatedOpportunityData.attributes[doc.entityName]) {
-                                    updatedOpportunityData.attributes[doc.entityName] = {};
-                                  }
-                                  updatedOpportunityData.attributes[doc.entityName][col] = currentValue;
-                                  onDataUpdate(updatedOpportunityData);
-                                  flashSuccess(idx, [col]);
-                                } else {
-                                  flashError(idx, res.errorAttributes?.length ? res.errorAttributes : [col]);
-                                }
-                              }
-                            }}
                             className={cn(
                               "h-6 text-[10px] px-1",
                               hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",

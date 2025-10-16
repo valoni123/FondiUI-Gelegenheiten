@@ -299,7 +299,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     key !== "OpportunityText"
   ).sort();
 
-  const renderField = (fieldConfig: FieldConfig) => {
+  const renderField = (fieldConfig: FieldConfig) => { // Use the new FieldConfig interface
     const { key, label, type, disabled, options, hasSearch, hasAssignButton, suffix, isRequired, defaultValue, displaySuffix } = fieldConfig;
     const value = editedItem[key as keyof Item] !== null && editedItem[key as keyof Item] !== undefined ? editedItem[key as keyof Item] : (isAddingNewItem ? defaultValue : "");
     const hasError = !!validationErrors[key as string];
@@ -477,7 +477,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
     }
   };
 
-  const renderSection = (title: string, fields: FieldConfig[]) => (
+  const renderSection = (title: string, fields: FieldConfig[]) => ( // Use FieldConfig[]
     <div className="space-y-4">
       <h3 className="text-lg font-semibold border-b pb-2 mb-4">{title}</h3>
       <div className="grid grid-cols-1 gap-4">

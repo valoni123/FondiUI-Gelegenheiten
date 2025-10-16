@@ -20,7 +20,6 @@ import {
 import DocAttributesGrid from "./DocAttributesGrid";
 import { replaceIdmItemResource } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
-import { getItemById } from "@/api/items"; // Add this import
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -28,7 +27,6 @@ interface RightPanelProps {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
-  companyNumber: string; // Add this prop
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -37,7 +35,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
   authToken,
   cloudEnvironment,
   entityNames,
-  companyNumber, // Add this prop
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
@@ -51,32 +48,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
-
-  const [opportunityData, setOpportunityData] = React.useState<any>(null); // State for opportunity data
-  const [isOpportunityLoading, setIsOpportunityLoading] = React.useState(false);
-
-  // Fetch opportunity data
-  const fetchOpportunityData = React.useCallback(async () => {
-    if (!selectedOpportunityId || !authToken) return;
-    setIsOpportunityLoading(true);
-    try {
-      const data = await getItemById(authToken, selectedOpportunityId, cloudEnvironment);
-      setOpportunityData(data);
-    } catch (error) {
-      console.error("Failed to fetch opportunity data:", error);
-      toast({
-        title: "Fehler",
-        description: "Gelegenheit konnte nicht geladen werden.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsOpportunityLoading(false);
-    }
-  }, [selectedOpportunityId, authToken, cloudEnvironment]);
-
-  React.useEffect(() => {
-    fetchOpportunityData();
-  }, [fetchOpportunityData]);
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -144,9 +115,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
       authToken: authToken ? "PRESENT" : "MISSING",
       cloudEnvironment,
       entityNames,
-      companyNumber,
     });
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, companyNumber]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
     setFullPreviewData(doc); // Store the entire doc object
@@ -364,24 +334,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
 
           <div className="min-h-0 flex-1">
-            {isOpportunityLoading ? (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Gelegenheit wird geladen…
-              </div>
-            ) : opportunityData ? (
-              <DocAttributesGrid
-                authToken={authToken}
-                cloudEnvironment={cloudEnvironment}
-                entityNames={entityNames}
-                opportunityData={opportunityData}
-                onDataUpdate={setOpportunityData} // Pass the setter to update opportunityData
-              />
-            ) : (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                Keine Gelegenheitsdaten verfügbar.
-              </div>
-            )}
+            <DocAttributesGrid
+              docs={docPreviews}
+              onOpenFullPreview={openFullPreview}
+              onSaveRow={handleSaveRow}
+              onReplaceDoc={handleReplaceDoc}
+            />
           </div>
         </CardContent>
       </Card>
