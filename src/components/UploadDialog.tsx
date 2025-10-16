@@ -36,6 +36,7 @@ type UploadDialogProps = {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   onCompleted: () => void;
+  defaultOpportunityNumber?: string; // New prop for pre-filling Gelegenheit
 };
 
 type RowState = {
@@ -59,6 +60,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   authToken,
   cloudEnvironment,
   onCompleted,
+  defaultOpportunityNumber, // Destructure new prop
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
 
@@ -101,13 +103,24 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     try {
       const attributes = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
       const filtered = attributes.filter((a) => a.name !== "MDS_ID"); // remove MDS_ID
+
+      const initialValues: Record<string, string> = Object.fromEntries(filtered.map((a) => [a.name, ""]));
+
+      // Pre-fill "Gelegenheit" if defaultOpportunityNumber is provided
+      if (defaultOpportunityNumber) {
+        const opportunityAttr = filtered.find(attr => attr.name === "Gelegenheit");
+        if (opportunityAttr) {
+          initialValues["Gelegenheit"] = defaultOpportunityNumber;
+        }
+      }
+
       setRows((prev) =>
         prev.map((r) =>
           r.key === rowKey
             ? {
                 ...r,
                 attrs: filtered,
-                values: Object.fromEntries(filtered.map((a) => [a.name, ""])),
+                values: initialValues, // Use the potentially pre-filled initialValues
                 loadingAttrs: false,
               }
             : r
