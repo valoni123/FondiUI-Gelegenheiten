@@ -306,6 +306,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                   </SelectContent>
                                 </Select>
                               ) : attr.name === "Belegdatum" || attr.type === "7" ? (
+                                // datepicker for Belegdatum, stored as yyyy-MM-dd
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <Button
@@ -340,6 +341,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                   </PopoverContent>
                                 </Popover>
                               ) : (
+                                // plain input for other attributes
                                 <Input
                                   value={row.values[attr.name] ?? ""}
                                   onChange={(e) => {
@@ -358,6 +360,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                   className="h-8 text-[12px] px-2"
                                   placeholder=""
                                   aria-label={`Attribut ${attr.name}`}
+                                  readOnly={attr.name === "Gelegenheit" && !!defaultOpportunityNumber} // Make read-only if pre-filled
                                 />
                               )}
                             </div>
