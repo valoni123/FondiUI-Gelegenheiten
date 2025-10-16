@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileWarning, Loader2, Check, X } from "lucide-react";
+import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import DocAttributesGrid from "./DocAttributesGrid";
 import { replaceIdmItemResource } from "@/api/idm";
+import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -42,8 +43,11 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
 
   const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
-  const [fullPreviewData, setFullPreviewData] = React.useState<{ url: string; contentType: string } | null>(null);
+  const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null); // Changed type to IdmDocPreview
   const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
+
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
+  const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -115,13 +119,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
-    const url = doc.fullUrl || doc.smallUrl;
-    const contentType = doc.contentType || (doc.fullUrl ? "image/*" : "image/*");
-    if (!url) return;
-
-    setIsFullPreviewLoading(true);
+    setFullPreviewData(doc); // Store the entire doc object
     setIsFullPreviewDialogOpen(true);
-    setFullPreviewData({ url, contentType });
     // No extra fetch here; we directly show presigned URL
     setIsFullPreviewLoading(false);
   };
@@ -351,8 +350,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <DialogHeader>
             <DialogTitle>Vollständige Vorschau</DialogTitle>
             <DialogDescription>
-              {selectedOpportunityId ? `Vorschau für: ${selectedOpportunityId}` : "Vorschau"}
+              {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
             </DialogDescription>
+            {fullPreviewData && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="absolute top-4 right-12"
+                onClick={() => setIsReplaceDialogOpen(true)}
+                title="Dokument ersetzen"
+              >
+                <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
+              </Button>
+            )}
           </DialogHeader>
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             {isFullPreviewLoading ? (
@@ -362,13 +372,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
             ) : fullPreviewData ? (
               fullPreviewData.contentType?.startsWith("image/") ? (
                 <img
-                  src={fullPreviewData.url}
+                  src={fullPreviewData.fullUrl || fullPreviewData.smallUrl}
                   alt="Vollständige Vorschau"
                   className="max-h-full max-w-full object-contain"
                 />
               ) : fullPreviewData.contentType === "application/pdf" ? (
                 <iframe
-                  src={fullPreviewData.url}
+                  src={fullPreviewData.fullUrl || fullPreviewData.smallUrl}
                   title="Vollständige PDF-Vorschau"
                   className="w-full h-full border-none"
                 />
@@ -377,7 +387,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                   <FileWarning className="h-16 w-16" />
                   <span className="text-lg">Dateityp für Vorschau nicht unterstützt.</span>
                   <a
-                    href={fullPreviewData.url}
+                    href={fullPreviewData.fullUrl || fullPreviewData.smallUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline text-base"
@@ -389,6 +399,42 @@ const RightPanel: React.FC<RightPanelProps> = ({
             ) : (
               <div className="text-muted-foreground">Keine vollständige Vorschau verfügbar.</div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Replacement Dialog for Full Preview */}
+      <Dialog
+        open={isReplaceDialogOpen}
+        onOpenChange={(open) => {
+          if (!open || !isReplacing) setIsReplaceDialogOpen(open);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dokument ersetzen</DialogTitle>
+            <DialogDescription>
+              Legen Sie eine Datei ab oder klicken Sie, um eine neue Datei auszuwählen.
+              {fullPreviewData?.filename && ` (Aktuelles Dokument: ${fullPreviewData.filename})`}
+            </DialogDescription>
+          </DialogHeader>
+          <ReplacementDropzone
+            disabled={isReplacing}
+            onFileSelected={async (file) => {
+              if (!fullPreviewData) return;
+              setIsReplacing(true);
+              const ok = await handleReplaceDoc(fullPreviewData, file);
+              setIsReplacing(false);
+              if (ok) {
+                setIsReplaceDialogOpen(false);
+                setIsFullPreviewDialogOpen(false); // Close full preview after successful replacement
+              }
+            }}
+          />
+          <div className="flex justify-end">
+            <Button variant="ghost" disabled={isReplacing} onClick={() => setIsReplaceDialogOpen(false)}>
+              Abbrechen
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
