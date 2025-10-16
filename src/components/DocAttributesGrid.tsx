@@ -102,6 +102,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   const handleSaveAllChanges = async () => {
     const successfulSaves: number[] = [];
+    const failedRows: number[] = [];
+    
     for (let idx = 0; idx < docs.length; idx++) {
       const doc = docs[idx];
       const rowEdited = edited[idx] ?? {};
@@ -114,17 +116,26 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
         const updates = columns
           .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
           .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
-        const res = await onSaveRow(doc, updates);
-        if (res.ok) {
-          successfulSaves.push(idx);
-        } else {
-          const colsToFlash = res.errorAttributes?.length
-            ? res.errorAttributes
-            : updates.map((u) => u.name);
+        
+        try {
+          const res = await onSaveRow(doc, updates);
+          if (res.ok) {
+            successfulSaves.push(idx);
+          } else {
+            failedRows.push(idx);
+            const colsToFlash = res.errorAttributes?.length
+              ? res.errorAttributes
+              : updates.map((u) => u.name);
+            flashError(idx, colsToFlash);
+          }
+        } catch (error) {
+          failedRows.push(idx);
+          const colsToFlash = updates.map((u) => u.name);
           flashError(idx, colsToFlash);
         }
       }
     }
+    
     // Nur erfolgreich gespeicherte Zeilen zurücksetzen
     setEdited((prev) => {
       const newEdited = { ...prev };
