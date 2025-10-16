@@ -90,6 +90,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
+  // Erfolg-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+  const [successHighlights, setSuccessHighlights] = React.useState<Record<number, string[]>>({});
+
   const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
     if (!cols.length) return;
     setErrorHighlights((prev) => {
@@ -112,10 +115,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     }, 1800);
   }, []);
 
-  // Flash success for the saved columns
   const flashSuccess = React.useCallback((rowIdx: number, cols: string[]) => {
     if (!cols.length) return;
-    setErrorHighlights((prev) => {
+    setSuccessHighlights((prev) => {
       const next = { ...prev };
       const current = new Set(next[rowIdx] ?? []);
       cols.forEach((c) => current.add(c));
@@ -124,7 +126,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     });
     // Entferne Highlight nach kurzer Zeit
     setTimeout(() => {
-      setErrorHighlights((prev) => {
+      setSuccessHighlights((prev) => {
         const next = { ...prev };
         const current = new Set(next[rowIdx] ?? []);
         cols.forEach((c) => current.delete(c));
