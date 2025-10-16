@@ -262,7 +262,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
-                onUploadCompleted={() => loadOpportunities(authToken!, companyNumber, cloudEnvironment, false)}
               />
             )}
           </ResizablePanel>
