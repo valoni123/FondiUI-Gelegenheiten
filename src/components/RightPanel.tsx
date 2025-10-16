@@ -13,7 +13,7 @@ import { type CloudEnvironment } from "@/authorization/configLoader";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
+  DialogHeader, // Keep DialogHeader import for other uses if any, but not used directly here
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
@@ -347,23 +347,27 @@ const RightPanel: React.FC<RightPanelProps> = ({
       {/* Full Preview Dialog */}
       <Dialog open={isFullPreviewDialogOpen} onOpenChange={setIsFullPreviewDialogOpen}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Vollständige Vorschau</DialogTitle>
-            <DialogDescription>
-              {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
-            </DialogDescription>
+          {/* Custom header area with title, description, and replace button */}
+          <div className="flex items-center justify-between pb-4">
+            <div>
+              <DialogTitle>Vollständige Vorschau</DialogTitle>
+              <DialogDescription>
+                {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
+              </DialogDescription>
+            </div>
             {fullPreviewData && (
               <Button
                 variant="outline"
                 size="sm"
-                className="absolute top-4 right-12"
                 onClick={() => setIsReplaceDialogOpen(true)}
                 title="Dokument ersetzen"
               >
                 <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
               </Button>
             )}
-          </DialogHeader>
+          </div>
+
+          {/* The actual preview content */}
           <div className="flex-1 flex items-center justify-center overflow-hidden">
             {isFullPreviewLoading ? (
               <div className="text-muted-foreground flex items-center gap-2">
@@ -400,6 +404,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <div className="text-muted-foreground">Keine vollständige Vorschau verfügbar.</div>
             )}
           </div>
+
+          {/* DocAttributesGrid for the current document */}
+          {fullPreviewData && (
+            <div className="flex-shrink-0 h-48 mt-4 border-t pt-4 px-6">
+              <DocAttributesGrid
+                docs={[fullPreviewData]} // Pass the single document as an array
+                onOpenFullPreview={openFullPreview} // Pass the existing handler
+                onSaveRow={handleSaveRow} // Pass the existing handler
+                onReplaceDoc={handleReplaceDoc} // Pass the existing handler
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
