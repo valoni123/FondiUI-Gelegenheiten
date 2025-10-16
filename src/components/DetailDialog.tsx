@@ -40,6 +40,7 @@ interface DetailDialogProps {
   authToken: string;
   companyNumber: string;
   cloudEnvironment: CloudEnvironment;
+  onUpdateItem?: (updatedItem: Item) => void; // New prop
 }
 
 // Define a comprehensive interface for all possible field configurations
@@ -67,6 +68,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
   authToken,
   companyNumber,
   cloudEnvironment,
+  onUpdateItem,
 }) => {
   const [editedItem, setEditedItem] = useState<Item | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
@@ -214,6 +216,10 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
       const isValid = validateFields();
       if (isValid) {
         onSave(editedItem);
+        // If onUpdateItem is provided, call it with the editedItem
+        if (onUpdateItem) {
+          onUpdateItem(editedItem);
+        }
       } else {
         toast.error("Please correct the highlighted fields.");
       }

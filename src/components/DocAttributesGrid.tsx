@@ -25,7 +25,7 @@ import ReplacementDropzone from "@/components/ReplacementDropzone";
 
 type Props = {
   docs: IdmDocPreview[];
-  onOpenFullPreview: (doc: IdmDocPreview) => void;
+  onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
@@ -290,7 +290,14 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => onOpenFullPreview(doc)}
+                        onClick={() => onOpenFullPreview(doc, (updatedDoc) => {
+                          // This callback will be called when the DetailDialog saves changes
+                          // We need to update the 'docs' state here if it's managed in the parent
+                          // For now, we'll just log it, assuming the parent will handle the actual state update
+                          console.log("Doc updated from DetailDialog:", updatedDoc);
+                          // If docs is managed internally by DocAttributesGrid, we would update it here.
+                          // Since docs is a prop, the parent component needs to handle this update.
+                        })}
                         title="Details anzeigen"
                       >
                         <ChevronRight className="h-3 w-3" />
