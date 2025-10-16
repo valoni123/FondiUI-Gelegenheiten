@@ -20,6 +20,7 @@ import {
 import DocAttributesGrid from "./DocAttributesGrid";
 import { replaceIdmItemResource } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
+import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -37,6 +38,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   entityNames,
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
 
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
@@ -231,6 +233,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       const combined = [...prev, ...toAdd];
       if (toAdd.length) {
         showSuccess(`${toAdd.length} Datei(en) hinzugefügt`);
+        setIsUploadDialogOpen(true); // OPEN dialog when new files are added
       }
       return combined;
     });
@@ -332,6 +335,21 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </div>
 
           <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
+
+          {/* Upload Dialog for new files */}
+          <UploadDialog
+            open={isUploadDialogOpen}
+            onOpenChange={(open) => setIsUploadDialogOpen(open)}
+            files={files}
+            entityNames={entityNames}
+            authToken={authToken}
+            cloudEnvironment={cloudEnvironment}
+            onCompleted={async () => {
+              // Clear files and refresh previews
+              setFiles([]);
+              await reloadPreviews();
+            }}
+          />
 
           <div className="min-h-0 flex-1">
             <DocAttributesGrid

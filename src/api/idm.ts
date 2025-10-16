@@ -385,3 +385,81 @@ export const replaceIdmItemResource = async (
     );
   }
 };
+
+export const getIdmEntityAttributes = async (
+  token: string,
+  environment: CloudEnvironment,
+  entityName: string,
+  language: string = "de-DE"
+): Promise<string[]> => {
+  const base = buildIdmBase(environment);
+  const url =
+    `${base}/api/datamodel/entities/${encodeURIComponent(entityName)}?` +
+    `%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] entity '${entityName}' detail failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  const attrsNode = (json as any)?.entity?.attrs?.attr ?? [];
+  const attrsList: any[] = Array.isArray(attrsNode) ? attrsNode : attrsNode ? [attrsNode] : [];
+  const names = attrsList
+    .map((a) => String(a?.name ?? ""))
+    .filter((n) => n.length > 0);
+  return names;
+};
+
+export const createIdmItem = async (
+  token: string,
+  environment: CloudEnvironment,
+  payload: {
+    entityName: string;
+    attrs: { name: string; value: string }[];
+    resource: { filename: string; base64: string };
+    aclName?: string;
+    language?: string;
+  }
+): Promise<void> => {
+  const base = buildIdmBase(environment);
+  const language = payload.language ?? "de-DE";
+  const url =
+    `${base}/api/items?` +
+    `%24checkout=false&%24language=${encodeURIComponent(language)}`;
+
+  const body: any = {
+    item: {
+      entityName: payload.entityName,
+      attrs: { attr: payload.attrs },
+      resrs: { res: [{ filename: payload.resource.filename, base64: payload.resource.base64 }] },
+    },
+  };
+
+  if (payload.aclName) {
+    body.item.acl = { name: payload.aclName };
+  }
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/xml;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] create item failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};
