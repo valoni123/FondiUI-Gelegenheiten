@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
-import { getIdmEntityAttributes, createIdmItem } from "@/api/idm";
+import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
 
 type UploadDialogProps = {
   open: boolean;
@@ -39,7 +39,7 @@ type RowState = {
   key: string;
   file: File;
   entityName?: string;
-  attrs: string[]; // attribute names for selected entity
+  attrs: IdmAttribute[]; // now includes valueset
   values: Record<string, string>;
   loadingAttrs: boolean;
   saving: boolean;
@@ -96,11 +96,11 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       )
     );
     try {
-      const names = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
+      const attributes = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
       setRows((prev) =>
         prev.map((r) =>
           r.key === rowKey
-            ? { ...r, attrs: names, values: Object.fromEntries(names.map((n) => [n, ""])), loadingAttrs: false }
+            ? { ...r, attrs: attributes, values: Object.fromEntries(attributes.map((a) => [a.name, ""])), loadingAttrs: false }
             : r
         )
       );
@@ -248,7 +248,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 
                     {/* Dynamic attribute inputs */}
                     {Array.from({ length: maxAttrCount }).map((_, idx) => {
-                      const attrName = row.attrs[idx];
+                      const attr = row.attrs[idx];
                       return (
                         <div key={`${row.key}-attr-${idx}`} className="px-2">
                           {row.loadingAttrs ? (
@@ -256,28 +256,54 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                               <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                               Attribute laden…
                             </div>
-                          ) : attrName ? (
+                          ) : attr ? (
                             <div className="space-y-1">
-                              <div className="text-[10px] text-muted-foreground">{attrName}</div>
-                              <Input
-                                value={row.values[attrName] ?? ""}
-                                onChange={(e) => {
-                                  const v = e.target.value;
-                                  setRows((prev) =>
-                                    prev.map((r) =>
-                                      r.key === row.key
-                                        ? {
-                                            ...r,
-                                            values: { ...r.values, [attrName]: v },
-                                          }
-                                        : r
-                                    )
-                                  );
-                                }}
-                                className="h-8 text-[12px] px-2"
-                                placeholder=""
-                                aria-label={`Attribut ${attrName}`}
-                              />
+                              <div className="text-[10px] text-muted-foreground">{attr.name}</div>
+                              {attr.valueset && attr.valueset.length > 0 ? (
+                                <Select
+                                  value={row.values[attr.name] ?? ""}
+                                  onValueChange={(val) => {
+                                    setRows((prev) =>
+                                      prev.map((r) =>
+                                        r.key === row.key
+                                          ? { ...r, values: { ...r.values, [attr.name]: val } }
+                                          : r
+                                      )
+                                    );
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-[12px] px-2">
+                                    <SelectValue placeholder="Wählen…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {attr.valueset.map((vs) => (
+                                      <SelectItem key={vs.name} value={vs.name}>
+                                        {vs.desc}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Input
+                                  value={row.values[attr.name] ?? ""}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setRows((prev) =>
+                                      prev.map((r) =>
+                                        r.key === row.key
+                                          ? {
+                                              ...r,
+                                              values: { ...r.values, [attr.name]: v },
+                                            }
+                                          : r
+                                      )
+                                    );
+                                  }}
+                                  className="h-8 text-[12px] px-2"
+                                  placeholder=""
+                                  aria-label={`Attribut ${attr.name}`}
+                                />
+                              )}
                             </div>
                           ) : (
                             <div className="text-[10px] text-muted-foreground">—</div>

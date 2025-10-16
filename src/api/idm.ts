@@ -78,6 +78,12 @@ export type IdmDocPreview = {
   pid?: string; // NEW: PID used for updates
 };
 
+export type IdmAttribute = {
+  name: string;
+  desc?: string;
+  valueset?: { name: string; desc: string }[];
+};
+
 /**
  * Search union of entities for a given opportunity and return SmallPreview + Preview URLs per item.
  */
@@ -391,7 +397,7 @@ export const getIdmEntityAttributes = async (
   environment: CloudEnvironment,
   entityName: string,
   language: string = "de-DE"
-): Promise<string[]> => {
+): Promise<IdmAttribute[]> => {
   const base = buildIdmBase(environment);
   const url =
     `${base}/api/datamodel/entities/${encodeURIComponent(entityName)}?` +
@@ -413,10 +419,18 @@ export const getIdmEntityAttributes = async (
   const json = await res.json();
   const attrsNode = (json as any)?.entity?.attrs?.attr ?? [];
   const attrsList: any[] = Array.isArray(attrsNode) ? attrsNode : attrsNode ? [attrsNode] : [];
-  const names = attrsList
-    .map((a) => String(a?.name ?? ""))
-    .filter((n) => n.length > 0);
-  return names;
+  const attributes: IdmAttribute[] = attrsList.map((a) => {
+    const vs = a?.valueset?.value;
+    const valueset = Array.isArray(vs)
+      ? vs.map((v: any) => ({ name: String(v.name ?? ""), desc: String(v.desc ?? "") }))
+      : undefined;
+    return {
+      name: String(a?.name ?? ""),
+      desc: String(a?.desc ?? ""),
+      valueset,
+    };
+  });
+  return attributes.filter((attr) => attr.name.length > 0);
 };
 
 export const createIdmItem = async (
