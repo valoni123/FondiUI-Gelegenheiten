@@ -28,9 +28,10 @@ type Props = {
   onOpenFullPreview: (doc: IdmDocPreview) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
+  hideSaveAllButton?: boolean; // New prop
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -201,20 +202,22 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   return (
     <div className="h-full w-full">
-      <div className="flex justify-end mb-2 pr-4">
-        <Button
-          variant="default"
-          size="sm"
-          className={cn(
-            "h-8",
-            enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
-          )}
-          disabled={!enableSaveAllButton}
-          onClick={handleSaveAllChanges}
-        >
-          <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
-        </Button>
-      </div>
+      {!hideSaveAllButton && ( // Conditional rendering based on new prop
+        <div className="flex justify-end mb-2 pr-4">
+          <Button
+            variant="default"
+            size="sm"
+            className={cn(
+              "h-8",
+              enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
+            )}
+            disabled={!enableSaveAllButton}
+            onClick={handleSaveAllChanges}
+          >
+            <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+          </Button>
+        </div>
+      )}
       <TooltipProvider>
         <ScrollArea className="h-full w-full">
           <div className="pr-4">

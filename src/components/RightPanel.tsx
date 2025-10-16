@@ -348,12 +348,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
       <Dialog open={isFullPreviewDialogOpen} onOpenChange={setIsFullPreviewDialogOpen}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
           {/* Custom header area with title, description, and replace button */}
-          <div className="flex items-center justify-between pb-4">
-            <div>
-              <DialogTitle>Vollständige Vorschau</DialogTitle>
-              <DialogDescription>
-                {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
-              </DialogDescription>
+          <div className="flex flex-col pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Vollständige Vorschau</DialogTitle>
+                <DialogDescription>
+                  {fullPreviewData?.filename ? `Vorschau für: ${fullPreviewData.filename}` : "Vorschau"}
+                </DialogDescription>
+              </div>
             </div>
             {fullPreviewData && (
               <Button
@@ -361,6 +363,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 size="sm"
                 onClick={() => setIsReplaceDialogOpen(true)}
                 title="Dokument ersetzen"
+                className="mt-2 self-start"
               >
                 <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
               </Button>
@@ -413,6 +416,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 onOpenFullPreview={openFullPreview} // Pass the existing handler
                 onSaveRow={handleSaveRow} // Pass the existing handler
                 onReplaceDoc={handleReplaceDoc} // Pass the existing handler
+                hideSaveAllButton={true} // New prop to hide the "Save All" button
               />
             </div>
           )}
