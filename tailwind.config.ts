@@ -52,6 +52,7 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        'success-highlight': '#4CAF50', // Eine neue, spezifische grüne Farbe
       },
       borderRadius: {
         lg: "var(--radius)",

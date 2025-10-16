@@ -393,7 +393,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                             (errorHighlights[idx] ?? []).includes(col) &&
                               "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
                             (successHighlights[idx] ?? []).includes(col) &&
-                              "border-green-500 ring-2 ring-green-500 animate-[error-blink_0.9s_ease-in-out_2]"
+                              "border-success-highlight ring-2 ring-success-highlight animate-[error-blink_0.9s_ease-in-out_2]"
                           )}
                           aria-label={`Attribut ${col}`}
                           placeholder="-"
