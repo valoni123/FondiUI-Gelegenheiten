@@ -98,7 +98,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     return count;
   }, [docs, edited, initial, columns]);
 
-  const enableSaveAllButton = changedRowCount > 1; // Enable if more than one row has changes
+  const enableSaveAllButton = changedRowCount > 0; // Enable if any row has changes
 
   const handleSaveAllChanges = async () => {
     const successfulSaves: number[] = [];
