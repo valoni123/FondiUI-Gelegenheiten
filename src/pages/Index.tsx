@@ -17,9 +17,6 @@ import {
 } from "@/components/ui/resizable"; // Import Resizable components
 import RightPanel from "@/components/RightPanel"; // Import the new RightPanel
 import { getIdmEntities } from "@/api/idm";
-import UserBadge from "@/components/UserBadge";
-import { parseJwt } from "@/utils/jwt";
-import { getIonApiConfig } from "@/authorization/configLoader";
 
 interface IndexProps {
   companyNumber: string;
@@ -37,7 +34,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
-  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
 
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
@@ -73,20 +69,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       try {
         const token = await getAccessToken(companyNumber, cloudEnvironment);
         setAuthToken(token);
-
-        // Derive username from token claims or fall back to service account
-        const claims = parseJwt(token);
-        const config = getIonApiConfig(cloudEnvironment);
-        const derivedUsername =
-          claims?.preferred_username ||
-          claims?.name ||
-          claims?.upn ||
-          claims?.email ||
-          claims?.sub ||
-          config.saak ||
-          null;
-        setCurrentUsername(derivedUsername);
-
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
         // Load IDM entity names once after auth
@@ -233,12 +215,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
-        {/* Username indicator top-right */}
-        <div className="w-full flex justify-end">
-          <UserBadge username={currentUsername} />
-        </div>
-
+      <div className="w-full px-4 space-y-6 flex flex-col flex-grow"> {/* Added flex-grow */}
         <h1 className="text-4xl font-bold text-center mb-6">
           Gelegenheiten
         </h1>
@@ -250,7 +227,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           </div>
         )}
 
-        <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
+        <div className="flex justify-start gap-2 mb-4 flex-shrink-0"> {/* Added flex-shrink-0 */}
           <Button onClick={handleAddItem}>
             <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
           </Button>
