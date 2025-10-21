@@ -26,12 +26,18 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     const redirectUri = `${window.location.origin}/oauth/callback`;
     const state = crypto.randomUUID();
 
+    // Ensure the callback can read the chosen environment
+    localStorage.setItem("cloudEnvironment", cloudEnvironment);
+
     const params = new URLSearchParams({
-      response_type: "code", // use auth code flow; callback page will exchange it
+      // Use implicit flow to receive access_token directly in the fragment
+      response_type: "token",
       client_id: cfg.ci,
       redirect_uri: redirectUri,
-      scope: "openid profile offline_access",
+      // Keep scopes simple for implicit; refresh tokens aren't returned here
+      scope: "openid profile",
       state,
+      response_mode: "fragment",
     });
 
     const popup = window.open(

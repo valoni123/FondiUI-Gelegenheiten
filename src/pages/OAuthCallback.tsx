@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getIonApiConfig, type CloudEnvironment } from "@/authorization/configLoader";
+import type { CloudEnvironment } from "@/authorization/configLoader";
 import { setExternalAccessToken } from "@/authorization/authService";
 
 const OAuthCallback: React.FC = () => {
@@ -10,57 +10,27 @@ const OAuthCallback: React.FC = () => {
     const processCallback = async () => {
       try {
         const env = (localStorage.getItem("cloudEnvironment") as CloudEnvironment) || "GAC_DEM";
-        const cfg = getIonApiConfig(env);
-        const redirectUri = `${window.location.origin}/oauth/callback`;
 
-        // First try implicit flow via hash
+        // Parse both fragment (#) and query (?) for maximum compatibility
         const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        const tokenFromHash = hashParams.get("access_token");
-        const expiresInHash = hashParams.get("expires_in");
+        const queryParams = new URLSearchParams(window.location.search);
 
-        let accessToken: string | null = null;
-        let expiresInSec: number = 3600;
+        const error = hashParams.get("error") || queryParams.get("error");
+        const errorDescription = hashParams.get("error_description") || queryParams.get("error_description");
 
-        if (tokenFromHash) {
-          accessToken = tokenFromHash;
-          if (expiresInHash) {
-            expiresInSec = parseInt(expiresInHash, 10) || 3600;
-          }
-        } else {
-          // Try authorization code exchange
-          const queryParams = new URLSearchParams(window.location.search);
-          const code = queryParams.get("code");
-          if (!code) {
-            throw new Error("Kein Token oder Code in der Antwort gefunden.");
-          }
-
-          const tokenUrl = `${cfg.pu}${cfg.ot}`;
-          const body = new URLSearchParams({
-            grant_type: "authorization_code",
-            code,
-            redirect_uri: redirectUri,
-            client_id: cfg.ci,
-            client_secret: cfg.cs,
-          });
-
-          const res = await fetch(tokenUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString(),
-          });
-
-          if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`Token-Austausch fehlgeschlagen: ${res.status} ${res.statusText} - ${errText}`);
-          }
-
-          const json = await res.json();
-          accessToken = json.access_token;
-          expiresInSec = json.expires_in || 3600;
+        if (error) {
+          throw new Error(`${error}: ${errorDescription || "Fehler vom Autorisierungsserver."}`);
         }
 
+        let accessToken: string | null =
+          hashParams.get("access_token") || queryParams.get("access_token");
+
+        let expiresInSec = Number(hashParams.get("expires_in") || queryParams.get("expires_in") || 3600);
+
         if (!accessToken) {
-          throw new Error("Kein Zugriffstoken erhalten.");
+          throw new Error(
+            "Kein Token im Callback empfangen. Bitte prüfen Sie, ob die Redirect-URL in ION korrekt registriert ist und die Antwortart 'token' erlaubt ist."
+          );
         }
 
         const companyNumber = localStorage.getItem("companyNumber") || "1000";
