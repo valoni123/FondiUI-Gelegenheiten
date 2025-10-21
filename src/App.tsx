@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
+import UserStatus from "./components/UserStatus";
 import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
@@ -68,12 +69,15 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SettingsButton
-            currentCompanyNumber={companyNumber}
-            onSaveCompanyNumber={handleSaveCompanyNumber}
-            currentCloudEnvironment={cloudEnvironment}
-            onSaveCloudEnvironment={handleSaveCloudEnvironment}
-          />
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+            <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
+            <SettingsButton
+              currentCompanyNumber={companyNumber}
+              onSaveCompanyNumber={handleSaveCompanyNumber}
+              currentCloudEnvironment={cloudEnvironment}
+              onSaveCloudEnvironment={handleSaveCloudEnvironment}
+            />
+          </div>
           <Routes>
             <Route
               path="/"
