@@ -126,7 +126,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           </CardContent>
 
           <CardFooter className="flex justify-center pb-8">
-            <Button onClick={handleLogin}>Mit Infor ION anmelden</Button>
+            <Button onClick={handleLogin} className="bg-orange-500 hover:bg-orange-600">Mit Infor ION anmelden</Button>
           </CardFooter>
         </Card>
       </div>
