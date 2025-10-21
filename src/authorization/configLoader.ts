@@ -78,3 +78,9 @@ export const getRedirectUri = (environment: CloudEnvironment): string => {
   console.warn(`ionapi.ru missing for ${environment}. Using fallback redirect URI: ${fallback}`);
   return fallback;
 };
+
+// Build proxied revoke endpoint: /infor-sso/{ti}/as/{or}
+export const getRevokeProxyPath = (environment: CloudEnvironment): string => {
+  const config = getIonApiConfig(environment);
+  return `/infor-sso/${config.ti}/as/${config.or}`;
+};

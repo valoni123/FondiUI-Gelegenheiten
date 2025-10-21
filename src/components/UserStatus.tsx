@@ -3,11 +3,12 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User as UserIcon } from "lucide-react";
+import { User as UserIcon, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import type { CloudEnvironment } from "@/authorization/configLoader";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { revokeAccessToken } from "@/authorization/authService";
 
 interface UserStatusProps {
   isAuthenticated: boolean;
@@ -75,6 +76,24 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
     return null;
   }
 
+  const handleLogout = async () => {
+    try {
+      const currentToken = localStorage.getItem("oauthAccessToken") || "";
+      if (currentToken) {
+        await revokeAccessToken(cloudEnvironment, currentToken);
+      }
+    } catch (e) {
+      console.warn("Logout revoke failed:", e);
+    } finally {
+      localStorage.removeItem("oauthAccessToken");
+      localStorage.removeItem("oauthExpiresAt");
+      sessionStorage.removeItem("pkce_verifier");
+      toast.success("Abgemeldet.");
+      // Force route update and fresh auth state recalculation
+      window.location.href = "/login";
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -140,6 +159,17 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
             <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">E-Mail</div>
             <Input disabled value={data?.email ?? "-"} />
           </div>
+        </div>
+
+        <div className="mt-4">
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            className="text-red-600 focus:bg-red-50 cursor-pointer"
+            onClick={handleLogout}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Abmelden
+          </DropdownMenuItem>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

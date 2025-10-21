@@ -1,4 +1,4 @@
-import { getIonApiConfig, getSsoProxyPath, CloudEnvironment } from './configLoader';
+import { getIonApiConfig, getSsoProxyPath, getRevokeProxyPath, CloudEnvironment } from './configLoader';
 
 // IMPORTANT: Storing client secrets and user credentials directly in frontend code is generally NOT recommended for production environments.
 // For a production application, these credentials should be managed securely on a backend server.
@@ -89,6 +89,36 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
     // Clear cache on error to force re-authentication next time
     tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null, cachedCloudEnvironment: null };
     throw error;
+  }
+};
+
+export const revokeAccessToken = async (cloudEnvironment: CloudEnvironment, token: string): Promise<void> => {
+  try {
+    const ionapiConfig = getIonApiConfig(cloudEnvironment);
+    const PROXY_REVOKE_PATH = getRevokeProxyPath(cloudEnvironment);
+
+    const params = new URLSearchParams();
+    params.append('token', token);
+    params.append('token_type_hint', 'access_token');
+    // Include client credentials for confidential client revocation
+    params.append('client_id', ionapiConfig.ci);
+    params.append('client_secret', ionapiConfig.cs);
+
+    console.log("Revoking access token via proxy:", PROXY_REVOKE_PATH);
+    const resp = await fetch(PROXY_REVOKE_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      console.warn(`Token revoke failed: ${resp.status} ${resp.statusText} - ${text}`);
+    } else {
+      console.log("Access token revoked successfully.");
+    }
+  } finally {
+    // Always clear local cache after attempting revoke
+    tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null, cachedCloudEnvironment: null };
   }
 };
 
