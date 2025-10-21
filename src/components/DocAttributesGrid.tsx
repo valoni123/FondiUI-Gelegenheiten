@@ -225,6 +225,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   // Delete confirmation dialog state
   const [confirmDeleteRow, setConfirmDeleteRow] = React.useState<number | null>(null);
 
+  // Batch delete confirmation dialog state
+  const [confirmBatchDelete, setConfirmBatchDelete] = React.useState(false);
+
   // Track selected rows
   const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
   React.useEffect(() => {
@@ -242,6 +245,10 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   };
 
   const handleBatchDelete = async () => {
+    setConfirmBatchDelete(true);
+  };
+
+  const executeBatchDelete = async () => {
     const selectedDocs = Array.from(selectedRows)
       .map((i) => docs[i])
       .filter((d) => d && d.pid);
@@ -249,6 +256,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
       await onDeleteDoc(doc as IdmDocPreview);
     }
     setSelectedRows(new Set());
+    setConfirmBatchDelete(false);
   };
 
   if (!docs.length) {
@@ -511,6 +519,32 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                 if (!doc?.pid) return;
                 await onDeleteDoc(doc);
               }}
+            >
+              ja
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Batch Delete Dialog */}
+      <Dialog
+        open={confirmBatchDelete}
+        onOpenChange={(open) => {
+          if (!open) setConfirmBatchDelete(false);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sollen wirklich alle ausgewählten Dokumente gelöscht werden?</DialogTitle>
+            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setConfirmBatchDelete(false)}>
+              nein
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={executeBatchDelete}
             >
               ja
             </Button>
