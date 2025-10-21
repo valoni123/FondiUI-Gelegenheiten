@@ -14,7 +14,6 @@ interface UserStatusProps {
 
 interface MeResponse {
   displayName?: string;
-  // other fields are not needed here
 }
 
 const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promise<MeResponse> => {
@@ -29,7 +28,26 @@ const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promi
   if (!res.ok) {
     throw new Error(`Fehler beim Laden des Benutzerprofils (${res.status})`);
   }
-  return res.json();
+
+  const raw = await res.json();
+
+  // Try common keys and nested shapes
+  const candidates = [
+    raw?.displayName,
+    raw?.DisplayName,
+    raw?.user?.displayName,
+    raw?.user?.name,
+    raw?.name,
+    raw?.fullName,
+    raw?.userDisplayName,
+    raw?.preferred_username,
+    raw?.username,
+    raw?.userName,
+  ];
+
+  const displayName = String(candidates.find((v) => typeof v === "string" && v.trim().length > 0) || "").trim();
+
+  return { displayName };
 };
 
 const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironment }) => {
@@ -58,7 +76,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
         </AvatarFallback>
       </Avatar>
       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-        {isLoading ? "Lade Benutzer ..." : (data?.displayName ?? "Unbekannter Benutzer")}
+        {isLoading ? "Lade Benutzer ..." : (data?.displayName && data.displayName.length > 0 ? data.displayName : "Unbekannter Benutzer")}
       </div>
     </div>
   );
