@@ -539,3 +539,28 @@ export const createIdmItem = async (
     throw new Error(`[IDM] create item failed: ${res.status} ${res.statusText} - ${errorText}`);
   }
 };
+
+export const deleteIdmItem = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  language: string = "de-DE"
+): Promise<void> => {
+  const base = buildIdmBase(environment);
+  const url =
+    `${base}/api/items/${encodeURIComponent(pid)}?` +
+    `%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: {
+      Accept: "*/*",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] delete failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};

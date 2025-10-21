@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -29,9 +29,10 @@ type Props = {
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
+  onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, onDeleteDoc }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -220,6 +221,9 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   const [uploadRow, setUploadRow] = React.useState<number | null>(null);
   const [isReplacing, setIsReplacing] = React.useState(false);
 
+  // Delete confirmation dialog state
+  const [confirmDeleteRow, setConfirmDeleteRow] = React.useState<number | null>(null);
+
   if (!docs.length) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -230,7 +234,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   // Spaltenbreiten: 30px Details, 30px Save, 30px Replace, 160px Dokumenttyp, rest Attribute
   const gridTemplate =
-    `30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "");
+    `30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
 
   return (
     <div className="h-full w-full">
@@ -267,6 +271,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                   {col}
                 </div>
               ))}
+              <div className="px-2"></div> {/* Button: Delete */}
             </div>
 
             {/* Rows */}
@@ -410,6 +415,21 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                         </div>
                       );
                     })}
+
+                    {/* Delete Button (rightmost) */}
+                    <div className="px-2 flex items-center">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        disabled={!doc.pid}
+                        onClick={() => setConfirmDeleteRow(idx)}
+                        title="Dokument löschen"
+                        aria-label="Dokument löschen"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })}
@@ -417,6 +437,39 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
           </div>
         </ScrollArea>
       </TooltipProvider>
+
+      {/* Confirm Delete Dialog */}
+      <Dialog
+        open={confirmDeleteRow !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteRow(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
+            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
+              nein
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                const row = confirmDeleteRow;
+                setConfirmDeleteRow(null);
+                if (row == null) return;
+                const doc = docs[row];
+                if (!doc?.pid) return;
+                await onDeleteDoc(doc);
+              }}
+            >
+              ja
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Replace Dialog */}
       <Dialog

@@ -18,7 +18,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import DocAttributesGrid from "./DocAttributesGrid";
-import { replaceIdmItemResource } from "@/api/idm";
+import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 
@@ -278,6 +278,42 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }
   };
 
+  // DELETE handler
+  const handleDeleteDoc = async (doc: IdmDocPreview) => {
+    if (!doc.pid) return false;
+    try {
+      await deleteIdmItem(authToken, cloudEnvironment, doc.pid);
+      toast({
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <Check className="h-4 w-4" />
+            Dokument gelöscht
+          </span>
+        ),
+        variant: "success",
+      });
+      // If the deleted doc is currently open in full preview, close it
+      if (fullPreviewData?.pid && fullPreviewData.pid === doc.pid) {
+        setIsFullPreviewDialogOpen(false);
+      }
+      await reloadPreviews();
+      return true;
+    } catch (err: any) {
+      const errorText = String(err?.message ?? err ?? "Unbekannter Fehler");
+      toast({
+        title: (
+          <span className="inline-flex items-center gap-2">
+            <X className="h-4 w-4 text-white" />
+            Löschen fehlgeschlagen
+          </span>
+        ),
+        description: errorText,
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const addFiles = (incoming: File[]) => {
     if (!incoming.length) return;
     setFiles((prev) => {
@@ -419,6 +455,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               onOpenFullPreview={openFullPreview}
               onSaveRow={handleSaveRow}
               onReplaceDoc={handleReplaceDoc}
+              onDeleteDoc={handleDeleteDoc}
             />
           </div>
         </CardContent>
@@ -531,6 +568,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 onSaveRow={handleSaveRow} // Pass the existing handler
                 onReplaceDoc={handleReplaceDoc} // Pass the existing handler
                 hideSaveAllButton={true} // New prop to hide the "Save All" button
+                onDeleteDoc={handleDeleteDoc}
               />
             </div>
           )}
