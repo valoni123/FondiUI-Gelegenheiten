@@ -112,12 +112,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             />
           </div>
 
-          {/* Fallback styled text logo (visible if image not found) */}
-          <div className="flex items-end gap-2 -mb-2">
-            <span className="text-4xl sm:text-5xl font-normal text-gray-500 tracking-tight">FONDI</span>
-            <span className="text-4xl sm:text-5xl font-extrabold text-orange-500 tracking-tight">UI</span>
-          </div>
-
           {/* Subtitle */}
           <div className="mt-3 text-center text-sm text-muted-foreground">
             Fondium User Interface Web Apps
