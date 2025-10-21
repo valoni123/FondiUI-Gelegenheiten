@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Copy } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
@@ -315,12 +315,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         {/* Top-right action to apply attributes from first row to all rows */}
         <div className="flex justify-end mb-2">
           <Button
-            variant="outline"
+            variant={canApplyToAll ? "default" : "outline"}
             size="sm"
             disabled={!canApplyToAll}
             onClick={applyAttributesToAll}
             title="Attribute aus erster Zeile auf alle übernehmen"
+            className={canApplyToAll ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
           >
+            <Copy className="mr-2 h-4 w-4" />
             Attribute für alle Dokumente übernehmen
           </Button>
         </div>
