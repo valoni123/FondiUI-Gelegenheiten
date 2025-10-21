@@ -464,7 +464,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       {/* Full Preview Dialog */}
       <Dialog open={isFullPreviewDialogOpen} onOpenChange={setIsFullPreviewDialogOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-6xl sm:max-w-7xl h-[90vh] flex flex-col">
           {/* Custom header area with title, description, and replace button */}
           <div className="flex flex-col pb-4">
             <div className="flex flex-col">
@@ -576,7 +576,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           {/* DocAttributesGrid for the current document */}
           {fullPreviewData && (
-            <div className="flex-shrink-0 h-48 mt-4 border-t pt-4 px-6">
+            <div className="flex-shrink-0 max-h-56 md:max-h-72 overflow-y-auto mt-4 border-t pt-4 px-6">
               <DocAttributesGrid
                 docs={[fullPreviewData]} // Pass the single document as an array
                 onOpenFullPreview={openFullPreview} // Pass the existing handler
