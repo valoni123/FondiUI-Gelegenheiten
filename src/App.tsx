@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
 import React, { useState, useEffect } from "react";
@@ -78,11 +79,15 @@ const App = () => {
               path="/"
               element={
                 isAuthenticated ? (
-                  <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                  <Dashboard />
                 ) : (
                   <Login cloudEnvironment={cloudEnvironment} />
                 )
               }
+            />
+            <Route
+              path="/opportunities"
+              element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
             />
             <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
             <Route path="/callback" element={<OAuthCallback />} />
