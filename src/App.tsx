@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -14,6 +14,33 @@ import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
+
+// Fade transition component
+const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [displayChildren, setDisplayChildren] = useState(children);
+
+  useEffect(() => {
+    setIsAnimating(true);
+    const timer = setTimeout(() => {
+      setDisplayChildren(children);
+      setIsAnimating(false);
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [children]);
+
+  return (
+    <div
+      className={`transition-opacity duration-300 ${
+        isAnimating ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      {displayChildren}
+    </div>
+  );
+};
 
 const App = () => {
   // Initialize company number from localStorage or a default
@@ -78,26 +105,28 @@ const App = () => {
               onSaveCloudEnvironment={handleSaveCloudEnvironment}
             />
           </div>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                isAuthenticated ? (
-                  <Dashboard />
-                ) : (
-                  <Login cloudEnvironment={cloudEnvironment} />
-                )
-              }
-            />
-            <Route
-              path="/opportunities"
-              element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
-            />
-            <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
-            <Route path="/callback" element={<OAuthCallback />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <FadeTransition>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <Dashboard />
+                  ) : (
+                    <Login cloudEnvironment={cloudEnvironment} />
+                  )
+                }
+              />
+              <Route
+                path="/opportunities"
+                element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
+              />
+              <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
+              <Route path="/callback" element={<OAuthCallback />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </FadeTransition>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
