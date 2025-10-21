@@ -1,3 +1,4 @@
+1 and enable only when at least 2 rows have a document type selected.">
 "use client";
 
 import React from "react";
@@ -248,7 +249,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 
   // Allow bulk upload when at least one row has a selected Dokumententyp
   const canSaveAll = React.useMemo(() => {
-    return rows.some((r) => !!r.entityName);
+    return rows.filter((r) => !!r.entityName).length >= 2;
   }, [rows]);
 
   // Bulk save handler: uploads all rows that have a Dokumententyp selected
@@ -402,7 +403,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
               <div />
             )}
             {/* Right-side bulk upload button */}
-            {rows.length > 0 && (
+            {rows.length > 1 && (
               <div className="flex">
                 <Button
                   variant="default"
