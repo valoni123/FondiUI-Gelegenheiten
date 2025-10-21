@@ -18,7 +18,7 @@ const Dashboard: React.FC = () => {
           />
         </div>
         <div className="mt-1 text-sm sm:text-base font-semibold text-muted-foreground">
-          FONDIUM USER INTERFACE
+          FONDIUM UI
         </div>
       </div>
 
