@@ -98,22 +98,28 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
       <Card className="max-w-md w-full">
-        <CardHeader className="flex flex-col items-center space-y-3 pt-8">
-          {/* Logo-like header recreated with styled text to match the attached logo */}
+        <CardHeader className="flex flex-col items-center pt-8">
+          {/* Logo image (use public/fondiui-logo.png). If not available, fallback to styled text logo */}
+          <div className="w-full flex justify-center mb-6">
+            <img
+              src="/fondiui-logo.png"
+              alt="FONDIUI"
+              className="w-72 sm:w-96 object-contain"
+              onError={(e) => {
+                // hide broken image if not present so fallback text is visible
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </div>
+
+          {/* Fallback styled text logo (visible if image not found) */}
           <div className="flex items-end gap-2 -mb-2">
             <span className="text-4xl sm:text-5xl font-normal text-gray-500 tracking-tight">FONDI</span>
             <span className="text-4xl sm:text-5xl font-extrabold text-orange-500 tracking-tight">UI</span>
           </div>
 
-          {/* Main title: FONDIUI with UI in bold */}
-          <CardTitle className="text-center">
-            <span className="text-lg sm:text-xl tracking-tight">
-              FONDI<span className="font-bold">UI</span>
-            </span>
-          </CardTitle>
-
           {/* Subtitle */}
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="mt-3 text-center text-sm text-muted-foreground">
             Fondium User Interface Web Apps
           </div>
         </CardHeader>
