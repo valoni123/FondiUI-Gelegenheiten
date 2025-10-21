@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CloudEnvironment } from "@/authorization/configLoader";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 
 interface UserStatusProps {
   isAuthenticated: boolean;
@@ -17,6 +19,13 @@ interface MeResponse {
   profilePicture?: {
     cdnPathMediumImage?: string;
   };
+  name?: {
+    givenName?: string;
+    familyName?: string;
+  };
+  title?: string;
+  department?: string;
+  email?: string;
 }
 
 const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promise<MeResponse> => {
@@ -34,14 +43,18 @@ const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promi
 
   const raw = await res.json();
 
-  // Extract displayName and profilePicture from the nested userlist structure
   const user = raw?.response?.userlist?.[0];
-  const displayName = user?.displayName || 
-                     user?.name?.givenName + " " + user?.name?.familyName ||
-                     "Unbekannter Benutzer";
+  const displayName =
+    user?.displayName ||
+    (user?.name?.givenName && user?.name?.familyName ? `${user.name.givenName} ${user.name.familyName}` : undefined) ||
+    "Unbekannter Benutzer";
   const profilePicture = user?.profilePicture;
+  const name = user?.name;
+  const title = user?.title ?? "";
+  const department = user?.department ?? "";
+  const email = user?.userName ?? "";
 
-  return { displayName, profilePicture };
+  return { displayName, profilePicture, name, title, department, email };
 };
 
 const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironment }) => {
@@ -63,20 +76,73 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
   }
 
   return (
-    <div className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur px-3 py-2 shadow border border-gray-200 dark:border-gray-700">
-      <Avatar className="h-8 w-8">
-        {data?.profilePicture?.cdnPathMediumImage ? (
-          <AvatarImage src={data.profilePicture.cdnPathMediumImage} alt={data.displayName} />
-        ) : (
-          <AvatarFallback className="bg-orange-500/20 text-orange-600 dark:text-orange-400">
-            <UserIcon className="h-4 w-4" />
-          </AvatarFallback>
-        )}
-      </Avatar>
-      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-        {isLoading ? "Lade Benutzer ..." : (data?.displayName && data.displayName.length > 0 ? data.displayName : "Unbekannter Benutzer")}
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur px-3 py-2 shadow border border-gray-200 dark:border-gray-700 cursor-pointer"
+          aria-label="Benutzerinformationen öffnen"
+        >
+          <Avatar className="h-8 w-8">
+            {data?.profilePicture?.cdnPathMediumImage ? (
+              <AvatarImage src={data.profilePicture.cdnPathMediumImage} alt={data?.displayName ?? "Benutzer"} />
+            ) : (
+              <AvatarFallback className="bg-orange-500/20 text-orange-600 dark:text-orange-400">
+                <UserIcon className="h-4 w-4" />
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {isLoading ? "Lade Benutzer ..." : (data?.displayName && data.displayName.length > 0 ? data.displayName : "Unbekannter Benutzer")}
+          </div>
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        align="end"
+        sideOffset={8}
+        className="w-72 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg animate-in fade-in-0 zoom-in-95"
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <Avatar className="h-10 w-10">
+            {data?.profilePicture?.cdnPathMediumImage ? (
+              <AvatarImage src={data.profilePicture.cdnPathMediumImage} alt={data?.displayName ?? "Benutzer"} />
+            ) : (
+              <AvatarFallback className="bg-orange-500/20 text-orange-600 dark:text-orange-400">
+                <UserIcon className="h-5 w-5" />
+              </AvatarFallback>
+            )}
+          </Avatar>
+          <div className="text-sm">
+            <div className="font-semibold text-gray-900 dark:text-gray-100">{data?.displayName ?? "-"}</div>
+            <div className="text-gray-500 dark:text-gray-400">{data?.email ?? "-"}</div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Vorname</div>
+            <Input disabled value={data?.name?.givenName ?? "-"} />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Nachname</div>
+            <Input disabled value={data?.name?.familyName ?? "-"} />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Titel</div>
+            <Input disabled value={data?.title ?? "-"} />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Abteilung</div>
+            <Input disabled value={data?.department ?? "-"} />
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">E-Mail</div>
+            <Input disabled value={data?.email ?? "-"} />
+          </div>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
