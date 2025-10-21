@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
       {/* Light-mode layer: invert the white wave so it shows on light backgrounds */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute inset-0 z-0 dark:hidden"
+        className="pointer-events-none select-none absolute inset-0 -z-10 dark:hidden"
         style={{
           backgroundImage: "url('/fondiui-background-transparent.png')",
           backgroundRepeat: "no-repeat",
@@ -43,14 +43,14 @@ const Dashboard: React.FC = () => {
           // Make the wave larger than the page and invert it so it contrasts on light BG
           backgroundSize: "180% auto",
           filter: "invert(1) saturate(0.9)",
-          opacity: 0.3,
+          opacity: 0.18,
         }}
       />
 
       {/* Dark-mode layer: use the original (white) wave on dark backgrounds */}
       <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute inset-0 z-0 hidden dark:block"
+        className="pointer-events-none select-none absolute inset-0 -z-10 hidden dark:block"
         style={{
           backgroundImage: "url('/fondiui-background-transparent.png')",
           backgroundRepeat: "no-repeat",
