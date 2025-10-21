@@ -24,7 +24,7 @@ const SettingsButton: React.FC<SettingsButtonProps> = ({
       <Button
         variant="ghost"
         size="icon"
-        className="fixed top-4 right-4 z-50"
+        className="h-8 w-8"
         onClick={() => setIsDialogOpen(true)}
         aria-label="Open settings"
       >
