@@ -393,6 +393,43 @@ export const replaceIdmItemResource = async (
   }
 };
 
+// Check if an item exists for given entityName, filename, and opportunityId
+export const existsIdmItemByEntityFilenameOpportunity = async (
+  token: string,
+  environment: CloudEnvironment,
+  entityName: string,
+  filename: string,
+  opportunityId: string,
+  language: string = "de-DE"
+): Promise<boolean> => {
+  const base = buildIdmBase(environment);
+  const query = `/${entityName}[@RESOURCENAME = "${filename}" AND @Gelegenheit = "${opportunityId}"]`;
+  const url =
+    `${base}/api/items/search/item?` +
+    `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] exists check failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  // Robustly extract items array: items.item[] or item[]
+  const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
+  const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  // If any item is returned, it exists
+  return items.length > 0;
+};
+
 export const getIdmEntityAttributes = async (
   token: string,
   environment: CloudEnvironment,

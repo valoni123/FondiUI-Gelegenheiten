@@ -24,6 +24,7 @@ import { Loader2, Save } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
+import { existsIdmItemByEntityFilenameOpportunity } from "@/api/idm";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
@@ -48,6 +49,7 @@ type RowState = {
   loadingAttrs: boolean;
   saving: boolean;
   saved: boolean;
+  duplicateExists?: boolean; // mark if duplicate found
 };
 
 const fileKey = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
@@ -92,11 +94,11 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     });
   }, [files]);
 
-  const loadAttrsForEntity = async (rowKey: string, entityName: string) => {
+  const loadAttrsForEntity = async (rowKey: string, entityName: string, fileName?: string) => {
     setRows((prev) =>
       prev.map((r) =>
         r.key === rowKey
-          ? { ...r, entityName, loadingAttrs: true, attrs: [], values: {} }
+          ? { ...r, entityName, loadingAttrs: true, attrs: [], values: {}, duplicateExists: false }
           : r
       )
     );
@@ -120,12 +122,39 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             ? {
                 ...r,
                 attrs: filtered,
-                values: initialValues, // Use the potentially pre-filled initialValues
+                values: initialValues,
                 loadingAttrs: false,
               }
             : r
         )
       );
+
+      // After attributes are loaded, perform duplicate check if we have filename and Gelegenheit
+      const opportunityId = initialValues["Gelegenheit"] || "";
+      if (fileName && opportunityId) {
+        try {
+          const exists = await existsIdmItemByEntityFilenameOpportunity(
+            authToken,
+            cloudEnvironment,
+            entityName,
+            fileName,
+            opportunityId,
+            "de-DE"
+          );
+          setRows((prev) =>
+            prev.map((r) =>
+              r.key === rowKey ? { ...r, duplicateExists: exists } : r
+            )
+          );
+        } catch (dupErr) {
+          // If duplicate check fails, keep UI silent and assume no duplicate
+          setRows((prev) =>
+            prev.map((r) =>
+              r.key === rowKey ? { ...r, duplicateExists: false } : r
+            )
+          );
+        }
+      }
     } catch (err: any) {
       const msg = String(err?.message ?? "Attribute konnten nicht geladen werden.");
       toast({ title: "Fehler", description: msg, variant: "destructive" });
@@ -243,7 +272,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                     <div className="px-2">
                       <Select
                         value={row.entityName}
-                        onValueChange={(val) => loadAttrsForEntity(row.key, val)}
+                        onValueChange={(val) => loadAttrsForEntity(row.key, val, row.file.name)}
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue placeholder="Dokumententyp wählen" />
@@ -256,6 +285,11 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                           ))}
                         </SelectContent>
                       </Select>
+                      {row.duplicateExists && (
+                        <div className="mt-1 text-xs text-red-600">
+                          Info: Dokument mit diesem Dateinamen wurde bereits hochgeladen
+                        </div>
+                      )}
                     </div>
 
                     {/* Filename */}
