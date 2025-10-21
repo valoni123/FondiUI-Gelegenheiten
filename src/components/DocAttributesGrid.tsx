@@ -3,6 +3,7 @@
 import React from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { type IdmDocPreview } from "@/api/idm";
 import {
@@ -224,6 +225,32 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
   // Delete confirmation dialog state
   const [confirmDeleteRow, setConfirmDeleteRow] = React.useState<number | null>(null);
 
+  // Track selected rows
+  const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
+  React.useEffect(() => {
+    // Clear selection whenever docs change to avoid index mismatch after reloads
+    setSelectedRows(new Set());
+  }, [docs]);
+
+  const toggleRowSelected = (idx: number) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
+  const handleBatchDelete = async () => {
+    const selectedDocs = Array.from(selectedRows)
+      .map((i) => docs[i])
+      .filter((d) => d && d.pid);
+    for (const doc of selectedDocs) {
+      await onDeleteDoc(doc as IdmDocPreview);
+    }
+    setSelectedRows(new Set());
+  };
+
   if (!docs.length) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -232,14 +259,26 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     );
   }
 
-  // Spaltenbreiten: 30px Details, 30px Save, 30px Replace, 160px Dokumenttyp, rest Attribute
+  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Doc (160) | Attributes | Delete (30)
   const gridTemplate =
-    `30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
+    `30px 30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
 
   return (
     <div className="h-full w-full">
       {!hideSaveAllButton && ( // Conditional rendering based on new prop
-        <div className="flex justify-end mb-2 pr-4">
+        <div className="flex justify-end items-center gap-2 mb-2 pr-4">
+          {/* Batch delete appears only when more than one row is selected */}
+          {selectedRows.size > 1 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8"
+              onClick={handleBatchDelete}
+              title="Ausgewählte Dokumente löschen"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
+            </Button>
+          )}
           <Button
             variant="default"
             size="sm"
@@ -263,6 +302,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
               style={{ gridTemplateColumns: gridTemplate }}
             >
               <div className="px-2"></div> {/* Button: Details */}
+              <div className="px-2"></div> {/* Checkbox: Select */}
               <div className="px-2"></div> {/* Button: Save */}
               <div className="px-2"></div> {/* Button: Replace */}
               <div className="px-2">Dokumenttyp / Name</div>
@@ -297,16 +337,23 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                         className="h-6 w-6"
                         onClick={() => onOpenFullPreview(doc, (updatedDoc) => {
                           // This callback will be called when the DetailDialog saves changes
-                          // We need to update the 'docs' state here if it's managed in the parent
-                          // For now, we'll just log it, assuming the parent will handle the actual state update
                           console.log("Doc updated from DetailDialog:", updatedDoc);
-                          // If docs is managed internally by DocAttributesGrid, we would update it here.
-                          // Since docs is a prop, the parent component needs to handle this update.
                         })}
                         title="Details anzeigen"
                       >
                         <ChevronRight className="h-3 w-3" />
                       </Button>
+                    </div>
+
+                    {/* Select Checkbox */}
+                    <div className="px-2">
+                      <Checkbox
+                        checked={selectedRows.has(idx)}
+                        onCheckedChange={() => toggleRowSelected(idx)}
+                        className="h-4 w-4"
+                        disabled={!doc.pid}
+                        aria-label="Dokument auswählen"
+                      />
                     </div>
 
                     {/* Save Button */}
@@ -421,7 +468,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
                         disabled={!doc.pid}
                         onClick={() => setConfirmDeleteRow(idx)}
                         title="Dokument löschen"
