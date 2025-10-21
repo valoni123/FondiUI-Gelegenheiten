@@ -91,3 +91,18 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
     throw error;
   }
 };
+
+export const setExternalAccessToken = (
+  token: string,
+  expiresInSeconds: number,
+  companyNumber: string,
+  cloudEnvironment: CloudEnvironment
+): void => {
+  tokenCache = {
+    accessToken: token,
+    expiresAt: Date.now() + expiresInSeconds * 1000 - 60 * 1000,
+    cachedCompanyNumber: companyNumber,
+    cachedCloudEnvironment: cloudEnvironment,
+  };
+  console.log("External OAuth2 Token set and cached.");
+};

@@ -7,7 +7,6 @@ import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
-import { getAccessToken } from "@/authorization/authService";
 import { getBusinessPartnerById } from "@/api/businessPartners";
 import { CloudEnvironment } from "@/authorization/configLoader";
 import {
@@ -65,25 +64,27 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   }, []);
 
   useEffect(() => {
-    const authenticateAndLoadData = async () => {
+    const initWithLoginToken = async () => {
       try {
-        const token = await getAccessToken(companyNumber, cloudEnvironment);
+        const token = localStorage.getItem("oauthAccessToken");
+        if (!token) {
+          setIsAuthLoading(false);
+          return;
+        }
         setAuthToken(token);
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
-        // Load IDM entity names once after auth
         const entities = await getIdmEntities(token, cloudEnvironment);
         setIdmEntityNames(entities);
-        console.log("[Index.tsx] IDM Entities loaded:", entities); // Add this log
         await loadOpportunities(token, companyNumber, cloudEnvironment, false);
       } catch (error) {
-        console.error("Authentication or initial data fetch failed:", error);
-        toast.error("Failed to initialize application: Could not get auth token or data.");
+        console.error("Initial data fetch failed:", error);
+        toast.error("Fehler bei der Initialisierung: Daten konnten nicht geladen werden.");
       } finally {
         setIsAuthLoading(false);
       }
     };
-    authenticateAndLoadData();
+    initWithLoginToken();
   }, [companyNumber, cloudEnvironment, loadOpportunities]);
 
   useEffect(() => {

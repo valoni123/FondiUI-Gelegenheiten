@@ -1,5 +1,5 @@
 import gacDemConfig from './GAC_DEM.json';
-import fonTrnConfig from './FON_TRN.json';
+import fonTrnConfig from './FONDIUM_TRN.json';
 import ionapiConfig from './ionapi.json'; // Default config, will be replaced by selected one
 
 export type CloudEnvironment = 'GAC_DEM' | 'FON_TRN';
@@ -54,4 +54,14 @@ export const getMetadataUrl = (environment: CloudEnvironment): string => {
 export const getSsoProxyPath = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
   return `/infor-sso/${config.ti}/as/${config.ot}`;
+};
+
+export const getAuthUrl = (environment: CloudEnvironment): string => {
+  const config = getIonApiConfig(environment);
+  return `${config.pu}${config.oa}`;
+};
+
+export const getTokenUrl = (environment: CloudEnvironment): string => {
+  const config = getIonApiConfig(environment);
+  return `${config.pu}${config.ot}`;
 };

@@ -8,6 +8,8 @@ import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
 import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
+import Login from "./pages/Login";
+import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +34,16 @@ const App = () => {
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
   }, [cloudEnvironment]);
 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
+
+  useEffect(() => {
+    const handler = () => {
+      setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
   const handleSaveCompanyNumber = (newCompanyNumber: string) => {
     setCompanyNumber(newCompanyNumber);
   };
@@ -53,7 +65,18 @@ const App = () => {
             onSaveCloudEnvironment={handleSaveCloudEnvironment}
           />
           <Routes>
-            <Route path="/" element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />} />
+            <Route
+              path="/"
+              element={
+                isAuthenticated ? (
+                  <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                ) : (
+                  <Login cloudEnvironment={cloudEnvironment} />
+                )
+              }
+            />
+            <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
+            <Route path="/oauth/callback" element={<OAuthCallback />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
