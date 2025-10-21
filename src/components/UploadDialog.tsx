@@ -313,7 +313,8 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         </DialogHeader>
 
         {/* Top-right action to apply attributes from first row to all rows */}
-        <div className="flex justify-end mb-2">
+        {/* Left-side action to apply attributes from first row to all rows */}
+        <div className="flex justify-start mb-2">
           <Button
             variant={canApplyToAll ? "default" : "outline"}
             size="sm"
