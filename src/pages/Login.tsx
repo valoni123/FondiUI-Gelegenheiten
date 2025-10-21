@@ -98,36 +98,41 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
-      {/* Logo outside the card, centered above it */}
-      <div className="absolute top-8 left-0 right-0 flex justify-center">
+      {/* Center column: logo directly above the white card */}
+      <div className="flex flex-col items-center w-full px-4">
         <img
-          src="/fondiui-logo.png"
+          src="/fondium_login.png"
           alt="FONDIUI"
-          className="max-w-[520px] w-64 sm:w-80 object-contain"
+          className="max-w-[520px] w-64 sm:w-80 object-contain mb-3"
           onError={(e) => {
             (e.currentTarget as HTMLImageElement).style.display = "none";
           }}
         />
+
+        <Card className="max-w-md w-full">
+          <CardHeader className="flex flex-col items-center pt-6">
+            {/* Subtitle */}
+            <div className="mt-1 text-center text-lg sm:text-xl font-bold text-muted-foreground">
+              Fondium User Interface
+            </div>
+
+            {/* Separator line centered and narrower than the card */}
+            <div className="w-full flex justify-center">
+              <Separator className="bg-gray-300 w-3/4 my-3" />
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center">
+              Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
+            </p>
+          </CardContent>
+
+          <CardFooter className="flex justify-center pb-8">
+            <Button onClick={handleLogin}>Mit Infor ION anmelden</Button>
+          </CardFooter>
+        </Card>
       </div>
-      
-      <Card className="max-w-md w-full">
-        <CardHeader className="flex flex-col items-center pt-8">
-          {/* Subtitle */}
-          <div className="mt-1 text-center text-lg sm:text-xl font-bold text-muted-foreground">
-            Fondium User Interface
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <p className="text-sm text-muted-foreground text-center">
-            Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
-          </p>
-        </CardContent>
-
-        <CardFooter className="flex justify-center pb-8">
-          <Button onClick={handleLogin}>Mit Infor ION anmelden</Button>
-        </CardFooter>
-      </Card>
     </div>
   );
 };
