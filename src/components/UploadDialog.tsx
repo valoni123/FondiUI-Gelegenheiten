@@ -233,6 +233,75 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     return [...baseCols, ...attrCols, ...actionCols].join(" ");
   }, [maxAttrCount]);
 
+  // Enable "apply to all" only if there are multiple rows, a Dokumententyp is selected in the first row,
+  // attributes are loaded, and at least one attribute has a value.
+  const canApplyToAll = React.useMemo(() => {
+    if (rows.length < 2) return false;
+    const first = rows[0];
+    if (!first?.entityName || first.attrs.length === 0) return false;
+    const hasValue = Object.values(first.values).some(
+      (v) => (v ?? "").toString().trim().length > 0
+    );
+    return hasValue;
+  }, [rows]);
+
+  // Apply first row's entity and attributes to all rows
+  const applyAttributesToAll = async () => {
+    const source = rows[0];
+    if (!source?.entityName) return;
+
+    // Copy entityName, attrs, and values to all other rows
+    setRows((prev) =>
+      prev.map((r, idx) => {
+        if (idx === 0) return r;
+        const copiedValues: Record<string, string> = {};
+        source.attrs.forEach((a) => {
+          copiedValues[a.name] = source.values[a.name] ?? "";
+        });
+        return {
+          ...r,
+          entityName: source.entityName,
+          attrs: source.attrs,
+          values: copiedValues,
+          loadingAttrs: false,
+          // reset; will be recalculated below
+          duplicateExists: false,
+        };
+      })
+    );
+
+    // Re-run duplicate check per row using the Gelegenheit from source or default
+    const opportunityId =
+      source.values["Gelegenheit"] || defaultOpportunityNumber || "";
+    if (opportunityId) {
+      rows.slice(1).forEach(async (r) => {
+        try {
+          const result = await existsIdmItemByEntityFilenameOpportunity(
+            authToken,
+            cloudEnvironment,
+            source.entityName!,
+            r.file.name,
+            opportunityId,
+            "de-DE"
+          );
+          setRows((prev) =>
+            prev.map((rr) =>
+              rr.key === r.key ? { ...rr, duplicateExists: result.exists } : rr
+            )
+          );
+        } catch {
+          // leave duplicateExists as false on error
+        }
+      });
+    }
+
+    toast({
+      title: "Attribute übernommen",
+      description:
+        "Werte aus der ersten Zeile wurden auf alle Dokumente angewendet.",
+    });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw]">
@@ -242,6 +311,19 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             Wählen Sie pro Datei den Dokumententyp und füllen Sie die Attribute aus. Speichern Sie jede Zeile separat.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Top-right action to apply attributes from first row to all rows */}
+        <div className="flex justify-end mb-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!canApplyToAll}
+            onClick={applyAttributesToAll}
+            title="Attribute aus erster Zeile auf alle übernehmen"
+          >
+            Attribute für alle Dokumente übernehmen
+          </Button>
+        </div>
 
         {rows.length === 0 ? (
           <div className="text-sm text-muted-foreground">Keine Dateien ausgewählt.</div>
