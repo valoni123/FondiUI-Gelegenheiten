@@ -457,6 +457,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
               onSaveRow={handleSaveRow}
               onReplaceDoc={handleReplaceDoc}
               onDeleteDoc={handleDeleteDoc}
+              authToken={authToken}
+              cloudEnvironment={cloudEnvironment}
             />
           </div>
         </CardContent>
@@ -584,6 +586,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 onReplaceDoc={handleReplaceDoc} // Pass the existing handler
                 hideSaveAllButton={true} // New prop to hide the "Save All" button
                 onDeleteDoc={handleDeleteDoc}
+                authToken={authToken}
+                cloudEnvironment={cloudEnvironment}
               />
             </div>
           )}

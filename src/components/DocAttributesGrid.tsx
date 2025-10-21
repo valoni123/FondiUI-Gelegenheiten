@@ -23,6 +23,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ReplacementDropzone from "@/components/ReplacementDropzone";
+import { type CloudEnvironment } from "@/authorization/configLoader";
+import { getIdmEntityAttributes } from "@/api/idm";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, parse } from "date-fns";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -31,9 +43,11 @@ type Props = {
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
   onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
+  authToken: string;
+  cloudEnvironment: CloudEnvironment;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, onDeleteDoc }) => {
+const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, onDeleteDoc, authToken, cloudEnvironment }) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -88,6 +102,33 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
     // clear the sync set after applying
     setSyncWithInitial(new Set());
   }, [initial, syncWithInitial]);
+
+  // Cache of attribute definitions by entity: { [entityName]: { [attrName]: { valueset?, type? } } }
+  const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>>({});
+
+  // Load attribute definitions for each entity present in docs (only missing ones)
+  React.useEffect(() => {
+    const entityNames = Array.from(new Set((docs.map((d) => d.entityName).filter(Boolean) as string[])));
+    const missing = entityNames.filter((name) => !attrDefsByEntity[name]);
+    if (!missing.length) return;
+    (async () => {
+      const entries = await Promise.all(
+        missing.map(async (name) => {
+          try {
+            const attrs = await getIdmEntityAttributes(authToken, cloudEnvironment, name);
+            const map: Record<string, { valueset?: { name: string; desc: string }[]; type?: string }> = {};
+            attrs.forEach((a) => {
+              map[a.name] = { valueset: a.valueset, type: a.type };
+            });
+            return [name, map] as const;
+          } catch {
+            return [name, {}] as const;
+          }
+        })
+      );
+      setAttrDefsByEntity((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+    })();
+  }, [docs, authToken, cloudEnvironment, attrDefsByEntity]);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
@@ -330,6 +371,8 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                 const hasChanges = columns.some(
                   (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
                 );
+                const entityName = doc.entityName || "";
+                const defs = attrDefsByEntity[entityName] || {};
 
                 return (
                   <div
@@ -447,26 +490,94 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                     {columns.map((col) => {
                       const hasError = (errorHighlights[idx] ?? []).includes(col);
                       const hasSuccess = (successHighlights[idx] ?? []).includes(col);
+                      const def = defs[col];
+                      const isDate =
+                        (def?.type === "7") || col === "Belegdatum";
                       
                       return (
                         <div key={`${idx}-${col}`} className="px-2">
-                          <Input
-                            value={rowEdited[col] ?? ""}
-                            onChange={(e) =>
-                              setEdited((prev) => {
-                                const row = { ...(prev[idx] ?? {}) };
-                                row[col] = e.target.value;
-                                return { ...prev, [idx]: row };
-                              })
-                            }
-                            className={cn(
-                              "h-6 text-[10px] px-1",
-                              hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                              hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                            )}
-                            aria-label={`Attribut ${col}`}
-                            placeholder="-"
-                          />
+                          {def?.valueset && def.valueset.length > 0 ? (
+                            <Select
+                              value={(rowEdited[col] ?? "") || undefined}
+                              onValueChange={(val) =>
+                                setEdited((prev) => {
+                                  const row = { ...(prev[idx] ?? {}) };
+                                  row[col] = val;
+                                  return { ...prev, [idx]: row };
+                                })
+                              }
+                            >
+                              <SelectTrigger
+                                className={cn(
+                                  "h-6 text-[10px] px-1",
+                                  hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                  hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                )}
+                              >
+                                <SelectValue placeholder="Wählen…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {def.valueset.map((vs) => (
+                                  <SelectItem key={vs.name} value={vs.name}>
+                                    {vs.desc || vs.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : isDate ? (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "h-6 w-[100px] justify-start text-left text-[10px] px-1",
+                                    hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                    hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                  )}
+                                >
+                                  {rowEdited[col]
+                                    ? format(parse(rowEdited[col], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                    : "Datum wählen"}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="p-0" align="start">
+                                <Calendar
+                                  mode="single"
+                                  selected={
+                                    rowEdited[col]
+                                      ? parse(rowEdited[col], "yyyy-MM-dd", new Date())
+                                      : undefined
+                                  }
+                                  onSelect={(date) =>
+                                    setEdited((prev) => {
+                                      const row = { ...(prev[idx] ?? {}) };
+                                      row[col] = date ? format(date, "yyyy-MM-dd") : "";
+                                      return { ...prev, [idx]: row };
+                                    })
+                                  }
+                                  initialFocus
+                                />
+                              </PopoverContent>
+                            </Popover>
+                          ) : (
+                            <Input
+                              value={rowEdited[col] ?? ""}
+                              onChange={(e) =>
+                                setEdited((prev) => {
+                                  const row = { ...(prev[idx] ?? {}) };
+                                  row[col] = e.target.value;
+                                  return { ...prev, [idx]: row };
+                                })
+                              }
+                              className={cn(
+                                "h-6 text-[10px] px-1",
+                                hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                              )}
+                              aria-label={`Attribut ${col}`}
+                              placeholder="-"
+                            />
+                          )}
                         </div>
                       );
                     })}
