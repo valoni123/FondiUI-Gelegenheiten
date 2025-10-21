@@ -100,7 +100,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
       <div className="flex flex-col items-center">
         {/* Logo directly above the card, perfectly centered */}
-        <div className="w-full flex justify-end pr-16 mb-6">
+        <div className="w-full flex justify-center mb-6">
           <img
             src="/fondiui-logo.png"
             alt="FONDIUI"
