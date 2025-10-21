@@ -79,30 +79,25 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     // Only initialize if dialog is open
     if (!open) return;
     
-    setRows((prev) => {
-      const map = new Map(prev.map((r) => [r.key, r]));
-      const next: RowState[] = [];
-      for (const f of files) {
-        const key = fileKey(f);
-        const existing = map.get(key);
-        if (existing) {
-          // update file ref in case it changed, keep state
-          next.push({ ...existing, file: f });
-        } else {
-          next.push({
-            key,
-            file: f,
-            entityName: undefined,
-            attrs: [],
-            values: {},
-            loadingAttrs: false,
-            saving: false,
-            saved: false,
-          });
-        }
-      }
-      return next;
-    });
+    // Force reset to fresh state when dialog opens
+    setRows([]);
+    
+    // Initialize fresh rows from files
+    const next: RowState[] = [];
+    for (const f of files) {
+      const key = fileKey(f);
+      next.push({
+        key,
+        file: f,
+        entityName: undefined,
+        attrs: [],
+        values: {},
+        loadingAttrs: false,
+        saving: false,
+        saved: false,
+      });
+    }
+    setRows(next);
   }, [files, open]);
 
   const loadAttrsForEntity = async (rowKey: string, entityName: string, fileName?: string) => {
