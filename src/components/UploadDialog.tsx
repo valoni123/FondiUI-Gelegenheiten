@@ -133,7 +133,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       const opportunityId = initialValues["Gelegenheit"] || "";
       if (fileName && opportunityId) {
         try {
-          const exists = await existsIdmItemByEntityFilenameOpportunity(
+          const result = await existsIdmItemByEntityFilenameOpportunity(
             authToken,
             cloudEnvironment,
             entityName,
@@ -141,9 +141,10 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             opportunityId,
             "de-DE"
           );
+          // Only set duplicateExists if all three fields match exactly
           setRows((prev) =>
             prev.map((r) =>
-              r.key === rowKey ? { ...r, duplicateExists: exists } : r
+              r.key === rowKey ? { ...r, duplicateExists: result.exists } : r
             )
           );
         } catch (dupErr) {

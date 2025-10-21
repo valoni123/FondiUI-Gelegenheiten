@@ -393,7 +393,7 @@ export const replaceIdmItemResource = async (
   }
 };
 
-// Check if an item exists for given entityName, filename, and opportunityId
+// Check if an item exists for given entityName, filename, and opportunityId and return detailed match info
 export const existsIdmItemByEntityFilenameOpportunity = async (
   token: string,
   environment: CloudEnvironment,
@@ -401,7 +401,7 @@ export const existsIdmItemByEntityFilenameOpportunity = async (
   filename: string,
   opportunityId: string,
   language: string = "de-DE"
-): Promise<boolean> => {
+): Promise<{ exists: boolean; matchedFields: { filename?: boolean; entityName?: boolean; gelegenheit?: boolean } }> => {
   const base = buildIdmBase(environment);
   const query = `/${entityName}[@RESOURCENAME = "${filename}" AND @Gelegenheit = "${opportunityId}"]`;
   const url =
@@ -426,8 +426,31 @@ export const existsIdmItemByEntityFilenameOpportunity = async (
   const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
   const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
 
-  // If any item is returned, it exists
-  return items.length > 0;
+  if (items.length === 0) {
+    return { exists: false, matchedFields: {} };
+  }
+
+  // Check the first item for exact matches on all three fields
+  const item = items[0];
+  const matchedFields: { filename?: boolean; entityName?: boolean; gelegenheit?: boolean } = {};
+
+  // Check filename match
+  const itemFilename = item?.resrs?.res?.[0]?.filename || item?.filename || "";
+  matchedFields.filename = itemFilename === filename;
+
+  // Check entityName match
+  const itemEntityName = item?.entityName || "";
+  matchedFields.entityName = itemEntityName === entityName;
+
+  // Check Gelegenheit attribute match
+  const attrs = item?.attrs?.attr || [];
+  const gelegenheitAttr = Array.isArray(attrs) ? attrs.find((a: any) => a.name === "Gelegenheit") : null;
+  matchedFields.gelegenheit = gelegenheitAttr ? gelegenheitAttr.value === opportunityId : false;
+
+  // Only consider it a true duplicate if ALL THREE fields match
+  const exists = matchedFields.filename && matchedFields.entityName && matchedFields.gelegenheit;
+
+  return { exists, matchedFields };
 };
 
 export const getIdmEntityAttributes = async (
