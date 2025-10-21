@@ -98,26 +98,20 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
+      {/* Logo outside the card, centered above it */}
+      <div className="absolute top-8 left-0 right-0 flex justify-center">
+        <img
+          src="/fondiui-logo.png"
+          alt="FONDIUI"
+          className="max-w-[520px] w-64 sm:w-80 object-contain"
+          onError={(e) => {
+            (e.currentTarget as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </div>
+      
       <Card className="max-w-md w-full">
         <CardHeader className="flex flex-col items-center pt-8">
-          {/* Logo image (use public/fondiui-logo.png). If not available, hide broken image */}
-          <div className="w-full flex justify-center items-center mb-4">
-            <img
-              src="/fondiui-logo.png"
-              alt="FONDIUI"
-              className="max-w-[520px] w-80 sm:w-[28rem] object-contain"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-              }}
-              style={{ marginLeft: 'auto', marginRight: 'auto' }}
-            />
-          </div>
-
-          {/* Separator line (centered and narrower than full width) */}
-          <div className="w-full flex justify-center">
-            <Separator className="bg-gray-300 w-3/4 my-3" />
-          </div>
-
           {/* Subtitle */}
           <div className="mt-1 text-center text-lg sm:text-xl font-bold text-muted-foreground">
             Fondium User Interface
