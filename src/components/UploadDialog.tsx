@@ -480,11 +480,16 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 
                     {/* Filename */}
                     <div className="px-2">
-                      <Badge variant="secondary" className="text-[10px] font-normal">
-                        {row.file.name}
-                      </Badge>
-                      <div className="text-[10px] text-muted-foreground">
-                        {(row.file.size / 1024).toFixed(1)} KB
+                      <div className="max-w-[200px] overflow-hidden">
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-normal block truncate max-w-full"
+                        >
+                          {row.file.name}
+                        </Badge>
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {(row.file.size / 1024).toFixed(1)} KB
+                        </div>
                       </div>
                     </div>
 
