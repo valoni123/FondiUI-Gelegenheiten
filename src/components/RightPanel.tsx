@@ -480,6 +480,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="bg-orange-500 text-white hover:bg-orange-600"
                       onClick={() => setIsReplaceDialogOpen(true)}
                       title="Dokument ersetzen"
                     >
