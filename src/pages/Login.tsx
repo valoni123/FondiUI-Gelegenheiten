@@ -1,10 +1,9 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import GreetingDialog from "@/components/GreetingDialog";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
 interface LoginProps {
@@ -13,7 +12,6 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
-  const [showGreeting, setShowGreeting] = useState(false);
 
   useEffect(() => {
     // If already authenticated, go straight to home
@@ -23,21 +21,11 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     }
   }, [navigate]);
 
-  const handleLogin = useCallback(() => {
-    setShowGreeting(true);
-  }, []);
-
-  const handleGreetingClose = useCallback(() => {
-    setShowGreeting(false);
-    // Continue with actual login flow after greeting is closed
-    performLogin();
-  }, []);
-
-  const performLogin = useCallback(async () => {
+  const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
-    const authUrl = getAuthUrl(cloudEnvironment);
-    const redirectUri = getRedirectUri(cloudEnvironment);
+    const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
+    const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
     const state = crypto.randomUUID();
 
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
@@ -127,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           <CardHeader className="flex flex-col items-center pt-8">
             {/* Subtitle */}
             <div className="mt-1 text-center text-lg sm:text-xl font-bold text-muted-foreground">
-              Fondium UI
+              Fondium User Interface
             </div>
           </CardHeader>
 
@@ -142,8 +130,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           </CardFooter>
         </Card>
       </div>
-
-      <GreetingDialog open={showGreeting} onOpenChange={handleGreetingClose} />
     </div>
   );
 };
