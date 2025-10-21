@@ -1,4 +1,3 @@
-1 and enable only when at least 2 rows have a document type selected.">
 "use client";
 
 import React from "react";
