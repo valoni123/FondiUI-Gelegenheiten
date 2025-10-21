@@ -4,7 +4,7 @@ import React from "react";
 
 const ForegroundBackground: React.FC = () => {
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 opacity-20">
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-10 opacity-40">
       <img
         src="/fondiui-background.jpg"
         alt=""

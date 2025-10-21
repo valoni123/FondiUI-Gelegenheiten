@@ -106,6 +106,12 @@
   }
 }
 
+@layer components {
+  [data-variant="card"], [data-variant="popover"], .card, .popover {
+    @apply bg-card text-card-foreground relative z-20;
+  }
+}
+
 @layer utilities {
   @keyframes error-blink {
     0%, 100% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.95); } /* red-500 */
