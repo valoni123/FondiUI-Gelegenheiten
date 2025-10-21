@@ -97,6 +97,12 @@
 
   body {
     @apply bg-background text-foreground;
+    /* Background image across the whole page */
+    background-image: url('/fondiui-background.jpg');
+    background-position: center bottom;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
   }
 }
 
