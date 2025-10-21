@@ -24,7 +24,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
     const authUrl = `${cfg.pu}${cfg.oa}`;
-    const redirectUri = `${window.location.origin}/oauth/callback`;
+    const redirectUri = `${window.location.origin}/callback`;
     const state = crypto.randomUUID();
 
     // Ensure the callback can read the chosen environment
@@ -55,11 +55,10 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     sessionStorage.setItem("pkce_verifier", codeVerifier);
 
     const params = new URLSearchParams({
-      // Authorization Code flow with PKCE
       response_type: "code",
       client_id: cfg.ci,
       redirect_uri: redirectUri,
-      scope: "openid profile",
+      scope: "openid",
       state,
       response_mode: "query",
       code_challenge: codeChallenge,
