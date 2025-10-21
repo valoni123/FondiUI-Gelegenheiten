@@ -67,8 +67,18 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   const [rows, setRows] = React.useState<RowState[]>([]);
   const [bulkSaving, setBulkSaving] = React.useState(false);
 
+  // Clear rows when dialog is closed
+  React.useEffect(() => {
+    if (!open) {
+      setRows([]);
+    }
+  }, [open]);
+
   // Initialize rows from files list, keep existing edited state where possible
   React.useEffect(() => {
+    // Only initialize if dialog is open
+    if (!open) return;
+    
     setRows((prev) => {
       const map = new Map(prev.map((r) => [r.key, r]));
       const next: RowState[] = [];
@@ -93,7 +103,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       }
       return next;
     });
-  }, [files]);
+  }, [files, open]);
 
   const loadAttrsForEntity = async (rowKey: string, entityName: string, fileName?: string) => {
     setRows((prev) =>
