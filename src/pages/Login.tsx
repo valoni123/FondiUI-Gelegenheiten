@@ -1,9 +1,10 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import GreetingDialog from "@/components/GreetingDialog";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
 interface LoginProps {
@@ -12,6 +13,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
+  const [showGreeting, setShowGreeting] = useState(false);
 
   useEffect(() => {
     // If already authenticated, go straight to home
@@ -21,11 +23,21 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     }
   }, [navigate]);
 
-  const handleLogin = useCallback(async () => {
+  const handleLogin = useCallback(() => {
+    setShowGreeting(true);
+  }, []);
+
+  const handleGreetingClose = useCallback(() => {
+    setShowGreeting(false);
+    // Continue with actual login flow after greeting is closed
+    performLogin();
+  }, []);
+
+  const performLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
-    const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
-    const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
+    const authUrl = getAuthUrl(cloudEnvironment);
+    const redirectUri = getRedirectUri(cloudEnvironment);
     const state = crypto.randomUUID();
 
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
@@ -130,6 +142,8 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           </CardFooter>
         </Card>
       </div>
+
+      <GreetingDialog open={showGreeting} onOpenChange={handleGreetingClose} />
     </div>
   );
 };
