@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/resizable"; // Import Resizable components
 import RightPanel from "@/components/RightPanel"; // Import the new RightPanel
 import { getIdmEntities } from "@/api/idm";
+import AppHeader from "@/components/AppHeader";
 
 interface IndexProps {
   companyNumber: string;
@@ -217,10 +218,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
       <div className="w-full px-4 space-y-6 flex flex-col flex-grow"> {/* Added flex-grow */}
-        <h1 className="text-4xl font-bold text-center mb-6">
-          Gelegenheiten
-        </h1>
-
+        <AppHeader />
+        
         {/* Temporäre Anzeige für Debugging */}
         {selectedOpportunityId && (
           <div className="text-sm text-muted-foreground">
