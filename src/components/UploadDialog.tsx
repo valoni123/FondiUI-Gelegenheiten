@@ -484,6 +484,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                         <Badge
                           variant="secondary"
                           className="text-[10px] font-normal block truncate max-w-full"
+                          title={row.file.name}
                         >
                           {row.file.name}
                         </Badge>
