@@ -32,11 +32,17 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Decorative wave at the bottom */}
-      <img
-        src="/fondiui-background-transparent.png"
-        alt=""
+      {/* Full-page decorative background (transparent PNG scaled larger) */}
+      <div
         aria-hidden="true"
-        className="pointer-events-none select-none absolute bottom-0 left-0 right-0 w-full max-h-56 sm:max-h-64 object-contain opacity-80"
+        className="pointer-events-none select-none absolute inset-0 -z-10 opacity-80"
+        style={{
+          backgroundImage: "url('/fondiui-background-transparent.png')",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center bottom",
+          // Scale the image larger than the page so the wave spans across the whole view
+          backgroundSize: "160% auto",
+        }}
       />
     </div>
   );
