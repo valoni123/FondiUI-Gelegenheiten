@@ -394,7 +394,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {/* Upload Dialog for new files */}
           <UploadDialog
             open={isUploadDialogOpen}
-            onOpenChange={(open) => setIsUploadDialogOpen(open)}
+            onOpenChange={(open) => {
+              setIsUploadDialogOpen(open);
+              if (!open) {
+                // Clear pending files when dialog closes so reopening starts fresh
+                setFiles([]);
+              }
+            }}
             files={files}
             entityNames={entityNames}
             authToken={authToken}
