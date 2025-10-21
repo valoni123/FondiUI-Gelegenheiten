@@ -33,10 +33,10 @@ const Dashboard: React.FC = () => {
 
       {/* Decorative wave at the bottom */}
       <img
-        src="/fondiui-background.jpg"
+        src="/fondiui-background-transparent.png"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none select-none absolute bottom-0 left-0 right-0 w-full max-h-56 sm:max-h-64 object-cover opacity-60"
+        className="pointer-events-none select-none absolute bottom-0 left-0 right-0 w-full max-h-56 sm:max-h-64 object-contain opacity-80"
       />
     </div>
   );
