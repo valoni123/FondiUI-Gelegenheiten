@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Save, Copy } from "lucide-react";
+import { Loader2, Save, Copy, Upload } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
@@ -65,6 +65,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   defaultOpportunityNumber, // Destructure new prop
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
+  const [bulkSaving, setBulkSaving] = React.useState(false);
 
   // Initialize rows from files list, keep existing edited state where possible
   React.useEffect(() => {
@@ -245,6 +246,73 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     return hasValue;
   }, [rows]);
 
+  // Allow bulk upload when at least one row has a selected Dokumententyp
+  const canSaveAll = React.useMemo(() => {
+    return rows.some((r) => !!r.entityName);
+  }, [rows]);
+
+  // Bulk save handler: uploads all rows that have a Dokumententyp selected
+  const handleSaveAll = async () => {
+    const toUpload = rows.filter((r) => !!r.entityName && !r.saving);
+    if (toUpload.length === 0) {
+      toast({
+        title: "Keine Dokumente ausgewählt",
+        description: "Bitte füllen Sie mindestens eine Zeile aus.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkSaving(true);
+    let success = 0;
+    let fail = 0;
+    for (const row of toUpload) {
+      // mark row as saving
+      setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, saving: true } : r)));
+      try {
+        const base64 = await fileToBase64(row.file);
+        const attrsPayload = Object.entries(row.values)
+          .filter(([name, v]) => name !== "MDS_ID" && v !== undefined && v !== null && String(v).length > 0)
+          .map(([name, value]) => ({ name, value: String(value) }));
+        await createIdmItem(authToken, cloudEnvironment, {
+          entityName: row.entityName!,
+          attrs: attrsPayload,
+          resource: { filename: row.file.name, base64 },
+          language: "de-DE",
+        });
+        success++;
+        // remove row after success
+        setRows((prev) => prev.filter((r) => r.key !== row.key));
+      } catch (err: any) {
+        fail++;
+        const errorText = String(err?.message ?? "Upload fehlgeschlagen");
+        toast({ title: "Upload fehlgeschlagen", description: errorText, variant: "destructive" });
+        // reset saving flag on failure
+        setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, saving: false } : r)));
+      }
+    }
+    setBulkSaving(false);
+    if (success > 0 && fail === 0) {
+      toast({
+        title: "Alle Dokumente hochgeladen",
+        description: `${success} Dokument(e) wurden erfolgreich hochgeladen.`,
+        variant: "success",
+      });
+      onOpenChange(false);
+      onCompleted();
+    } else if (success > 0 && fail > 0) {
+      toast({
+        title: "Teilweise hochgeladen",
+        description: `${success} erfolgreich, ${fail} fehlgeschlagen.`,
+      });
+    } else {
+      toast({
+        title: "Keine Dokumente hochgeladen",
+        description: "Es konnten keine Dokumente hochgeladen werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Apply first row's entity and attributes to all rows
   const applyAttributesToAll = async () => {
     const source = rows[0];
@@ -312,20 +380,46 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Left-side action to apply attributes from first row to all rows */}
-        {rows.length > 1 && (
-          <div className="flex justify-start mb-2">
-            <Button
-              variant={canApplyToAll ? "default" : "outline"}
-              size="sm"
-              disabled={!canApplyToAll}
-              onClick={applyAttributesToAll}
-              title="Attribute aus erster Zeile auf alle übernehmen"
-              className={canApplyToAll ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
-            >
-              <Copy className="mr-2 h-4 w-4" />
-              Attribute für alle Dokumente übernehmen
-            </Button>
+        {/* Action row: left 'apply to all' and right 'upload all' */}
+        {(rows.length > 1 || rows.length > 0) && (
+          <div className="flex items-center justify-between mb-2">
+            {/* Left-side action to apply attributes from first row to all rows */}
+            {rows.length > 1 ? (
+              <div className="flex">
+                <Button
+                  variant={canApplyToAll ? "default" : "outline"}
+                  size="sm"
+                  disabled={!canApplyToAll}
+                  onClick={applyAttributesToAll}
+                  title="Attribute aus erster Zeile auf alle übernehmen"
+                  className={canApplyToAll ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Attribute für alle Dokumente übernehmen
+                </Button>
+              </div>
+            ) : (
+              <div />
+            )}
+            {/* Right-side bulk upload button */}
+            {rows.length > 0 && (
+              <div className="flex">
+                <Button
+                  variant="default"
+                  size="sm"
+                  disabled={!canSaveAll || bulkSaving}
+                  onClick={handleSaveAll}
+                  title="Alle gefüllten Dokumente hochladen"
+                >
+                  {bulkSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Alle Dokumente hochladen
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
