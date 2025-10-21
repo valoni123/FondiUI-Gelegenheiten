@@ -617,7 +617,10 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         )}
 
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="destructive" 
+            onClick={() => onOpenChange(false)}
+          >
             Abbrechen
           </Button>
         </div>
