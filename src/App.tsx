@@ -20,9 +20,7 @@ const App = () => {
   );
 
   // Initialize cloud environment from localStorage or a default
-  const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>(
-    (localStorage.getItem("cloudEnvironment") as CloudEnvironment) || "GAC_DEM" // Default to "GAC_DEM"
-  );
+  const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>("FONDIUM_TRN");
 
   // Save company number to localStorage whenever it changes
   useEffect(() => {

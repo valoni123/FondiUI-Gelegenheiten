@@ -21,10 +21,15 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   }, [navigate]);
 
   const handleLogin = useCallback(() => {
+    console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
     const authUrl = `${cfg.pu}${cfg.oa}`;
     const redirectUri = `${window.location.origin}/oauth/callback`;
     const state = crypto.randomUUID();
+
+    console.log("Auth URL:", authUrl);
+    console.log("Client ID:", cfg.ci);
+    console.log("Redirect URI:", redirectUri);
 
     // Ensure the callback can read the chosen environment
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
@@ -40,8 +45,11 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       response_mode: "fragment",
     });
 
+    const fullUrl = `${authUrl}?${params.toString()}`;
+    console.log("Full authorization URL:", fullUrl);
+
     const popup = window.open(
-      `${authUrl}?${params.toString()}`,
+      fullUrl,
       "ion-login",
       "width=600,height=700,menubar=no,toolbar=no,status=no"
     );

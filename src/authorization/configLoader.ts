@@ -2,7 +2,7 @@ import gacDemConfig from './GAC_DEM.json';
 import fonTrnConfig from './FONDIUM_TRN.json';
 import ionapiConfig from './ionapi.json'; // Default config, will be replaced by selected one
 
-export type CloudEnvironment = 'GAC_DEM' | 'FON_TRN';
+export type CloudEnvironment = 'GAC_DEM' | 'FONDIUM_TRN';
 
 interface IonApiConfig {
   ti: string;
@@ -23,7 +23,7 @@ interface IonApiConfig {
 
 const configs: Record<CloudEnvironment, IonApiConfig> = {
   'GAC_DEM': gacDemConfig as IonApiConfig,
-  'FON_TRN': fonTrnConfig as IonApiConfig,
+  'FONDIUM_TRN': fonTrnConfig as IonApiConfig,
 };
 
 export const getIonApiConfig = (environment: CloudEnvironment): IonApiConfig => {
@@ -33,6 +33,7 @@ export const getIonApiConfig = (environment: CloudEnvironment): IonApiConfig => 
     console.warn(`Invalid cloud environment: ${environment}. Falling back to default ionapi.json.`);
     return ionapiConfig as IonApiConfig;
   }
+  console.log(`Loaded config for ${environment}:`, config);
   return config;
 };
 
@@ -58,7 +59,9 @@ export const getSsoProxyPath = (environment: CloudEnvironment): string => {
 
 export const getAuthUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  return `${config.pu}${config.oa}`;
+  const authUrl = `${config.pu}${config.oa}`;
+  console.log(`Auth URL for ${environment}:`, authUrl);
+  return authUrl;
 };
 
 export const getTokenUrl = (environment: CloudEnvironment): string => {
