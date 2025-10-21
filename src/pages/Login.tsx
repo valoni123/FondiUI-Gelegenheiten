@@ -99,15 +99,17 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
       <div className="flex flex-col items-center">
-        {/* Logo directly above the card */}
-        <img
-          src="/fondiui-logo.png"
-          alt="FONDIUI"
-          className="max-w-[520px] w-64 sm:w-80 object-contain mb-6"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = "none";
-          }}
-        />
+        {/* Logo directly above the card, perfectly centered */}
+        <div className="w-full flex justify-center mb-6">
+          <img
+            src="/fondiui-logo.png"
+            alt="FONDIUI"
+            className="max-w-[520px] w-64 sm:w-80 object-contain"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = "none";
+            }}
+          />
+        </div>
         
         <Card className="max-w-md w-full">
           <CardHeader className="flex flex-col items-center pt-8">
