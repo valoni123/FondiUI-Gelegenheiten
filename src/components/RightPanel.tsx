@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight } from "lucide-react";
+import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -52,6 +52,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false); // Confirm delete in preview
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -473,16 +474,29 @@ const RightPanel: React.FC<RightPanelProps> = ({
               </DialogDescription>
             </div>
             <div className="flex items-center justify-between mt-2">
-              {fullPreviewData && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsReplaceDialogOpen(true)}
-                  title="Dokument ersetzen"
-                >
-                  <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
-                </Button>
-              )}
+              <div className="flex items-center gap-2">
+                {fullPreviewData && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsReplaceDialogOpen(true)}
+                      title="Dokument ersetzen"
+                    >
+                      <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setIsConfirmDeleteOpen(true)}
+                      title="Dokument löschen"
+                      className="text-white"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Dokument löschen
+                    </Button>
+                  </>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
@@ -606,6 +620,35 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <div className="flex justify-end">
             <Button variant="ghost" disabled={isReplacing} onClick={() => setIsReplaceDialogOpen(false)}>
               Abbrechen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Delete Dialog for Full Preview */}
+      <Dialog
+        open={isConfirmDeleteOpen}
+        onOpenChange={(open) => setIsConfirmDeleteOpen(open)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
+            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setIsConfirmDeleteOpen(false)}>
+              nein
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                setIsConfirmDeleteOpen(false);
+                if (fullPreviewData) {
+                  await handleDeleteDoc(fullPreviewData);
+                }
+              }}
+            >
+              ja
             </Button>
           </div>
         </DialogContent>
