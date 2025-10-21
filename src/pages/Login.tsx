@@ -101,7 +101,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       <Card className="max-w-md w-full">
         <CardHeader className="flex flex-col items-center pt-8">
           {/* Logo image (use public/fondiui-logo.png). If not available, hide broken image */}
-          <div className="w-full flex justify-center mb-4">
+          <div className="w-full flex justify-center items-center mb-4">
             <img
               src="/fondiui-logo.png"
               alt="FONDIUI"
@@ -109,6 +109,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
+              style={{ marginLeft: 'auto', marginRight: 'auto' }}
             />
           </div>
 
