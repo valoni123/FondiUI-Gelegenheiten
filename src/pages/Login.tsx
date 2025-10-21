@@ -113,8 +113,8 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           </div>
 
           {/* Subtitle */}
-          <div className="mt-3 text-center text-sm text-muted-foreground">
-            Fondium User Interface Web Apps
+          <div className="mt-3 text-center text-lg font-bold text-muted-foreground">
+            Fondium User Interface
           </div>
         </CardHeader>
 
