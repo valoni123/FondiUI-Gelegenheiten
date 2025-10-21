@@ -87,7 +87,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="GAC_DEM">GAC - DEM Cloud</SelectItem>
-                <SelectItem value="FON_TRN">FON - TRN Cloud</SelectItem>
+                <SelectItem value="FONDIUM_TRN">FON - TRN Cloud</SelectItem>
               </SelectContent>
             </Select>
           </div>

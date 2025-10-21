@@ -20,32 +20,54 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     }
   }, [navigate]);
 
-  const handleLogin = useCallback(() => {
+  const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
     const authUrl = `${cfg.pu}${cfg.oa}`;
     const redirectUri = `${window.location.origin}/oauth/callback`;
     const state = crypto.randomUUID();
 
-    console.log("Auth URL:", authUrl);
-    console.log("Client ID:", cfg.ci);
-    console.log("Redirect URI:", redirectUri);
-
     // Ensure the callback can read the chosen environment
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
 
+    // PKCE helpers
+    const generateCodeVerifier = () => {
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join(""); // 64-char hex (valid length)
+    };
+    const sha256 = async (plain: string) => {
+      const data = new TextEncoder().encode(plain);
+      return crypto.subtle.digest("SHA-256", data);
+    };
+    const base64UrlEncode = (arrayBuffer: ArrayBuffer) => {
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    };
+
+    // Create PKCE pair
+    const codeVerifier = generateCodeVerifier();
+    const codeChallenge = base64UrlEncode(await sha256(codeVerifier));
+    sessionStorage.setItem("pkce_verifier", codeVerifier);
+
     const params = new URLSearchParams({
-      // Use implicit flow to receive access_token directly in the fragment
-      response_type: "token",
+      // Authorization Code flow with PKCE
+      response_type: "code",
       client_id: cfg.ci,
       redirect_uri: redirectUri,
-      // Keep scopes simple for implicit; refresh tokens aren't returned here
       scope: "openid profile",
       state,
-      response_mode: "fragment",
+      response_mode: "query",
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
     });
 
     const fullUrl = `${authUrl}?${params.toString()}`;
+    console.log("Auth URL:", authUrl);
     console.log("Full authorization URL:", fullUrl);
 
     const popup = window.open(
@@ -68,7 +90,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
         if (data.expiresAt) {
           localStorage.setItem("oauthExpiresAt", String(data.expiresAt));
         }
-        toast.success("Login erfolgreich!"); // German as app uses German labels
+        toast.success("Login erfolgreich!");
         window.removeEventListener("message", messageHandler);
         navigate("/");
       }
