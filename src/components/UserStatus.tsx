@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import type { CloudEnvironment } from "@/authorization/configLoader";
@@ -14,6 +14,9 @@ interface UserStatusProps {
 
 interface MeResponse {
   displayName?: string;
+  profilePicture?: {
+    cdnPathMediumImage?: string;
+  };
 }
 
 const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promise<MeResponse> => {
@@ -31,12 +34,14 @@ const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promi
 
   const raw = await res.json();
 
-  // Extract displayName from the nested userlist structure
-  const displayName = raw?.response?.userlist?.[0]?.displayName || 
-                     raw?.response?.userlist?.[0]?.name?.givenName + " " + raw?.response?.userlist?.[0]?.name?.familyName ||
+  // Extract displayName and profilePicture from the nested userlist structure
+  const user = raw?.response?.userlist?.[0];
+  const displayName = user?.displayName || 
+                     user?.name?.givenName + " " + user?.name?.familyName ||
                      "Unbekannter Benutzer";
+  const profilePicture = user?.profilePicture;
 
-  return { displayName };
+  return { displayName, profilePicture };
 };
 
 const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironment }) => {
@@ -60,9 +65,13 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
   return (
     <div className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-gray-800/80 backdrop-blur px-3 py-2 shadow border border-gray-200 dark:border-gray-700">
       <Avatar className="h-8 w-8">
-        <AvatarFallback className="bg-orange-500/20 text-orange-600 dark:text-orange-400">
-          <UserIcon className="h-4 w-4" />
-        </AvatarFallback>
+        {data?.profilePicture?.cdnPathMediumImage ? (
+          <AvatarImage src={data.profilePicture.cdnPathMediumImage} alt={data.displayName} />
+        ) : (
+          <AvatarFallback className="bg-orange-500/20 text-orange-600 dark:text-orange-400">
+            <UserIcon className="h-4 w-4" />
+          </AvatarFallback>
+        )}
       </Avatar>
       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
         {isLoading ? "Lade Benutzer ..." : (data?.displayName && data.displayName.length > 0 ? data.displayName : "Unbekannter Benutzer")}
