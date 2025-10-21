@@ -32,7 +32,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     const generateCodeVerifier = () => {
       const array = new Uint8Array(32);
       crypto.getRandomValues(array);
-      return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join(""); 
+      return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join("");
     };
     const sha256 = async (plain: string) => {
       const data = new TextEncoder().encode(plain);
@@ -98,15 +98,33 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
       <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle className="text-center">Anmelden</CardTitle>
+        <CardHeader className="flex flex-col items-center space-y-3 pt-8">
+          {/* Logo-like header recreated with styled text to match the attached logo */}
+          <div className="flex items-end gap-2 -mb-2">
+            <span className="text-4xl sm:text-5xl font-normal text-gray-500 tracking-tight">FONDI</span>
+            <span className="text-4xl sm:text-5xl font-extrabold text-orange-500 tracking-tight">UI</span>
+          </div>
+
+          {/* Main title: FONDIUI with UI in bold */}
+          <CardTitle className="text-center">
+            <span className="text-lg sm:text-xl tracking-tight">
+              FONDI<span className="font-bold">UI</span>
+            </span>
+          </CardTitle>
+
+          {/* Subtitle */}
+          <div className="text-center text-sm text-muted-foreground">
+            Fondium User Interface Web Apps
+          </div>
         </CardHeader>
+
         <CardContent>
           <p className="text-sm text-muted-foreground text-center">
             Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
           </p>
         </CardContent>
-        <CardFooter className="flex justify-center">
+
+        <CardFooter className="flex justify-center pb-8">
           <Button onClick={handleLogin}>Mit Infor ION anmelden</Button>
         </CardFooter>
       </Card>
