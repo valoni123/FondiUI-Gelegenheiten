@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
-import { getIonApiConfig, type CloudEnvironment } from "@/authorization/configLoader";
+import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
 interface LoginProps {
   cloudEnvironment: CloudEnvironment;
@@ -23,8 +23,8 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
-    const authUrl = `${cfg.pu}${cfg.oa}`;
-    const redirectUri = `${window.location.origin}/callback`;
+    const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
+    const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
     const state = crypto.randomUUID();
 
     // Ensure the callback can read the chosen environment
@@ -49,7 +49,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     };
 
-    // Create PKCE pair
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = base64UrlEncode(await sha256(codeVerifier));
     sessionStorage.setItem("pkce_verifier", codeVerifier);
@@ -81,7 +80,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     }
 
     const messageHandler = (event: MessageEvent) => {
-      // Only accept messages from our own origin
       if (event.origin !== window.location.origin) return;
       const data = event.data as any;
       if (data?.type === "oauth-token" && data?.token) {

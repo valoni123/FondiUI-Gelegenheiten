@@ -19,6 +19,7 @@ interface IonApiConfig {
   v: string;
   saak: string;
   sask: string;
+  ru?: string; // optional redirect URI from ionapi
 }
 
 const configs: Record<CloudEnvironment, IonApiConfig> = {
@@ -67,4 +68,13 @@ export const getAuthUrl = (environment: CloudEnvironment): string => {
 export const getTokenUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
   return `${config.pu}${config.ot}`;
+};
+
+// Provide redirect URI, prefer ionapi.ru if present, else fallback to current origin + /callback
+export const getRedirectUri = (environment: CloudEnvironment): string => {
+  const config = getIonApiConfig(environment);
+  if (config.ru) return config.ru;
+  const fallback = `${window.location.origin}/callback`;
+  console.warn(`ionapi.ru missing for ${environment}. Using fallback redirect URI: ${fallback}`);
+  return fallback;
 };

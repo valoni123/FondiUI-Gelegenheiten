@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getIonApiConfig, getSsoProxyPath, type CloudEnvironment } from "@/authorization/configLoader";
+import { getIonApiConfig, getSsoProxyPath, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 import { setExternalAccessToken } from "@/authorization/authService";
 
 const OAuthCallback: React.FC = () => {
@@ -28,7 +28,7 @@ const OAuthCallback: React.FC = () => {
           hashParams.get("access_token") || queryParams.get("access_token");
         let expiresInSec = Number(hashParams.get("expires_in") || queryParams.get("expires_in") || 3600);
 
-        const redirectUri = `${window.location.origin}/callback`;
+        const redirectUri = getRedirectUri(env);
 
         if (!accessToken && code) {
           // Exchange authorization code for token via proxy
