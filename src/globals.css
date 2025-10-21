@@ -7,10 +7,10 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100% / 0.85;
+    --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
 
-    --popover: 0 0% 100% / 0.85;
+    --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
     --primary: 222.2 47.4% 11.2%;
@@ -97,18 +97,6 @@
 
   body {
     @apply bg-background text-foreground;
-    /* Background image across the whole page */
-    background-image: url('/fondiui-background.jpg') !important;
-    background-position: center bottom !important;
-    background-size: cover !important;
-    background-repeat: no-repeat !important;
-    background-attachment: fixed !important;
-  }
-}
-
-@layer components {
-  [data-variant="card"], [data-variant="popover"], .card, .popover {
-    @apply bg-card text-card-foreground relative z-20;
   }
 }
 

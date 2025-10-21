@@ -10,7 +10,6 @@ import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
-import ForegroundBackground from "./components/ForegroundBackground";
 
 const queryClient = new QueryClient();
 
@@ -68,7 +67,6 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ForegroundBackground />
           <SettingsButton
             currentCompanyNumber={companyNumber}
             onSaveCompanyNumber={handleSaveCompanyNumber}
