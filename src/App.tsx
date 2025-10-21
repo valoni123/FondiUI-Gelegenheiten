@@ -16,7 +16,7 @@ const queryClient = new QueryClient();
 const App = () => {
   // Initialize company number from localStorage or a default
   const [companyNumber, setCompanyNumber] = useState<string>(
-    localStorage.getItem("companyNumber") || "1000" // Default to "1000"
+    localStorage.getItem("companyNumber") || "7000" // Default to "7000"
   );
 
   // Initialize cloud environment from localStorage or a default
@@ -49,6 +49,17 @@ const App = () => {
   const handleSaveCloudEnvironment = (newEnvironment: CloudEnvironment) => {
     setCloudEnvironment(newEnvironment);
   };
+
+  // Ensure company is set to 7000 after successful login
+  useEffect(() => {
+    if (isAuthenticated) {
+      const savedCompany = localStorage.getItem("companyNumber");
+      if (savedCompany !== "7000") {
+        setCompanyNumber("7000");
+        localStorage.setItem("companyNumber", "7000");
+      }
+    }
+  }, [isAuthenticated]);
 
   return (
     <QueryClientProvider client={queryClient}>
