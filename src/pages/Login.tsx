@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
@@ -99,21 +100,25 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">
       <Card className="max-w-md w-full">
         <CardHeader className="flex flex-col items-center pt-8">
-          {/* Logo image (use public/fondiui-logo.png). If not available, fallback to styled text logo */}
-          <div className="w-full flex justify-center mb-6">
+          {/* Logo image (use public/fondiui-logo.png). If not available, hide broken image */}
+          <div className="w-full flex justify-center mb-4">
             <img
               src="/fondiui-logo.png"
               alt="FONDIUI"
-              className="w-72 sm:w-96 object-contain"
+              className="max-w-[520px] w-80 sm:w-[28rem] object-contain"
               onError={(e) => {
-                // hide broken image if not present so fallback text is visible
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
             />
           </div>
 
+          {/* Separator line (centered and narrower than full width) */}
+          <div className="w-full flex justify-center">
+            <Separator className="bg-gray-300 w-3/4 my-3" />
+          </div>
+
           {/* Subtitle */}
-          <div className="mt-3 text-center text-lg font-bold text-muted-foreground">
+          <div className="mt-1 text-center text-lg sm:text-xl font-bold text-muted-foreground">
             Fondium User Interface
           </div>
         </CardHeader>
