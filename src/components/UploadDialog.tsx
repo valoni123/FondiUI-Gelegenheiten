@@ -312,21 +312,22 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Top-right action to apply attributes from first row to all rows */}
         {/* Left-side action to apply attributes from first row to all rows */}
-        <div className="flex justify-start mb-2">
-          <Button
-            variant={canApplyToAll ? "default" : "outline"}
-            size="sm"
-            disabled={!canApplyToAll}
-            onClick={applyAttributesToAll}
-            title="Attribute aus erster Zeile auf alle übernehmen"
-            className={canApplyToAll ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
-          >
-            <Copy className="mr-2 h-4 w-4" />
-            Attribute für alle Dokumente übernehmen
-          </Button>
-        </div>
+        {rows.length > 1 && (
+          <div className="flex justify-start mb-2">
+            <Button
+              variant={canApplyToAll ? "default" : "outline"}
+              size="sm"
+              disabled={!canApplyToAll}
+              onClick={applyAttributesToAll}
+              title="Attribute aus erster Zeile auf alle übernehmen"
+              className={canApplyToAll ? "bg-orange-500 text-white hover:bg-orange-600" : ""}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Attribute für alle Dokumente übernehmen
+            </Button>
+          </div>
+        )}
 
         {rows.length === 0 ? (
           <div className="text-sm text-muted-foreground">Keine Dateien ausgewählt.</div>
