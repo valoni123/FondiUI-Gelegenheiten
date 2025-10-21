@@ -31,21 +31,10 @@ const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promi
 
   const raw = await res.json();
 
-  // Try common keys and nested shapes
-  const candidates = [
-    raw?.displayName,
-    raw?.DisplayName,
-    raw?.user?.displayName,
-    raw?.user?.name,
-    raw?.name,
-    raw?.fullName,
-    raw?.userDisplayName,
-    raw?.preferred_username,
-    raw?.username,
-    raw?.userName,
-  ];
-
-  const displayName = String(candidates.find((v) => typeof v === "string" && v.trim().length > 0) || "").trim();
+  // Extract displayName from the nested userlist structure
+  const displayName = raw?.response?.userlist?.[0]?.displayName || 
+                     raw?.response?.userlist?.[0]?.name?.givenName + " " + raw?.response?.userlist?.[0]?.name?.familyName ||
+                     "Unbekannter Benutzer";
 
   return { displayName };
 };
