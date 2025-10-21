@@ -1,16 +1,15 @@
 {
   "ti": "FONDIUM_TRN",
-  "cn": "LNCustomServices",
-  "dt": "12",
-  "ci": "FONDIUM_TRN~0ky6Z9QIYY2EdOx-arwx7W8fBcbdM8CBfveEqBbOjYc",
-  "cs": "xHd5YMJlIqTlwngVa0v6cxHT8PIfoKjEsfuRHhL11jAmNYRv7Ij0Q2RCfYGWScqvlsTsfV-FWZ2hh-WiEmMOkQ",
+  "cn": "Fondium_Web_App",
+  "dt": "11",
+  "ci": "FONDIUM_TRN~OUG2aZPt0tgEoCm-ImpP4RHBBT9mQiGCIyPP7MrdgwU",
+  "cs": "DthKiL3O7PswoXCh7or7yq6XJYeFCQQyNLWlVxgs0nbFuVyLd51A7Spafw99bFArA2iH5aKqovTE_pRUO848uw",
   "iu": "https://mingle-ionapi.eu1.inforcloudsuite.com",
   "pu": "https://mingle-sso.eu1.inforcloudsuite.com:443/FONDIUM_TRN/as/",
   "oa": "authorization.oauth2",
   "ot": "token.oauth2",
   "or": "revoke_token.oauth2",
+  "ru": "http://localhost:32100/callback",
   "ev": "V1480769020",
-  "v": "1.0",
-  "saak": "FONDIUM_TRN#b_-LhMfsLwCOihZsx9gyLK4528nNzMmCNQjASQ-hqgyftlnuQr47DdVeKlyucAnRQLLCem44lJRGKPaKRXqs2w",
-  "sask": "EoJdhXP41bZIYMtjwI514tsuuDxmaxvaiSBKoahHLCyVMr3w9UIhdK3J27243gC6oF03Z40ZDw_X2ZI_i4t_rA"
+  "v": "1.0"
 }

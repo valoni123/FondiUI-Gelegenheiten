@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -11,6 +11,7 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
+  const [debugUrl, setDebugUrl] = useState<string | null>(localStorage.getItem("lastAuthUrl"));
 
   useEffect(() => {
     // If already authenticated, go straight to home
@@ -27,14 +28,12 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
     const state = crypto.randomUUID();
 
-    // Ensure the callback can read the chosen environment
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
 
-    // PKCE helpers
     const generateCodeVerifier = () => {
       const array = new Uint8Array(32);
       crypto.getRandomValues(array);
-      return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join(""); // 64-char hex (valid length)
+      return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join(""); 
     };
     const sha256 = async (plain: string) => {
       const data = new TextEncoder().encode(plain);
@@ -65,8 +64,13 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     });
 
     const fullUrl = `${authUrl}?${params.toString()}`;
-    console.log("Auth URL:", authUrl);
+    console.log("Auth URL (pu+oa):", authUrl);
+    console.log("Redirect URI (ru):", redirectUri);
     console.log("Full authorization URL:", fullUrl);
+
+    // Store for debugging and show in UI
+    localStorage.setItem("lastAuthUrl", fullUrl);
+    setDebugUrl(fullUrl);
 
     const popup = window.open(
       fullUrl,
@@ -106,6 +110,34 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           <p className="text-sm text-muted-foreground text-center">
             Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
           </p>
+
+          {debugUrl && (
+            <div className="mt-4 rounded border p-2 text-xs break-all">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Letzte Auth-URL</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      navigator.clipboard.writeText(debugUrl).then(() => toast.success("URL kopiert"))
+                    }
+                  >
+                    Kopieren
+                  </Button>
+                  <a
+                    href={debugUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline text-xs"
+                  >
+                    In neuem Tab öffnen
+                  </a>
+                </div>
+              </div>
+              <div className="max-h-32 overflow-y-auto text-muted-foreground">{debugUrl}</div>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button onClick={handleLogin}>Mit Infor ION anmelden</Button>

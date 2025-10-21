@@ -17,8 +17,8 @@ interface IonApiConfig {
   or: string;
   ev: string;
   v: string;
-  saak: string;
-  sask: string;
+  saak?: string;
+  sask?: string;
   ru?: string; // optional redirect URI from ionapi
 }
 
