@@ -42,6 +42,19 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
+// Wrapper that updates auth state on every route change
+const AuthRouteWrapper: React.FC<{
+  children: React.ReactNode;
+  onAuthCheck: (authed: boolean) => void;
+}> = ({ children, onAuthCheck }) => {
+  const location = useLocation();
+  useEffect(() => {
+    // Sync auth from localStorage on each navigation
+    onAuthCheck(!!localStorage.getItem("oauthAccessToken"));
+  }, [location.pathname, location.search, onAuthCheck]);
+  return <FadeTransition>{children}</FadeTransition>;
+};
+
 const App = () => {
   // Initialize company number from localStorage or a default
   const [companyNumber, setCompanyNumber] = useState<string>(
@@ -105,7 +118,7 @@ const App = () => {
               onSaveCloudEnvironment={handleSaveCloudEnvironment}
             />
           </div>
-          <FadeTransition>
+          <AuthRouteWrapper onAuthCheck={(authed) => setIsAuthenticated(authed)}>
             <Routes>
               {/* Root redirects to the login page */}
               <Route path="/" element={<Navigate to="/login" replace />} />
@@ -129,7 +142,7 @@ const App = () => {
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </FadeTransition>
+          </AuthRouteWrapper>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
