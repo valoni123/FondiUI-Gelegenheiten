@@ -8,7 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
 import UserStatus from "./components/UserStatus";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -42,19 +42,6 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
-// Wrapper that updates auth state on every route change
-const AuthRouteWrapper: React.FC<{
-  children: React.ReactNode;
-  onAuthCheck: (authed: boolean) => void;
-}> = ({ children, onAuthCheck }) => {
-  const location = useLocation();
-  useEffect(() => {
-    // Sync auth from localStorage on each navigation
-    onAuthCheck(!!localStorage.getItem("oauthAccessToken"));
-  }, [location.pathname, location.search]);
-  return <FadeTransition>{children}</FadeTransition>;
-};
-
 const App = () => {
   // Initialize company number from localStorage or a default
   const [companyNumber, setCompanyNumber] = useState<string>(
@@ -63,6 +50,9 @@ const App = () => {
 
   // Initialize cloud environment from localStorage or a default
   const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>("FONDIUM_TRN");
+
+  // Derive auth directly from localStorage to avoid state updates during navigation
+  const authed = !!localStorage.getItem("oauthAccessToken");
 
   // Save company number to localStorage whenever it changes
   useEffect(() => {
@@ -74,21 +64,6 @@ const App = () => {
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
   }, [cloudEnvironment]);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
-
-  useEffect(() => {
-    const handler = () => {
-      setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
-
-  // Stable callback that only updates when value changes
-  const handleAuthCheckStable = useCallback((authed: boolean) => {
-    setIsAuthenticated((prev) => (prev !== authed ? authed : prev));
-  }, []);
-
   const handleSaveCompanyNumber = (newCompanyNumber: string) => {
     setCompanyNumber(newCompanyNumber);
   };
@@ -99,14 +74,14 @@ const App = () => {
 
   // Ensure company is set to 7000 after successful login
   useEffect(() => {
-    if (isAuthenticated) {
+    if (authed) {
       const savedCompany = localStorage.getItem("companyNumber");
       if (savedCompany !== "7000") {
         setCompanyNumber("7000");
         localStorage.setItem("companyNumber", "7000");
       }
     }
-  }, [isAuthenticated]);
+  }, [authed]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -115,7 +90,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-            <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
+            <UserStatus isAuthenticated={authed} cloudEnvironment={cloudEnvironment} />
             <SettingsButton
               currentCompanyNumber={companyNumber}
               onSaveCompanyNumber={handleSaveCompanyNumber}
@@ -123,7 +98,7 @@ const App = () => {
               onSaveCloudEnvironment={handleSaveCloudEnvironment}
             />
           </div>
-          <AuthRouteWrapper onAuthCheck={handleAuthCheckStable}>
+          <FadeTransition>
             <Routes>
               {/* Root redirects to the login page */}
               <Route path="/" element={<Navigate to="/login" replace />} />
@@ -131,7 +106,7 @@ const App = () => {
               {/* Post-login apps selection page */}
               <Route
                 path="/fondiumapps"
-                element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
+                element={authed ? <Dashboard /> : <Navigate to="/login" replace />}
               />
 
               {/* Gelegenheiten app */}
@@ -147,7 +122,7 @@ const App = () => {
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </AuthRouteWrapper>
+          </FadeTransition>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
