@@ -8,7 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
 import UserStatus from "./components/UserStatus";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -29,7 +29,7 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [children]);
+  }, [location.pathname, location.search]);
 
   return (
     <div
@@ -51,7 +51,7 @@ const AuthRouteWrapper: React.FC<{
   useEffect(() => {
     // Sync auth from localStorage on each navigation
     onAuthCheck(!!localStorage.getItem("oauthAccessToken"));
-  }, [location.pathname, location.search, onAuthCheck]);
+  }, [location.pathname, location.search]);
   return <FadeTransition>{children}</FadeTransition>;
 };
 
@@ -82,6 +82,11 @@ const App = () => {
     };
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  // Stable callback that only updates when value changes
+  const handleAuthCheckStable = useCallback((authed: boolean) => {
+    setIsAuthenticated((prev) => (prev !== authed ? authed : prev));
   }, []);
 
   const handleSaveCompanyNumber = (newCompanyNumber: string) => {
@@ -118,7 +123,7 @@ const App = () => {
               onSaveCloudEnvironment={handleSaveCloudEnvironment}
             />
           </div>
-          <AuthRouteWrapper onAuthCheck={(authed) => setIsAuthenticated(authed)}>
+          <AuthRouteWrapper onAuthCheck={handleAuthCheckStable}>
             <Routes>
               {/* Root redirects to the login page */}
               <Route path="/" element={<Navigate to="/login" replace />} />
