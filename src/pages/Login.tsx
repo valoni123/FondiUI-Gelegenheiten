@@ -89,6 +89,8 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           localStorage.setItem("oauthExpiresAt", String(data.expiresAt));
         }
         toast.success("Login erfolgreich!");
+        // Notify app about auth state change in the same window (iframe-safe)
+        window.dispatchEvent(new Event("fondiui:auth-updated"));
         window.removeEventListener("message", messageHandler);
         setTokenReady(true);
       }

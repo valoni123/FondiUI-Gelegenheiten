@@ -64,11 +64,15 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
 
   useEffect(() => {
-    const handler = () => {
+    const updateAuthState = () => {
       setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
     };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    window.addEventListener("storage", updateAuthState);
+    window.addEventListener("fondiui:auth-updated", updateAuthState as EventListener);
+    return () => {
+      window.removeEventListener("storage", updateAuthState);
+      window.removeEventListener("fondiui:auth-updated", updateAuthState as EventListener);
+    };
   }, []);
 
   const handleSaveCompanyNumber = (newCompanyNumber: string) => {
