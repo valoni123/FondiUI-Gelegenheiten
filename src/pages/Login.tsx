@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -12,12 +12,13 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
+  const [tokenReady, setTokenReady] = useState<boolean>(false);
 
   useEffect(() => {
     // If already authenticated, go straight to home
     const existingToken = localStorage.getItem("oauthAccessToken");
     if (existingToken) {
-      navigate("/");
+      setTokenReady(true);
     }
   }, [navigate]);
 
@@ -89,7 +90,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
         }
         toast.success("Login erfolgreich!");
         window.removeEventListener("message", messageHandler);
-        navigate("/");
+        setTokenReady(true);
       }
     };
 
@@ -125,8 +126,22 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             </p>
           </CardContent>
 
-          <CardFooter className="flex justify-center pb-8">
-            <Button onClick={handleLogin} className="bg-orange-500 hover:bg-orange-600">Mit Infor ION anmelden</Button>
+          <CardFooter className="flex flex-col items-stretch gap-3 pb-8">
+            <Button
+              onClick={handleLogin}
+              className="bg-orange-500 hover:bg-orange-600"
+              disabled={tokenReady}
+            >
+              Mit Infor ION anmelden
+            </Button>
+            {tokenReady && (
+              <Button
+                className="bg-black text-white hover:bg-black/80"
+                onClick={() => navigate("/fondiumapps")}
+              >
+                FondiUI Apps öffnen
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </div>
