@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -107,23 +107,26 @@ const App = () => {
           </div>
           <FadeTransition>
             <Routes>
+              {/* Root redirects to the login page */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+
+              {/* Post-login apps selection page */}
               <Route
-                path="/"
-                element={
-                  isAuthenticated ? (
-                    <Dashboard />
-                  ) : (
-                    <Login cloudEnvironment={cloudEnvironment} />
-                  )
-                }
+                path="/fondiumapps"
+                element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />}
               />
+
+              {/* Gelegenheiten app */}
               <Route
                 path="/opportunities"
                 element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
               />
+
+              {/* Login and OAuth callback */}
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
               <Route path="/callback" element={<OAuthCallback />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+              {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </FadeTransition>

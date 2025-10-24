@@ -17,7 +17,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     // If already authenticated, go straight to home
     const existingToken = localStorage.getItem("oauthAccessToken");
     if (existingToken) {
-      navigate("/");
+      navigate("/fondiumapps");
     }
   }, [navigate]);
 
@@ -89,7 +89,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
         }
         toast.success("Login erfolgreich!");
         window.removeEventListener("message", messageHandler);
-        navigate("/");
+        navigate("/fondiumapps");
       }
     };
 
