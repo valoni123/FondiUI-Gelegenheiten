@@ -118,6 +118,16 @@ const App = () => {
                 }
               />
               <Route
+                path="/fondiumapps"
+                element={
+                  isAuthenticated ? (
+                    <Dashboard />
+                  ) : (
+                    <Login cloudEnvironment={cloudEnvironment} />
+                  )
+                }
+              />
+              <Route
                 path="/opportunities"
                 element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
               />
