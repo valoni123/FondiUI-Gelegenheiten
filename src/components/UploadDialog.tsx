@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import HorizontalScrollArea from "@/components/HorizontalScrollArea";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -431,7 +431,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         {rows.length === 0 ? (
           <div className="text-sm text-muted-foreground">Keine Dateien ausgewählt.</div>
         ) : (
-          <ScrollArea className="max-h-[60vh]">
+          <HorizontalScrollArea className="max-h-[60vh]">
             <div className="min-w-full pr-2">
               {/* Header */}
               <div
@@ -619,7 +619,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                 ))}
               </div>
             </div>
-          </ScrollArea>
+          </HorizontalScrollArea>
         )}
 
         <div className="flex justify-end gap-2 pt-2">
