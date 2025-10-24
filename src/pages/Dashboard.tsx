@@ -1,6 +1,5 @@
 import React from "react";
 import AppTile from "@/components/AppTile";
-import ActionGridCard from "@/components/ActionGridCard";
 import { Users, Box, LayoutGrid } from "lucide-react";
 
 const Dashboard: React.FC = () => {
@@ -28,7 +27,7 @@ const Dashboard: React.FC = () => {
         <div className="mt-16 sm:mt-24 grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12">
           <AppTile title="GELEGENHEITEN" icon={Users} to="/opportunities" colorClass="text-blue-600" />
           <AppTile title="APP 2" icon={LayoutGrid} disabled />
-          <ActionGridCard />
+          <AppTile title="APP 3" icon={Box} disabled />
         </div>
       </div>
 
