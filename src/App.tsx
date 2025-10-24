@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -29,7 +29,7 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [location.pathname, location.search]);
+  }, [children]);
 
   return (
     <div
@@ -51,9 +51,6 @@ const App = () => {
   // Initialize cloud environment from localStorage or a default
   const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>("FONDIUM_TRN");
 
-  // Derive auth directly from localStorage to avoid state updates during navigation
-  const authed = !!localStorage.getItem("oauthAccessToken");
-
   // Save company number to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("companyNumber", companyNumber);
@@ -63,6 +60,16 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
   }, [cloudEnvironment]);
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
+
+  useEffect(() => {
+    const handler = () => {
+      setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
 
   const handleSaveCompanyNumber = (newCompanyNumber: string) => {
     setCompanyNumber(newCompanyNumber);
@@ -74,14 +81,14 @@ const App = () => {
 
   // Ensure company is set to 7000 after successful login
   useEffect(() => {
-    if (authed) {
+    if (isAuthenticated) {
       const savedCompany = localStorage.getItem("companyNumber");
       if (savedCompany !== "7000") {
         setCompanyNumber("7000");
         localStorage.setItem("companyNumber", "7000");
       }
     }
-  }, [authed]);
+  }, [isAuthenticated]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -90,7 +97,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-            <UserStatus isAuthenticated={authed} cloudEnvironment={cloudEnvironment} />
+            <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
             <SettingsButton
               currentCompanyNumber={companyNumber}
               onSaveCompanyNumber={handleSaveCompanyNumber}
@@ -100,26 +107,23 @@ const App = () => {
           </div>
           <FadeTransition>
             <Routes>
-              {/* Root redirects to the login page */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
-
-              {/* Post-login apps selection page */}
               <Route
-                path="/fondiumapps"
-                element={authed ? <Dashboard /> : <Navigate to="/login" replace />}
+                path="/"
+                element={
+                  isAuthenticated ? (
+                    <Dashboard />
+                  ) : (
+                    <Login cloudEnvironment={cloudEnvironment} />
+                  )
+                }
               />
-
-              {/* Gelegenheiten app */}
               <Route
                 path="/opportunities"
                 element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
               />
-
-              {/* Login and OAuth callback */}
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
               <Route path="/callback" element={<OAuthCallback />} />
-
-              {/* Catch-all */}
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </FadeTransition>
