@@ -415,6 +415,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                   disabled={!canSaveAll || bulkSaving}
                   onClick={handleSaveAll}
                   title="Alle gefüllten Dokumente hochladen"
+                  aria-label="Alle Dokumente hochladen"
                 >
                   {bulkSaving ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -606,13 +607,13 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                         onClick={() => handleSaveRow(row)}
                         className={cn("h-8")}
                         title="Zeile speichern und hochladen"
+                        aria-label="Dokument hochladen"
                       >
                         {row.saving ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                           <Upload className="mr-2 h-4 w-4" />
                         )}
-                        Hochladen
                       </Button>
                     </div>
                   </div>
