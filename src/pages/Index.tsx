@@ -255,6 +255,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
+                selectedOpportunityProject={
+                  opportunities.find((i) => i.id === selectedOpportunityId)?.Project
+                }
               />
             </ResizablePanel>
           ) : (

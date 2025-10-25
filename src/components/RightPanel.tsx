@@ -28,6 +28,7 @@ interface RightPanelProps {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
+  selectedOpportunityProject?: string; // New optional prop
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -36,6 +37,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   authToken,
   cloudEnvironment,
   entityNames,
+  selectedOpportunityProject, // Destructure new prop
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -426,6 +428,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               await reloadPreviews();
             }}
             defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
+            defaultProjectName={selectedOpportunityProject} // NEW: prefill "Projekt"
           />
 
           <div className="min-h-0 flex-1">

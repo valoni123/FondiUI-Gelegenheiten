@@ -38,6 +38,7 @@ type UploadDialogProps = {
   cloudEnvironment: CloudEnvironment;
   onCompleted: () => void;
   defaultOpportunityNumber?: string; // New prop for pre-filling Gelegenheit
+  defaultProjectName?: string; // New prop for pre-filling Projekt
 };
 
 type RowState = {
@@ -63,6 +64,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   cloudEnvironment,
   onCompleted,
   defaultOpportunityNumber, // Destructure new prop
+  defaultProjectName, // Destructure new prop
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
   const [bulkSaving, setBulkSaving] = React.useState(false);
@@ -119,6 +121,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         const opportunityAttr = filtered.find(attr => attr.name === "Gelegenheit");
         if (opportunityAttr) {
           initialValues["Gelegenheit"] = defaultOpportunityNumber;
+        }
+      }
+
+      // Pre-fill "Projekt" if defaultProjectName is provided
+      if (defaultProjectName) {
+        const projectAttr = filtered.find(attr => attr.name === "Projekt");
+        if (projectAttr) {
+          initialValues["Projekt"] = defaultProjectName;
         }
       }
 
