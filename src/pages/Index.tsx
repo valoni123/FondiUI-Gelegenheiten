@@ -30,6 +30,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
   const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
 
+  // New: detect deep-link mode (URL contains opportunity id or query param)
+  const isDeepLink = !!effectiveOpportunityId;
+
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -233,9 +236,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
-        <AppHeader />
-        
+      <div className={`w-full px-4 ${isDeepLink ? "space-y-2 pt-2" : "space-y-6"} flex flex-col flex-grow`}>
+        {/* Show AppHeader (with app switcher + banner) only in non-deep-link mode */}
+        {!isDeepLink && <AppHeader />}
+
         <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
           {!selectedOpportunityId && (
             <Button onClick={handleAddItem}>
@@ -261,6 +265,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 selectedOpportunityProject={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Project
                 }
+                compact={isDeepLink} {/* NEW: tighten padding in deep-link mode */}
               />
             </ResizablePanel>
           ) : (

@@ -29,6 +29,7 @@ interface RightPanelProps {
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
   selectedOpportunityProject?: string; // New optional prop
+  compact?: boolean; // NEW: reduce spacing in deep-link mode
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -38,6 +39,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   cloudEnvironment,
   entityNames,
   selectedOpportunityProject, // Destructure new prop
+  compact = false, // NEW: default to false
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -342,13 +344,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
   };
 
   return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-4 flex items-center">
+    <div className={`flex h-full flex-col ${compact ? "p-2 pt-2" : "p-4"}`}>
+      <div className={`${compact ? "mb-2" : "mb-4"} flex items-center`}>
         <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
       </div>
 
       <Card className="flex-grow flex flex-col">
-        <CardHeader className="pb-2">
+        <CardHeader className={`${compact ? "pb-1" : "pb-2"}`}>
           <CardTitle className="text-base text-muted-foreground">
             Auswahl: {selectedOpportunityId}
           </CardTitle>
