@@ -17,7 +17,7 @@ import {
 import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
-import { useSearchParams } from "react-router-dom"; // Import useSearchParams
+import { useSearchParams, useParams } from "react-router-dom"; // Import useSearchParams
 
 interface IndexProps {
   companyNumber: string;
@@ -26,7 +26,9 @@ interface IndexProps {
 
 const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [searchParams] = useSearchParams(); // Get URL search parameters
+  const { opportunityId: paramOpportunityId } = useParams(); // Get ID from path like /M0000007
   const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
+  const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -36,7 +38,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(urlOpportunityId); // Initialize with URL param
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId); // Initialize with URL or path param
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
   // New state for panel sizes
@@ -82,12 +84,12 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         const entities = await getIdmEntities(token, cloudEnvironment);
         setIdmEntityNames(entities);
 
-        // Only load all opportunities if no specific opportunity is requested via URL
-        if (!urlOpportunityId) {
+        // Only load all opportunities if no specific opportunity is requested via URL or path
+        if (!effectiveOpportunityId) {
           await loadOpportunities(token, companyNumber, cloudEnvironment, false);
         } else {
           // If a specific opportunity is requested, ensure the right panel is open
-          setSelectedOpportunityId(urlOpportunityId);
+          setSelectedOpportunityId(effectiveOpportunityId);
         }
       } catch (error) {
         console.error("Initial data fetch failed:", error);
@@ -97,10 +99,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       }
     };
     initWithLoginToken();
-  }, [companyNumber, cloudEnvironment, loadOpportunities, urlOpportunityId]); // Add urlOpportunityId to dependencies
+  }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
 
   useEffect(() => {
-    if (authToken && companyNumber && cloudEnvironment && !urlOpportunityId) { // Only refresh if not viewing a specific URL opportunity
+    if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) { // Only refresh if not viewing a specific opportunity
       const refreshInterval = setInterval(() => {
         console.log("Performing silent opportunities refresh...");
         loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
@@ -108,7 +110,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, urlOpportunityId]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
 
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
@@ -247,7 +249,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
           <ResizablePanel size={leftPanelSize} minSize={10}>
             <GridList
-              items={urlOpportunityId ? [] : opportunities}
+              items={effectiveOpportunityId ? [] : opportunities}
               onUpdateItem={handleUpdateItem}
               onViewDetails={handleViewDetails}
               opportunityStatusOptions={opportunityStatusOptions}

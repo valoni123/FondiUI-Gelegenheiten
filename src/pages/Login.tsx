@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -15,6 +15,7 @@ interface LoginProps {
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const params = useParams();
   const [tokenReady, setTokenReady] = useState<boolean>(false);
   const [opportunityId, setOpportunityId] = useState<string>("");
 
@@ -27,12 +28,24 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   }, [navigate]);
 
   useEffect(() => {
-    // Prefill from URL if present (e.g., /login?opportunity=M0000007)
+    // Prefill from URL if present (e.g., /login?opportunity=M0000007 or /M0000007)
     const fromUrl = searchParams.get("opportunity");
+    const fromParam = params.opportunityId;
     if (fromUrl) {
       setOpportunityId(fromUrl);
+    } else if (fromParam) {
+      setOpportunityId(fromParam || "");
     }
-  }, [searchParams]);
+  }, [searchParams, params]);
+
+  // If a token is ready and we have an opportunity, go directly to the page
+  useEffect(() => {
+    if (tokenReady) {
+      const id = opportunityId.trim();
+      const path = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
+      navigate(path);
+    }
+  }, [tokenReady, opportunityId, navigate]);
 
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);

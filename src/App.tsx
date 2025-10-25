@@ -126,6 +126,17 @@ const App = () => {
                 element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
               />
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
+              {/* Added deep-link route to catch opportunity id at root */}
+              <Route
+                path="/:opportunityId"
+                element={
+                  isAuthenticated ? (
+                    <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                  ) : (
+                    <Login cloudEnvironment={cloudEnvironment} />
+                  )
+                }
+              />
               {/* Removed the /fondiumapps route as per request */}
               <Route path="/callback" element={<OAuthCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
