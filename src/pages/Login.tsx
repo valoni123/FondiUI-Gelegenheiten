@@ -47,8 +47,8 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
     const cfg = getIonApiConfig(cloudEnvironment);
-    const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
-    const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
+    const authUrl = getAuthUrl(cloudEnvironment);
+    const redirectUri = getRedirectUri(cloudEnvironment);
     const state = crypto.randomUUID();
 
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
@@ -91,6 +91,12 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     console.log("Redirect URI (ru):", redirectUri);
     console.log("Full authorization URL:", fullUrl);
 
+    // Remember where to return after login (used by OAuthCallback when running in same window/iframe)
+    const id = opportunityId.trim();
+    const postLoginReturnTo = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
+    sessionStorage.setItem("post_login_returnTo", postLoginReturnTo);
+    sessionStorage.setItem("post_login_state", state);
+
     const popup = window.open(
       fullUrl,
       "ion-login",
@@ -98,7 +104,9 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     );
 
     if (!popup) {
-      toast.error("Popup blocked. Please allow popups for this site.");
+      toast.error("Popup blocked. Redirecting in this window to sign in…");
+      // Fallback: redirect in the same window (iframe-safe).
+      window.location.href = fullUrl;
       return;
     }
 
@@ -111,7 +119,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           localStorage.setItem("oauthExpiresAt", String(data.expiresAt));
         }
         toast.success("Login erfolgreich!");
-        // Notify app about auth state change in the same window (iframe-safe)
         window.dispatchEvent(new Event("fondiui:auth-updated"));
         window.removeEventListener("message", messageHandler);
         setTokenReady(true);
@@ -119,7 +126,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     };
 
     window.addEventListener("message", messageHandler);
-  }, [cloudEnvironment, navigate]);
+  }, [cloudEnvironment, navigate, opportunityId]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50 p-4">

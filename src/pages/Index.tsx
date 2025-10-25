@@ -17,7 +17,7 @@ import {
 import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
-import { useSearchParams, useParams } from "react-router-dom"; // Import useSearchParams
+import { useSearchParams, useParams, useNavigate } from "react-router-dom"; // Import useSearchParams
 
 interface IndexProps {
   companyNumber: string;
@@ -27,6 +27,7 @@ interface IndexProps {
 const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [searchParams] = useSearchParams(); // Get URL search parameters
   const { opportunityId: paramOpportunityId } = useParams(); // Get ID from path like /M0000007
+  const navigate = useNavigate(); // NEW: for redirect
   const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
   const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
 
@@ -47,6 +48,23 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
   const [rightPanelSize, setRightPanelSize] = useState(0);
+
+  // NEW: Redirect to login when not authenticated and loading finished (iframe-safe).
+  useEffect(() => {
+    if (!isAuthLoading && !authToken) {
+      // Remember where to return after login
+      const returnTo = effectiveOpportunityId
+        ? `/opportunities?opportunity=${encodeURIComponent(effectiveOpportunityId)}`
+        : "/opportunities";
+      sessionStorage.setItem("post_login_returnTo", returnTo);
+
+      // Send the user to login, preserving the deep-link id
+      const loginPath = effectiveOpportunityId
+        ? `/login?opportunity=${encodeURIComponent(effectiveOpportunityId)}`
+        : "/login";
+      navigate(loginPath, { replace: true });
+    }
+  }, [isAuthLoading, authToken, effectiveOpportunityId, navigate]);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -232,6 +250,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         <p>Loading authentication and initial data...</p>
       </div>
     );
+  }
+
+  // NEW: Avoid flashing the page when unauthenticated; navigation above will take over.
+  if (!authToken) {
+    return null;
   }
 
   return (
