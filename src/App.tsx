@@ -16,6 +16,26 @@ import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
 
+// Helper: read auth state from localStorage and validate expiry
+function getAuthStateFromStorage(): boolean {
+  const token = localStorage.getItem("oauthAccessToken");
+  if (!token) return false;
+
+  const expStr = localStorage.getItem("oauthExpiresAt");
+  if (expStr) {
+    const exp = Number(expStr);
+    const expMs = exp < 1e12 ? exp * 1000 : exp; // handle seconds vs ms
+    if (Number.isFinite(expMs) && Date.now() >= expMs) {
+      // Token expired: clear and treat as unauthenticated
+      localStorage.removeItem("oauthAccessToken");
+      localStorage.removeItem("oauthExpiresAt");
+      return false;
+    }
+  }
+
+  return true;
+}
+
 // Fade transition component
 const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
@@ -62,12 +82,16 @@ const App = () => {
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
   }, [cloudEnvironment]);
 
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
+  // Use validated auth state (checks token presence and expiry)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(getAuthStateFromStorage());
 
   useEffect(() => {
     const updateAuthState = () => {
-      setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
+      setIsAuthenticated(getAuthStateFromStorage());
     };
+    // Set initial state on mount (covers iframe loads)
+    updateAuthState();
+
     window.addEventListener("storage", updateAuthState);
     window.addEventListener("fondiui:auth-updated", updateAuthState as EventListener);
     return () => {
