@@ -265,7 +265,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 selectedOpportunityProject={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Project
                 }
-                compact={isDeepLink} {/* NEW: tighten padding in deep-link mode */}
+                compact={isDeepLink}
               />
             </ResizablePanel>
           ) : (
