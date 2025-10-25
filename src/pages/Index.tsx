@@ -115,8 +115,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
     if (selectedOpportunityId) {
-      setLeftPanelSize(20); // 20% für die Gelegenheitsliste
-      setRightPanelSize(80); // 80% für das Detail-Panel
+      setLeftPanelSize(0); // Hide left panel when a specific opportunity is selected
+      setRightPanelSize(100); // Right panel takes full width
     } else {
       setLeftPanelSize(100);
       setRightPanelSize(0);
@@ -233,42 +233,22 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
         <AppHeader />
         
-        {/* Temporäre Anzeige für Debugging */}
-        {selectedOpportunityId && (
-          <div className="text-sm text-muted-foreground">
-            Ausgewählte Gelegenheit ID: {selectedOpportunityId}
-          </div>
-        )}
-
         <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
-          <Button onClick={handleAddItem}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
-          </Button>
+          {!selectedOpportunityId && (
+            <Button onClick={handleAddItem}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
+            </Button>
+          )}
         </div>
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
-          <ResizablePanel size={leftPanelSize} minSize={10}>
-            <GridList
-              items={effectiveOpportunityId ? [] : opportunities}
-              onUpdateItem={handleUpdateItem}
-              onViewDetails={handleViewDetails}
-              opportunityStatusOptions={opportunityStatusOptions}
-              authToken={authToken || ""}
-              companyNumber={companyNumber}
-              cloudEnvironment={cloudEnvironment}
-              selectedOpportunityId={selectedOpportunityId}
-              onSelectOpportunity={handleSelectOpportunity}
-            />
-          </ResizablePanel>
-          <ResizableHandle withHandle className={selectedOpportunityId ? '' : 'hidden'} />
-          <ResizablePanel 
-            size={rightPanelSize} 
-            minSize={0} 
-            collapsible={true} 
-            collapsedSize={0}
-            className={selectedOpportunityId ? '' : 'hidden'}
-          >
-            {selectedOpportunityId && (
+          {selectedOpportunityId ? (
+            <ResizablePanel 
+              size={rightPanelSize}
+              minSize={0}
+              collapsible={true}
+              collapsedSize={0}
+            >
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={() => setSelectedOpportunityId(null)}
@@ -276,8 +256,22 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
               />
-            )}
-          </ResizablePanel>
+            </ResizablePanel>
+          ) : (
+            <ResizablePanel size={leftPanelSize} minSize={10}>
+              <GridList
+                items={effectiveOpportunityId ? [] : opportunities}
+                onUpdateItem={handleUpdateItem}
+                onViewDetails={handleViewDetails}
+                opportunityStatusOptions={opportunityStatusOptions}
+                authToken={authToken || ""}
+                companyNumber={companyNumber}
+                cloudEnvironment={cloudEnvironment}
+                selectedOpportunityId={selectedOpportunityId}
+                onSelectOpportunity={handleSelectOpportunity}
+              />
+            </ResizablePanel>
+          )}
         </ResizablePanelGroup>
 
         <DetailDialog
