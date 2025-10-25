@@ -90,6 +90,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         } else {
           // If a specific opportunity is requested, ensure the right panel is open
           setSelectedOpportunityId(effectiveOpportunityId);
+
+          // NEW: silently load opportunities so selected project's name is available for prefill
+          await loadOpportunities(token, companyNumber, cloudEnvironment, true);
         }
       } catch (error) {
         console.error("Initial data fetch failed:", error);
