@@ -1,8 +1,10 @@
 import React, { useEffect, useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
@@ -12,15 +14,25 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [tokenReady, setTokenReady] = useState<boolean>(false);
+  const [opportunityId, setOpportunityId] = useState<string>("");
 
   useEffect(() => {
-    // If already authenticated, go straight to home
+    // If already authenticated, enable opening apps
     const existingToken = localStorage.getItem("oauthAccessToken");
     if (existingToken) {
       setTokenReady(true);
     }
   }, [navigate]);
+
+  useEffect(() => {
+    // Prefill from URL if present (e.g., /login?opportunity=M0000007)
+    const fromUrl = searchParams.get("opportunity");
+    if (fromUrl) {
+      setOpportunityId(fromUrl);
+    }
+  }, [searchParams]);
 
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
@@ -122,10 +134,24 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             </div>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
               Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
             </p>
+
+            {/* Optional Opportunity ID input */}
+            <div className="space-y-2">
+              <Label htmlFor="opportunity-id">Opportunity-ID (optional)</Label>
+              <Input
+                id="opportunity-id"
+                placeholder="z.B. M0000007"
+                value={opportunityId}
+                onChange={(e) => setOpportunityId(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Wenn ausgefüllt, öffnen wir diese Gelegenheit direkt nach dem Login.
+              </p>
+            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col items-stretch gap-3 pb-8">
@@ -139,7 +165,11 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             {tokenReady && (
               <Button
                 className="bg-black text-white hover:bg-black/80"
-                onClick={() => navigate("/opportunities")}
+                onClick={() => {
+                  const id = opportunityId.trim();
+                  const path = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
+                  navigate(path);
+                }}
               >
                 FondiUI Apps öffnen
               </Button>
