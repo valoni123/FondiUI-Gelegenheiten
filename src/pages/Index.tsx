@@ -247,7 +247,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
           <ResizablePanel size={leftPanelSize} minSize={10}>
             <GridList
-              items={urlOpportunityId ? [] : opportunities} {/* Pass empty array if URL param exists */}
+              items={urlOpportunityId ? [] : opportunities}
               onUpdateItem={handleUpdateItem}
               onViewDetails={handleViewDetails}
               opportunityStatusOptions={opportunityStatusOptions}
