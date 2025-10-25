@@ -1,10 +1,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 
@@ -151,20 +148,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             <p className="text-sm text-muted-foreground text-center">
               Melden Sie sich über Infor ION an, um die Anwendung zu verwenden.
             </p>
-
-            {/* Optional Opportunity ID input */}
-            <div className="space-y-2">
-              <Label htmlFor="opportunity-id">Opportunity-ID (optional)</Label>
-              <Input
-                id="opportunity-id"
-                placeholder="z.B. M0000007"
-                value={opportunityId}
-                onChange={(e) => setOpportunityId(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Wenn ausgefüllt, öffnen wir diese Gelegenheit direkt nach dem Login.
-              </p>
-            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col items-stretch gap-3 pb-8">
