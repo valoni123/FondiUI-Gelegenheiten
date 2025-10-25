@@ -13,10 +13,11 @@ import {
   ResizablePanelGroup,
   ResizablePanel,
   ResizableHandle,
-} from "@/components/ui/resizable"; // Import Resizable components
-import RightPanel from "@/components/RightPanel"; // Import the new RightPanel
+} from "@/components/ui/resizable";
+import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
+import { useSearchParams } from "react-router-dom"; // Import useSearchParams
 
 interface IndexProps {
   companyNumber: string;
@@ -24,6 +25,9 @@ interface IndexProps {
 }
 
 const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
+  const [searchParams] = useSearchParams(); // Get URL search parameters
+  const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
+
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
@@ -32,7 +36,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(urlOpportunityId); // Initialize with URL param
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
   // New state for panel sizes
@@ -77,7 +81,14 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         setOpportunityStatusOptions(options);
         const entities = await getIdmEntities(token, cloudEnvironment);
         setIdmEntityNames(entities);
-        await loadOpportunities(token, companyNumber, cloudEnvironment, false);
+
+        // Only load all opportunities if no specific opportunity is requested via URL
+        if (!urlOpportunityId) {
+          await loadOpportunities(token, companyNumber, cloudEnvironment, false);
+        } else {
+          // If a specific opportunity is requested, ensure the right panel is open
+          setSelectedOpportunityId(urlOpportunityId);
+        }
       } catch (error) {
         console.error("Initial data fetch failed:", error);
         toast.error("Fehler bei der Initialisierung: Daten konnten nicht geladen werden.");
@@ -86,10 +97,10 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       }
     };
     initWithLoginToken();
-  }, [companyNumber, cloudEnvironment, loadOpportunities]);
+  }, [companyNumber, cloudEnvironment, loadOpportunities, urlOpportunityId]); // Add urlOpportunityId to dependencies
 
   useEffect(() => {
-    if (authToken && companyNumber && cloudEnvironment) {
+    if (authToken && companyNumber && cloudEnvironment && !urlOpportunityId) { // Only refresh if not viewing a specific URL opportunity
       const refreshInterval = setInterval(() => {
         console.log("Performing silent opportunities refresh...");
         loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
@@ -97,7 +108,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, urlOpportunityId]);
 
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
@@ -217,7 +228,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 space-y-6 flex flex-col flex-grow"> {/* Added flex-grow */}
+      <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
         <AppHeader />
         
         {/* Temporäre Anzeige für Debugging */}
@@ -227,7 +238,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
           </div>
         )}
 
-        <div className="flex justify-start gap-2 mb-4 flex-shrink-0"> {/* Added flex-shrink-0 */}
+        <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
           <Button onClick={handleAddItem}>
             <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
           </Button>
@@ -236,7 +247,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
           <ResizablePanel size={leftPanelSize} minSize={10}>
             <GridList
-              items={opportunities}
+              items={urlOpportunityId ? [] : opportunities} {/* Pass empty array if URL param exists */}
               onUpdateItem={handleUpdateItem}
               onViewDetails={handleViewDetails}
               opportunityStatusOptions={opportunityStatusOptions}

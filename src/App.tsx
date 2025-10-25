@@ -126,10 +126,7 @@ const App = () => {
                 element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
               />
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
-              <Route
-                path="/fondiumapps"
-                element={isAuthenticated ? <Dashboard /> : <Login cloudEnvironment={cloudEnvironment} />}
-              />
+              {/* Removed the /fondiumapps route as per request */}
               <Route path="/callback" element={<OAuthCallback />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

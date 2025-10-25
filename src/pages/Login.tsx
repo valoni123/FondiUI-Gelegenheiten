@@ -139,7 +139,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             {tokenReady && (
               <Button
                 className="bg-black text-white hover:bg-black/80"
-                onClick={() => navigate("/fondiumapps")}
+                onClick={() => navigate("/opportunities")}
               >
                 FondiUI Apps öffnen
               </Button>
