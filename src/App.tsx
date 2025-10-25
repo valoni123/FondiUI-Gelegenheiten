@@ -8,33 +8,12 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import SettingsButton from "./components/SettingsButton";
 import UserStatus from "./components/UserStatus";
-import HeaderOverlay from "./components/HeaderOverlay";
 import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
 
 const queryClient = new QueryClient();
-
-// Helper: read auth state from localStorage and validate expiry
-function getAuthStateFromStorage(): boolean {
-  const token = localStorage.getItem("oauthAccessToken");
-  if (!token) return false;
-
-  const expStr = localStorage.getItem("oauthExpiresAt");
-  if (expStr) {
-    const exp = Number(expStr);
-    const expMs = exp < 1e12 ? exp * 1000 : exp; // handle seconds vs ms
-    if (Number.isFinite(expMs) && Date.now() >= expMs) {
-      // Token expired: clear and treat as unauthenticated
-      localStorage.removeItem("oauthAccessToken");
-      localStorage.removeItem("oauthExpiresAt");
-      return false;
-    }
-  }
-
-  return true;
-}
 
 // Fade transition component
 const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -82,16 +61,12 @@ const App = () => {
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
   }, [cloudEnvironment]);
 
-  // Use validated auth state (checks token presence and expiry)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(getAuthStateFromStorage());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem("oauthAccessToken"));
 
   useEffect(() => {
     const updateAuthState = () => {
-      setIsAuthenticated(getAuthStateFromStorage());
+      setIsAuthenticated(!!localStorage.getItem("oauthAccessToken"));
     };
-    // Set initial state on mount (covers iframe loads)
-    updateAuthState();
-
     window.addEventListener("storage", updateAuthState);
     window.addEventListener("fondiui:auth-updated", updateAuthState as EventListener);
     return () => {
@@ -125,13 +100,15 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <HeaderOverlay
-            isAuthenticated={isAuthenticated}
-            cloudEnvironment={cloudEnvironment}
-            currentCompanyNumber={companyNumber}
-            onSaveCompanyNumber={handleSaveCompanyNumber}
-            onSaveCloudEnvironment={handleSaveCloudEnvironment}
-          />
+          <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+            <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
+            <SettingsButton
+              currentCompanyNumber={companyNumber}
+              onSaveCompanyNumber={handleSaveCompanyNumber}
+              currentCloudEnvironment={cloudEnvironment}
+              onSaveCloudEnvironment={handleSaveCloudEnvironment}
+            />
+          </div>
           <FadeTransition>
             <Routes>
               <Route

@@ -17,7 +17,7 @@ import {
 import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
-import { useSearchParams, useParams, useNavigate } from "react-router-dom"; // Import useSearchParams
+import { useSearchParams, useParams } from "react-router-dom"; // Import useSearchParams
 
 interface IndexProps {
   companyNumber: string;
@@ -27,12 +27,8 @@ interface IndexProps {
 const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [searchParams] = useSearchParams(); // Get URL search parameters
   const { opportunityId: paramOpportunityId } = useParams(); // Get ID from path like /M0000007
-  const navigate = useNavigate(); // NEW: for redirect
   const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
   const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
-
-  // New: detect deep-link mode (URL contains opportunity id or query param)
-  const isDeepLink = !!effectiveOpportunityId;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -48,23 +44,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
   const [rightPanelSize, setRightPanelSize] = useState(0);
-
-  // NEW: Redirect to login when not authenticated and loading finished (iframe-safe).
-  useEffect(() => {
-    if (!isAuthLoading && !authToken) {
-      // Remember where to return after login
-      const returnTo = effectiveOpportunityId
-        ? `/opportunities?opportunity=${encodeURIComponent(effectiveOpportunityId)}`
-        : "/opportunities";
-      sessionStorage.setItem("post_login_returnTo", returnTo);
-
-      // Send the user to login, preserving the deep-link id
-      const loginPath = effectiveOpportunityId
-        ? `/login?opportunity=${encodeURIComponent(effectiveOpportunityId)}`
-        : "/login";
-      navigate(loginPath, { replace: true });
-    }
-  }, [isAuthLoading, authToken, effectiveOpportunityId, navigate]);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -252,17 +231,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     );
   }
 
-  // NEW: Avoid flashing the page when unauthenticated; navigation above will take over.
-  if (!authToken) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className={`w-full px-4 ${isDeepLink ? "space-y-2 pt-2" : "space-y-6"} flex flex-col flex-grow`}>
-        {/* Show AppHeader (with app switcher + banner) only in non-deep-link mode */}
-        {!isDeepLink && <AppHeader />}
-
+      <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
+        <AppHeader />
+        
         <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
           {!selectedOpportunityId && (
             <Button onClick={handleAddItem}>
@@ -288,7 +261,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 selectedOpportunityProject={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Project
                 }
-                compact={isDeepLink}
               />
             </ResizablePanel>
           ) : (

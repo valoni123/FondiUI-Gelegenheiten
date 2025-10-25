@@ -22,6 +22,7 @@ const OAuthCallback: React.FC = () => {
           throw new Error(`${error}: ${errorDescription || "Fehler vom Autorisierungsserver."}`);
         }
 
+        // Prefer Authorization Code flow
         const code = queryParams.get("code") || hashParams.get("code");
         let accessToken: string | null =
           hashParams.get("access_token") || queryParams.get("access_token");
@@ -68,35 +69,26 @@ const OAuthCallback: React.FC = () => {
         }
 
         if (!accessToken) {
-          throw new Error("Kein Token oder Code in der Antwort gefunden.");
+          throw new Error(
+            "Kein Token oder Code in der Antwort gefunden."
+          );
         }
 
         const companyNumber = localStorage.getItem("companyNumber") || "1000";
         const expiresAt = Date.now() + expiresInSec * 1000 - 60 * 1000;
 
+        // Cache for app use
         setExternalAccessToken(accessToken, expiresInSec, companyNumber, env);
         localStorage.setItem("oauthAccessToken", accessToken);
         localStorage.setItem("oauthExpiresAt", String(expiresAt));
 
-        // Notify the app in this window (important when running in an iframe)
-        window.dispatchEvent(new Event("fondiui:auth-updated"));
-
-        // Determine where to go next
-        const returnTo = sessionStorage.getItem("post_login_returnTo") || "";
-        sessionStorage.removeItem("post_login_returnTo");
-        sessionStorage.removeItem("post_login_state");
-
-        // Notify opener if present (popup flow), otherwise navigate in this window
+        // Notify opener and close
         if (window.opener) {
           window.opener.postMessage({ type: "oauth-token", token: accessToken, expiresAt }, window.location.origin);
-          setMessage("Erfolgreich angemeldet. Dieses Fenster kann geschlossen werden.");
-          setTimeout(() => window.close(), 500);
-        } else {
-          // Same-window/iframe flow: go back to intended page
-          const target = returnTo || "/opportunities";
-          setMessage("Erfolgreich angemeldet. Weiterleitung…");
-          window.location.replace(target);
         }
+
+        setMessage("Erfolgreich angemeldet. Dieses Fenster kann geschlossen werden.");
+        setTimeout(() => window.close(), 500);
       } catch (err: any) {
         console.error("OAuth Callback Fehler:", err);
         toast.error(err?.message || "Authentifizierung fehlgeschlagen.");
