@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, Upload, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -341,30 +341,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <div className="flex h-full flex-col p-4">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center">
         <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Dateien auswählen"
-            onClick={() => dropzoneRef.current?.open()}
-            className="h-8 w-8"
-            title="Dateien hochladen"
-          >
-            <Upload className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="h-8 w-8"
-            aria-label="Schließen"
-            title="Schließen"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
       <Card className="flex-grow flex flex-col">
