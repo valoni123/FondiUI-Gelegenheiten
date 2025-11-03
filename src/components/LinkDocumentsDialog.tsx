@@ -409,12 +409,16 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
           ) : step === 2 ? (
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={selectedAttributes.length === 0}
+              disabled={!selected}
               onClick={async () => {
-                if (!selected || selectedAttributes.length === 0) return;
-                const filters = selectedAttributes
-                  .filter((a) => typeof a.value === "string" && a.value.length > 0)
-                  .map((a) => ({ name: a.name, value: a.value! }));
+                if (!selected) return;
+                // Erlaube Suche auch ohne Attribute: leeres Filter-Array
+                const filters =
+                  selectedAttributes.length > 0
+                    ? selectedAttributes
+                        .filter((a) => typeof a.value === "string" && a.value.length > 0)
+                        .map((a) => ({ name: a.name, value: a.value! }))
+                    : [];
 
                 const found = await searchIdmItemsByAttributesJson(
                   authToken,
