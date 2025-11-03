@@ -4,15 +4,13 @@ import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { CloudEnvironment } from "@/authorization/configLoader";
-import { getIdmEntityInfos, type IdmEntityInfo } from "@/api/idm";
 import {
   Command,
   CommandInput,
   CommandEmpty,
   CommandGroup,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command";
 import { Check, Link as LinkIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -91,7 +89,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                   onValueChange={setQuery}
                 />
               </div>
-              <ScrollArea className="max-h-64">
+              <CommandList className="max-h-64 overflow-y-auto">
                 <CommandEmpty>
                   {loading ? "Laden…" : "Keine Ergebnisse gefunden."}
                 </CommandEmpty>
@@ -116,7 +114,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                     );
                   })}
                 </CommandGroup>
-              </ScrollArea>
+              </CommandList>
             </Command>
           </div>
 
