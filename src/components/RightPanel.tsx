@@ -22,6 +22,7 @@ import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
+import LinkedDocumentsPopover from "@/components/LinkedDocumentsPopover";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -462,6 +463,11 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <div className="flex items-center gap-2">
                 {fullPreviewData && (
                   <>
+                    <LinkedDocumentsPopover
+                      authToken={authToken}
+                      cloudEnvironment={cloudEnvironment}
+                      mainPid={fullPreviewData?.pid}
+                    />
                     <Button
                       variant="outline"
                       size="sm"
