@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
 import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -22,7 +22,7 @@ type LinkedDocumentsDialogProps = {
   mainPid?: string;
 };
 
-type LinkedItem = { pid: string; filename?: string; drillbackurl?: string };
+type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string };
 
 const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   authToken,
@@ -46,7 +46,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
         pids.map(async (pid) => {
           try {
             const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
-            return { pid, filename: info.filename, drillbackurl: info.drillbackurl };
+            return { pid, filename: info.filename, drillbackurl: info.drillbackurl, resourceUrl: info.resourceUrl };
           } catch {
             return { pid };
           }
@@ -121,22 +121,40 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                             {it.pid}
                           </div>
                         </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className={it.drillbackurl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
-                              onClick={() => {
-                                if (it.drillbackurl) window.open(it.drillbackurl, "_blank", "noopener");
-                              }}
-                              aria-label="in IDM anzeigen"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent sideOffset={6}>in IDM anzeigen</TooltipContent>
-                        </Tooltip>
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className={it.drillbackurl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
+                                onClick={() => {
+                                  if (it.drillbackurl) window.open(it.drillbackurl, "_blank", "noopener");
+                                }}
+                                aria-label="in IDM anzeigen"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={6}>in IDM anzeigen</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className={it.resourceUrl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
+                                onClick={() => {
+                                  if (it.resourceUrl) window.open(it.resourceUrl, "_blank", "noopener");
+                                }}
+                                aria-label="Herunterladen"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={6}>Herunterladen</TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                     </li>
                   ))}
