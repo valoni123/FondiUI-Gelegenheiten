@@ -16,7 +16,8 @@ import { Check, Link as LinkIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { type CloudEnvironment } from "@/authorization/configLoader";
-import { getIdmEntityInfos, type IdmEntityInfo } from "@/api/idm";
+import AttributeValueField from "@/components/AttributeValueField";
+import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -37,15 +38,17 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [entities, setEntities] = React.useState<IdmEntityInfo[]>([]);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<IdmEntityInfo | null>(null);
-  const [step, setStep] = React.useState<1 | 2>(1);
+  const [step, setStep] = React.useState<1 | 2 | 3>(1);
   const [attrQuery, setAttrQuery] = React.useState("");
-  const [selectedAttrName, setSelectedAttrName] = React.useState<string | null>(null);
+  const [selectedAttributes, setSelectedAttributes] = React.useState<{ name: string; type?: string; valueset?: { name: string; desc: string }[]; value?: string; desc?: string }[]>([]);
+  const [results, setResults] = React.useState<IdmDocPreview[]>([]);
 
   React.useEffect(() => {
     if (!open) {
       setStep(1);
       setSelected(null);
-      setSelectedAttrName(null);
+      setSelectedAttributes([]);
+      setResults([]);
       setAttrQuery("");
       setQuery("");
     }
@@ -81,19 +84,51 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     return entities.filter((e) => (e.desc || e.name).toLowerCase().includes(q));
   }, [entities, query]);
 
-  const attributeNames = React.useMemo(() => {
+  const attributesFull: IdmAttribute[] = React.useMemo(() => {
     const raw = selected?.entity?.attrs?.attr ?? [];
     const arr: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
-    return arr
-      .map((a) => String(a?.name ?? ""))
-      .filter((n) => n.length > 0);
+    return arr.map((a) => {
+      const vs = a?.valueset?.value;
+      const valueset = Array.isArray(vs)
+        ? vs.map((v: any) => ({ name: String(v.name ?? ""), desc: String(v.desc ?? "") }))
+        : undefined;
+      return {
+        name: String(a?.name ?? ""),
+        desc: String(a?.desc ?? ""),
+        valueset,
+        type: String(a?.type ?? ""),
+      } as IdmAttribute;
+    }).filter((a: IdmAttribute) => a.name.length > 0);
   }, [selected]);
 
+  const attributeNames = React.useMemo(() => attributesFull.map((a) => a.name), [attributesFull]);
   const filteredAttributes = React.useMemo(() => {
     if (!attrQuery.trim()) return attributeNames;
     const q = attrQuery.toLowerCase();
     return attributeNames.filter((n) => n.toLowerCase().includes(q));
   }, [attributeNames, attrQuery]);
+
+  const getAttrByName = React.useCallback(
+    (name: string) => attributesFull.find((a) => a.name === name),
+    [attributesFull]
+  );
+
+  const toggleAttribute = (name: string) => {
+    setSelectedAttributes((prev) => {
+      const exists = prev.some((p) => p.name === name);
+      if (exists) {
+        return prev.filter((p) => p.name !== name);
+      }
+      const full = getAttrByName(name);
+      return full
+        ? [...prev, { name: full.name, type: full.type, valueset: full.valueset, desc: full.desc, value: "" }]
+        : prev;
+    });
+  };
+
+  const setAttrValue = (name: string, value: string) => {
+    setSelectedAttributes((prev) => prev.map((p) => (p.name === name ? { ...p, value } : p)));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -132,7 +167,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                             key={e.name}
                             onSelect={() => {
                               setSelected(e);
-                              setSelectedAttrName(null);
+                              setSelectedAttributes([]);
                             }}
                             className={cn("cursor-pointer", isActive && "bg-muted")}
                           >
@@ -159,7 +194,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 </div>
               ) : null}
             </>
-          ) : (
+          ) : step === 2 ? (
             <>
               <div className="rounded-md border">
                 <Command>
@@ -178,11 +213,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                     </CommandEmpty>
                     <CommandGroup>
                       {filteredAttributes.map((name) => {
-                        const isActive = selectedAttrName === name;
+                        const isActive = selectedAttributes.some((p) => p.name === name);
                         return (
                           <CommandItem
                             key={name}
-                            onSelect={() => setSelectedAttrName(name)}
+                            onSelect={() => toggleAttribute(name)}
                             className={cn("cursor-pointer", isActive && "bg-muted")}
                           >
                             <div className="flex items-center gap-2">
@@ -201,14 +236,51 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 </Command>
               </div>
 
-              {selectedAttrName ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Ausgewähltes Attribut:</span>
-                  <Badge variant="secondary" className="text-xs">{selectedAttrName}</Badge>
+              {selectedAttributes.length > 0 && (
+                <div className="space-y-3">
+                  {selectedAttributes.map((a) => {
+                    const full = getAttrByName(a.name);
+                    return (
+                      <div key={a.name} className="flex items-center gap-3">
+                        <Badge variant="secondary" className="text-xs">{a.name}</Badge>
+                        {full ? (
+                          <AttributeValueField
+                            attr={full}
+                            value={a.value ?? ""}
+                            onChange={(val) => setAttrValue(a.name, val)}
+                          />
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
-              ) : null}
+              )}
             </>
-          )}
+          ) : null}
+
+          {step === 3 ? (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">
+                {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {results.map((r, idx) => (
+                  <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
+                    <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                      <img
+                        src={r.fullUrl ?? r.smallUrl}
+                        alt={r.filename ?? "Vorschau"}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    {r.filename ? (
+                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
@@ -222,7 +294,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                   if (!selected) return;
                   toast({
                     title: "Dokumententyp gewählt",
-                    description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie ein Attribut.`,
+                    description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie Attribute.`,
                     variant: "success",
                   });
                   setStep(2);
@@ -230,22 +302,50 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               >
                 Weiter
               </Button>
+            ) : step === 2 ? (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={selectedAttributes.length === 0}
+                onClick={async () => {
+                  if (!selected || selectedAttributes.length === 0) return;
+                  const filters = selectedAttributes
+                    .filter((a) => typeof a.value === "string" && a.value.length > 0)
+                    .map((a) => ({ name: a.name, value: a.value! }));
+
+                  try {
+                    const found = await searchIdmItemsByAttributesJson(
+                      authToken,
+                      cloudEnvironment,
+                      selected.name,
+                      filters,
+                      0,
+                      50,
+                      "de-DE"
+                    );
+                    setResults(found);
+                    toast({
+                      title: "Suche abgeschlossen",
+                      description: `${found.length} Dokument(e) gefunden.`,
+                      variant: "success",
+                    });
+                    setStep(3);
+                  } catch (err: any) {
+                    toast({
+                      title: "Suche fehlgeschlagen",
+                      description: String(err?.message ?? "Unbekannter Fehler"),
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Suchen
+              </Button>
             ) : (
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!selectedAttrName}
-                onClick={() => {
-                  if (!selected || !selectedAttrName) return;
-                  toast({
-                    title: "Verlinkung vorbereitet",
-                    description: `Typ: „${selected.desc || selected.name}“, Attribut: „${selectedAttrName}“`,
-                    variant: "success",
-                  });
-                  onConfirm?.(selected);
-                  onOpenChange(false);
-                }}
+                onClick={() => onOpenChange(false)}
               >
-                Bestätigen
+                Schließen
               </Button>
             )}
           </div>

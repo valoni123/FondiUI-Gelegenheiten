@@ -617,3 +617,79 @@ export const deleteIdmItem = async (
     throw new Error(`[IDM] delete failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
   }
 };
+
+// NEW: search by arbitrary attributes for a single entity, JSON response, collecting Preview URLs
+export const searchIdmItemsByAttributesJson = async (
+  token: string,
+  environment: CloudEnvironment,
+  entityName: string,
+  filters: { name: string; value: string }[],
+  offset: number = 0,
+  limit: number = 50,
+  language: string = "de-DE"
+): Promise<IdmDocPreview[]> => {
+  const base = buildIdmBase(environment);
+
+  const valid = (filters || []).filter((f) => f?.name && typeof f.value === "string" && f.value.length > 0);
+  const clause = valid.map((f) => `@${f.name} = "${f.value}"`).join(" AND ");
+  const bracket = clause.length ? `[${clause}]` : "";
+  const query = `/${entityName}${bracket}`;
+
+  const url =
+    `${base}/api/items/search?` +
+    `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] items search by attributes failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+
+  // Robustly extract items array: items.item[] or item[]
+  const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
+  const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  const previews: IdmDocPreview[] = [];
+  for (const item of items) {
+    const resrs = item?.resrs ?? {};
+    const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
+    const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
+
+    const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+
+    // Extract attributes if needed (optional)
+    const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
+    const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const attributes =
+      attrsList
+        .map((a) => {
+          const n = a?.name ?? a?.n ?? a?.key ?? "";
+          const v = a?.value ?? a?.val ?? a?.v ?? a?._ ?? a?.text ?? "";
+          return { name: String(n ?? ""), value: String(v ?? "") };
+        })
+        .filter((a) => a.name || a.value) as { name: string; value: string }[];
+
+    if (preview?.url) {
+      previews.push({
+        smallUrl: String(preview.url),
+        fullUrl: String(preview.url),
+        contentType: String(preview.mimetype || item?.mimetype || ""),
+        filename: String(preview.filename || item?.filename || ""),
+        entityName: String(item?.entityName || entityName),
+        attributes,
+        pid: item?.pid ? String(item.pid) : undefined,
+      });
+    }
+  }
+
+  return previews;
+};
