@@ -97,7 +97,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
       <Button
         variant="outline"
         size="sm"
-        className="bg-blue-600 text-white hover:bg-blue-700"
+        className="bg-violet-600 text-white hover:bg-violet-700"
         disabled={!mainPid}
         onClick={() => setOpen(true)}
         title={mainPid ? "Verlinkte Dokumente anzeigen" : "Kein Hauptdokument ausgewählt"}
