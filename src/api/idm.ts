@@ -813,3 +813,36 @@ export const linkIdmItemDocuments = async (
     throw new Error(`[IDM] link documents failed for PID '${mainPid}': ${res.status} ${res.statusText} - ${errorText}`);
   }
 };
+
+export const getIdmItemByPid = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  language: string = "de-DE"
+): Promise<{ pid: string; filename?: string; entityName?: string }> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] get item by PID failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  const item = (json as any)?.item ?? json;
+  const filename =
+    item?.filename ??
+    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
+    undefined;
+  const entityName = item?.entityName ?? undefined;
+
+  return { pid, filename, entityName };
+};
