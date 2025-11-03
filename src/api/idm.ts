@@ -668,9 +668,14 @@ export const searchIdmItemsByAttributesJson = async (
     const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
     const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
 
+    // Wähle Vorschaubilder für die Anzeige
+    const smallPreview = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
 
-    // Extract attributes if needed (optional)
+    // ECHTE Ressource: bevorzugt explizit name == "", ansonsten erste Ressource als Fallback
+    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
+
+    // Attribute extrahieren (wie gehabt)
     const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
     const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
     const attributes =
@@ -682,15 +687,23 @@ export const searchIdmItemsByAttributesJson = async (
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
-    if (preview?.url) {
+    // Für die Kachel-Anzeige nutzen wir SmallPreview/Preview, aber zum Öffnen liefern wir resourceUrl vom ersten res
+    const chosenPreview = smallPreview ?? preview;
+
+    if (chosenPreview?.url || mainRes?.url) {
       previews.push({
-        smallUrl: String(preview.url),
-        fullUrl: String(preview.url),
-        contentType: String(preview.mimetype || item?.mimetype || ""),
-        filename: String(preview.filename || item?.filename || ""),
+        smallUrl: String((chosenPreview?.url ?? preview?.url ?? "")),
+        fullUrl: preview?.url ? String(preview.url) : undefined,
+        contentType: String(
+          chosenPreview?.mimetype || preview?.mimetype || mainRes?.mimetype || item?.mimetype || ""
+        ),
+        // WICHTIG: Dateiname von der echten Ressource (erstes res/name == "")
+        filename: String((mainRes?.filename ?? item?.filename ?? chosenPreview?.filename ?? "")),
         entityName: String(item?.entityName || entityName),
         attributes,
         pid: item?.pid ? String(item.pid) : undefined,
+        // WICHTIG: URL der echten Datei
+        resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
       });
     }
   }

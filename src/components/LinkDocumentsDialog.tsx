@@ -271,9 +271,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                     key={`${r.pid ?? r.filename ?? idx}`}
                     className="border rounded-md p-2 hover:bg-muted cursor-pointer"
                     onClick={() => {
-                      const url = r.resourceUrl ?? r.fullUrl ?? r.smallUrl;
-                      if (url) {
-                        window.open(url, "_blank", "noopener,noreferrer");
+                      if (r.resourceUrl) {
+                        window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
                       }
                     }}
                   >
