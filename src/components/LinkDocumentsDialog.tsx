@@ -21,7 +21,7 @@ import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItem
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { linkIdmItemDocuments } from "@/api/idm";
+import { linkIdmItemDocuments, getExistingLinkedPids } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -155,12 +155,14 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     if (!mainPid || selectedPids.size === 0) return;
     setLinking(true);
     try {
-      const pids = Array.from(selectedPids);
+      const newlySelected = Array.from(selectedPids);
+      const existing = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
+      const combined = Array.from(new Set([...(existing || []), ...newlySelected]));
       const entity = mainEntityName || selected?.name || "";
-      await linkIdmItemDocuments(authToken, cloudEnvironment, mainPid, entity, pids, "de-DE");
+      await linkIdmItemDocuments(authToken, cloudEnvironment, mainPid, entity, combined, "de-DE");
       toast({
         title: "Verlinkung erfolgreich",
-        description: `${pids.length} Dokument(e) mit PID „${mainPid}” verlinkt.`,
+        description: `${newlySelected.length} Dokument(e) mit PID „${mainPid}” verlinkt.`,
         variant: "success",
       });
       onOpenChange(false);

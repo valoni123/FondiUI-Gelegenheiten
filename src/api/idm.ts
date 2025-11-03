@@ -711,6 +711,53 @@ export const searchIdmItemsByAttributesJson = async (
   return previews;
 };
 
+export const getExistingLinkedPids = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  language: string = "de-DE"
+): Promise<string[]> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/items/${encodeURIComponent(mainPid)}?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] get existing links failed for PID '${mainPid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  const root = (json as any)?.item ?? json;
+
+  const collsContainer = root?.colls ?? {};
+  const groupsRaw = (collsContainer?.coll ?? collsContainer) as any;
+  const groups: any[] = Array.isArray(groupsRaw) ? groupsRaw : groupsRaw ? [groupsRaw] : [];
+
+  const linkGroup = groups.find((g) => (g?.name ?? g?.["name"]) === "Dokument_Verlinkung");
+  if (!linkGroup) return [];
+
+  const entriesRaw = (linkGroup?.coll ?? linkGroup?.item ?? []) as any;
+  const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
+
+  const pids: string[] = [];
+  for (const entry of entries) {
+    const attrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+    const attrs: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const valueAttr = attrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+    const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+    if (value) pids.push(String(value));
+  }
+
+  return Array.from(new Set(pids.filter(Boolean)));
+};
+
 export const linkIdmItemDocuments = async (
   token: string,
   environment: CloudEnvironment,
