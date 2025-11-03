@@ -819,7 +819,7 @@ export const getIdmItemByPid = async (
   environment: CloudEnvironment,
   pid: string,
   language: string = "de-DE"
-): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string; resourceUrl?: string }> => {
+): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string }> => {
   const base = buildIdmBase(environment);
   const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
 
@@ -845,11 +845,13 @@ export const getIdmItemByPid = async (
   const entityName = item?.entityName ?? undefined;
   const drillbackurl = item?.drillbackurl ?? undefined;
 
-  // Extract main resource URL: prefer res with name == "", else first res
+  // Extract main resource and preview URLs
   const resNodeRaw = item?.resrs?.res;
   const resList: any[] = Array.isArray(resNodeRaw) ? resNodeRaw : resNodeRaw ? [resNodeRaw] : [];
   const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
+  const previewRes = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
   const resourceUrl = mainRes?.url ? String(mainRes.url) : undefined;
+  const previewUrl = previewRes?.url ? String(previewRes.url) : undefined;
 
-  return { pid, filename, entityName, drillbackurl, resourceUrl };
+  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl };
 };
