@@ -710,3 +710,59 @@ export const searchIdmItemsByAttributesJson = async (
 
   return previews;
 };
+
+export const linkIdmItemDocuments = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  mainEntityName: string,
+  linkedPids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  const base = (environment && getIonApiConfig(environment)) ? `${getIonApiConfig(environment).iu}/${getIonApiConfig(environment).ti}/IDM` : "";
+  const url =
+    `${base}/api/items/${encodeURIComponent(mainPid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const collItems = linkedPids.map((pid) => ({
+    entityName: "Dokument_Verlinkung",
+    attrs: {
+      attr: [
+        {
+          name: "Value",
+          type: "1",
+          qual: "Dokument_Verlinkung/Value",
+          value: pid,
+        },
+      ],
+    },
+  }));
+
+  const body = {
+    item: {
+      colls: [
+        {
+          name: "Dokument_Verlinkung",
+          coll: collItems,
+        },
+      ],
+      entityName: mainEntityName,
+      pid: mainPid,
+    },
+  };
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] link documents failed for PID '${mainPid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};

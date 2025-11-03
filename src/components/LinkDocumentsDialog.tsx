@@ -20,6 +20,8 @@ import AttributeValueField from "@/components/AttributeValueField";
 import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview } from "@/api/idm";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { linkIdmItemDocuments } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -27,6 +29,8 @@ type LinkDocumentsDialogProps = {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   onConfirm?: (selected: IdmEntityInfo) => void;
+  mainPid?: string; // PID des Hauptdokuments
+  mainEntityName?: string; // EntityName des Hauptdokuments
 };
 
 const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
@@ -35,6 +39,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   authToken,
   cloudEnvironment,
   onConfirm,
+  mainPid,
+  mainEntityName,
 }) => {
   const [loading, setLoading] = React.useState(false);
   const [entities, setEntities] = React.useState<IdmEntityInfo[]>([]);
@@ -44,6 +50,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [attrQuery, setAttrQuery] = React.useState("");
   const [selectedAttributes, setSelectedAttributes] = React.useState<{ name: string; type?: string; valueset?: { name: string; desc: string }[]; value?: string; desc?: string }[]>([]);
   const [results, setResults] = React.useState<IdmDocPreview[]>([]);
+  const [selectedPids, setSelectedPids] = React.useState<Set<string>>(new Set());
+  const [linking, setLinking] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) {
@@ -53,6 +61,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       setResults([]);
       setAttrQuery("");
       setQuery("");
+      setSelectedPids(new Set());
     }
   }, [open]);
 
@@ -130,6 +139,41 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   const setAttrValue = (name: string, value: string) => {
     setSelectedAttributes((prev) => prev.map((p) => (p.name === name ? { ...p, value } : p)));
+  };
+
+  const togglePid = (pid?: string) => {
+    if (!pid) return;
+    setSelectedPids((prev) => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid);
+      else next.add(pid);
+      return next;
+    });
+  };
+
+  const handleLink = async () => {
+    if (!mainPid || selectedPids.size === 0) return;
+    setLinking(true);
+    try {
+      const pids = Array.from(selectedPids);
+      const entity = mainEntityName || selected?.name || "";
+      await linkIdmItemDocuments(authToken, cloudEnvironment, mainPid, entity, pids, "de-DE");
+      toast({
+        title: "Verlinkung erfolgreich",
+        description: `${pids.length} Dokument(e) mit PID „${mainPid}” verlinkt.`,
+        variant: "success",
+      });
+      onOpenChange(false);
+      if (onConfirm && selected) onConfirm(selected);
+    } catch (err: any) {
+      toast({
+        title: "Verlinkung fehlgeschlagen",
+        description: String(err?.message ?? "Unbekannter Fehler"),
+        variant: "destructive",
+      });
+    } finally {
+      setLinking(false);
+    }
   };
 
   return (
@@ -262,46 +306,68 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
           {step === 3 ? (
             <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">
-                {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-muted-foreground">
+                  {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Ausgewählt: {selectedPids.size}
+                </div>
               </div>
 
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {results.map((r, idx) => (
-                    <div
-                      key={`${r.pid ?? r.filename ?? idx}`}
-                      className="border rounded-md p-2 hover:bg-muted cursor-pointer"
-                      onClick={() => {
-                        if (r.resourceUrl) {
-                          window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
-                        }
-                      }}
-                    >
-                      <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                        <img
-                          src={r.fullUrl ?? r.smallUrl}
-                          alt={r.filename ?? "Vorschau"}
-                          className="w-full h-full object-contain"
-                        />
+                  {results.map((r, idx) => {
+                    const isSelected = r.pid ? selectedPids.has(r.pid) : false;
+                    return (
+                      <div
+                        key={`${r.pid ?? r.filename ?? idx}`}
+                        className={cn(
+                          "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
+                          isSelected && "ring-2 ring-blue-600"
+                        )}
+                        onClick={() => {
+                          // Kachel-Klick öffnet weiterhin die Originaldatei
+                          if (r.resourceUrl) {
+                            window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
+                          }
+                        }}
+                      >
+                        {/* Auswahl-Checkbox oben links */}
+                        <div className="absolute top-2 left-2 z-10">
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => togglePid(r.pid)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label="Dokument auswählen"
+                          />
+                        </div>
+
+                        <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                          <img
+                            src={r.fullUrl ?? r.smallUrl}
+                            alt={r.filename ?? "Vorschau"}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        {r.filename ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div
+                                className="mt-2 text-xs text-muted-foreground line-clamp-2"
+                                title={r.filename}
+                              >
+                                {r.filename}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" align="start">
+                              <div className="max-w-[300px] break-words">{r.filename}</div>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
                       </div>
-                      {r.filename ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div
-                              className="mt-2 text-xs text-muted-foreground line-clamp-2"
-                              title={r.filename}
-                            >
-                              {r.filename}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" align="start">
-                            <div className="max-w-[300px] break-words">{r.filename}</div>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : null}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </TooltipProvider>
             </div>
@@ -371,9 +437,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
           ) : (
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={() => onOpenChange(false)}
+              onClick={handleLink}
+              disabled={linking || !mainPid || selectedPids.size === 0}
+              title={!mainPid ? "Kein Hauptdokument (PID) vorhanden" : undefined}
             >
-              Schließen
+              {linking ? "Verlinken…" : "Verlinken"}
             </Button>
           )}
         </div>

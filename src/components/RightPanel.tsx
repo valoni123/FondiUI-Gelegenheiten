@@ -656,8 +656,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
         onOpenChange={setIsLinkDialogOpen}
         authToken={authToken}
         cloudEnvironment={cloudEnvironment}
+        mainPid={fullPreviewData?.pid}
+        mainEntityName={fullPreviewData?.entityName}
         onConfirm={async (selected) => {
-          // Placeholder action: show success; future linking logic can go here.
           toast({
             title: "Verlinkung gestartet",
             description: `Ausgewählter Typ: ${selected.desc || selected.name}`,
