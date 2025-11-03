@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import AttributeValueField from "@/components/AttributeValueField";
 import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson } from "@/api/idm";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -132,7 +133,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="w-[95vw] sm:max-w-[1200px] max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="inline-flex items-center gap-2">
             <LinkIcon className="h-5 w-5 text-blue-600" />
@@ -263,22 +264,25 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               <div className="text-sm text-muted-foreground">
                 {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {results.map((r, idx) => (
-                  <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
-                    <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                      <img
-                        src={r.fullUrl ?? r.smallUrl}
-                        alt={r.filename ?? "Vorschau"}
-                        className="w-full h-full object-contain"
-                      />
+
+              <ScrollArea className="max-h-[60vh] pr-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {results.map((r, idx) => (
+                    <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
+                      <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                        <img
+                          src={r.fullUrl ?? r.smallUrl}
+                          alt={r.filename ?? "Vorschau"}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      {r.filename ? (
+                        <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
+                      ) : null}
                     </div>
-                    {r.filename ? (
-                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
           ) : null}
 
