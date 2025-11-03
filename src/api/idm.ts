@@ -75,7 +75,8 @@ export type IdmDocPreview = {
   filename?: string;
   entityName?: string;
   attributes?: { name: string; value: string }[];
-  pid?: string; // NEW: PID used for updates
+  pid?: string;
+  resourceUrl?: string; // URL der eigentlichen Datei (erstes res mit name == "")
 };
 
 export type IdmAttribute = {
@@ -330,6 +331,7 @@ export const searchIdmItemsByEntityJson = async (
     // Prefer SmallPreview; fallback to Preview
     const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+    const mainRes = resList[0] ?? resList.find((r) => (r?.name ?? r?.["name"]) === ""); // erstes echtes Resource-Objekt
 
     // Extract attributes robustly
     const attrsRaw =
@@ -354,10 +356,12 @@ export const searchIdmItemsByEntityJson = async (
         smallUrl: String(chosen.url),
         fullUrl: preview?.url ? String(preview.url) : undefined,
         contentType: String(chosen.mimetype || preview?.mimetype || item?.mimetype || ""),
-        filename: String(chosen.filename || preview?.filename || item?.filename || ""),
+        // USE the real filename from first res if present
+        filename: String((mainRes?.filename ?? item?.filename ?? chosen.filename ?? "")),
         entityName: String(entityName),
         attributes,
         pid: pidRaw ? String(pidRaw) : undefined,
+        resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
       });
     }
   }

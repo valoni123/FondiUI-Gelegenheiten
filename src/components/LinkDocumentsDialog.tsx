@@ -267,7 +267,16 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {results.map((r, idx) => (
-                  <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
+                  <div
+                    key={`${r.pid ?? r.filename ?? idx}`}
+                    className="border rounded-md p-2 hover:bg-muted cursor-pointer"
+                    onClick={() => {
+                      const url = r.resourceUrl ?? r.fullUrl ?? r.smallUrl;
+                      if (url) {
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                  >
                     <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
                       <img
                         src={r.fullUrl ?? r.smallUrl}
