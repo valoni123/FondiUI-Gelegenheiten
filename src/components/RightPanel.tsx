@@ -23,6 +23,7 @@ import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import Re
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
+import SharePointIcon from "@/components/icons/sharepoint-icon";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -494,6 +495,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       className="text-white"
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Dokument löschen
+                    </Button>
+                    {/* SharePoint link button (icon-only) */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="bg-teal-600 text-white hover:bg-teal-700"
+                      asChild
+                      title="In SharePoint öffnen"
+                      aria-label="In SharePoint öffnen"
+                    >
+                      <a
+                        href="https://gacit.sharepoint.com/:f:/s/Dokumente/EpgibEZiqZ1KvkzBluxJGBkBVxix5faN5sVh58v8U4TpZQ?e=dXxa2G"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <SharePointIcon className="h-4 w-4" />
+                      </a>
                     </Button>
                   </>
                 )}
