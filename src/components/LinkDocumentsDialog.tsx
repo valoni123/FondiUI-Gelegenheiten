@@ -144,7 +144,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 flex-1 overflow-hidden">
+        <div className="space-y-4 flex-1 overflow-y-auto">
           {step === 1 ? (
             <>
               <div className="rounded-md border">
@@ -260,99 +260,97 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
           ) : null}
 
           {step === 3 ? (
-            <div className="space-y-3 h-full">
+            <div className="space-y-3">
               <div className="text-sm text-muted-foreground">
                 {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
               </div>
 
-              <ScrollArea className="h-full pr-1">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {results.map((r, idx) => (
-                    <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
-                      <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                        <img
-                          src={r.fullUrl ?? r.smallUrl}
-                          alt={r.filename ?? "Vorschau"}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                      {r.filename ? (
-                        <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
-                      ) : null}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {results.map((r, idx) => (
+                  <div key={`${r.pid ?? r.filename ?? idx}`} className="border rounded-md p-2">
+                    <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                      <img
+                        src={r.fullUrl ?? r.smallUrl}
+                        alt={r.filename ?? "Vorschau"}
+                        className="w-full h-full object-contain"
+                      />
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
+                    {r.filename ? (
+                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
+        </div>
 
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => onOpenChange(false)}>
-              Abbrechen
+        <div className="flex-shrink-0 border-t mt-2 pt-3 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Abbrechen
+          </Button>
+          {step === 1 ? (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={!selected}
+              onClick={() => {
+                if (!selected) return;
+                toast({
+                  title: "Dokumententyp gewählt",
+                  description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie Attribute.`,
+                  variant: "success",
+                });
+                setStep(2);
+              }}
+            >
+              Weiter
             </Button>
-            {step === 1 ? (
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={!selected}
-                onClick={() => {
-                  if (!selected) return;
+          ) : step === 2 ? (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={selectedAttributes.length === 0}
+              onClick={async () => {
+                if (!selected || selectedAttributes.length === 0) return;
+                const filters = selectedAttributes
+                  .filter((a) => typeof a.value === "string" && a.value.length > 0)
+                  .map((a) => ({ name: a.name, value: a.value! }));
+
+                try {
+                  const found = await searchIdmItemsByAttributesJson(
+                    authToken,
+                    cloudEnvironment,
+                    selected.name,
+                    filters,
+                    0,
+                    50,
+                    "de-DE"
+                  );
+                  setResults(found);
                   toast({
-                    title: "Dokumententyp gewählt",
-                    description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie Attribute.`,
+                    title: "Suche abgeschlossen",
+                    description: `${found.length} Dokument(e) gefunden.`,
                     variant: "success",
                   });
-                  setStep(2);
-                }}
-              >
-                Weiter
-              </Button>
-            ) : step === 2 ? (
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={selectedAttributes.length === 0}
-                onClick={async () => {
-                  if (!selected || selectedAttributes.length === 0) return;
-                  const filters = selectedAttributes
-                    .filter((a) => typeof a.value === "string" && a.value.length > 0)
-                    .map((a) => ({ name: a.name, value: a.value! }));
-
-                  try {
-                    const found = await searchIdmItemsByAttributesJson(
-                      authToken,
-                      cloudEnvironment,
-                      selected.name,
-                      filters,
-                      0,
-                      50,
-                      "de-DE"
-                    );
-                    setResults(found);
-                    toast({
-                      title: "Suche abgeschlossen",
-                      description: `${found.length} Dokument(e) gefunden.`,
-                      variant: "success",
-                    });
-                    setStep(3);
-                  } catch (err: any) {
-                    toast({
-                      title: "Suche fehlgeschlagen",
-                      description: String(err?.message ?? "Unbekannter Fehler"),
-                      variant: "destructive",
-                    });
-                  }
-                }}
-              >
-                Suchen
-              </Button>
-            ) : (
-              <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => onOpenChange(false)}
-              >
-                Schließen
-              </Button>
-            )}
-          </div>
+                  setStep(3);
+                } catch (err: any) {
+                  toast({
+                    title: "Suche fehlgeschlagen",
+                    description: String(err?.message ?? "Unbekannter Fehler"),
+                    variant: "destructive",
+                  });
+                }
+              }}
+            >
+              Suchen
+            </Button>
+          ) : (
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={() => onOpenChange(false)}
+            >
+              Schließen
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
