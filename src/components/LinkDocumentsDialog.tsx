@@ -37,6 +37,19 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [entities, setEntities] = React.useState<IdmEntityInfo[]>([]);
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<IdmEntityInfo | null>(null);
+  const [step, setStep] = React.useState<1 | 2>(1);
+  const [attrQuery, setAttrQuery] = React.useState("");
+  const [selectedAttrName, setSelectedAttrName] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!open) {
+      setStep(1);
+      setSelected(null);
+      setSelectedAttrName(null);
+      setAttrQuery("");
+      setQuery("");
+    }
+  }, [open]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -68,6 +81,20 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     return entities.filter((e) => (e.desc || e.name).toLowerCase().includes(q));
   }, [entities, query]);
 
+  const attributeNames = React.useMemo(() => {
+    const raw = selected?.entity?.attrs?.attr ?? [];
+    const arr: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
+    return arr
+      .map((a) => String(a?.name ?? ""))
+      .filter((n) => n.length > 0);
+  }, [selected]);
+
+  const filteredAttributes = React.useMemo(() => {
+    if (!attrQuery.trim()) return attributeNames;
+    const q = attrQuery.toLowerCase();
+    return attributeNames.filter((n) => n.toLowerCase().includes(q));
+  }, [attributeNames, attrQuery]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
@@ -82,71 +109,145 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="rounded-md border">
-            <Command>
-              <div className="px-2 py-2">
-                <CommandInput
-                  placeholder="Dokumententyp suchen…"
-                  value={query}
-                  onValueChange={setQuery}
-                />
+          {step === 1 ? (
+            <>
+              <div className="rounded-md border">
+                <Command>
+                  <div className="px-2 py-2">
+                    <CommandInput
+                      placeholder="Dokumententyp suchen…"
+                      value={query}
+                      onValueChange={setQuery}
+                    />
+                  </div>
+                  <CommandList className="max-h-64 overflow-y-auto">
+                    <CommandEmpty>
+                      {loading ? "Laden…" : "Keine Ergebnisse gefunden."}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {filtered.map((e) => {
+                        const isActive = selected?.name === e.name;
+                        return (
+                          <CommandItem
+                            key={e.name}
+                            onSelect={() => {
+                              setSelected(e);
+                              setSelectedAttrName(null);
+                            }}
+                            className={cn("cursor-pointer", isActive && "bg-muted")}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isActive ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <span className="inline-block w-4" />
+                              )}
+                              <span className="text-sm">{e.desc || e.name}</span>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
               </div>
-              <CommandList className="max-h-64 overflow-y-auto">
-                <CommandEmpty>
-                  {loading ? "Laden…" : "Keine Ergebnisse gefunden."}
-                </CommandEmpty>
-                <CommandGroup>
-                  {filtered.map((e) => {
-                    const isActive = selected?.name === e.name;
-                    return (
-                      <CommandItem
-                        key={e.name}
-                        onSelect={() => setSelected(e)}
-                        className={cn("cursor-pointer", isActive && "bg-muted")}
-                      >
-                        <div className="flex items-center gap-2">
-                          {isActive ? (
-                            <Check className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <span className="inline-block w-4" />
-                          )}
-                          <span className="text-sm">{e.desc || e.name}</span>
-                        </div>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </div>
 
-          {selected ? (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Ausgewählt:</span>
-              <Badge variant="secondary" className="text-xs">{selected.desc || selected.name}</Badge>
-            </div>
-          ) : null}
+              {selected ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Ausgewählt:</span>
+                  <Badge variant="secondary" className="text-xs">{selected.desc || selected.name}</Badge>
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <div className="rounded-md border">
+                <Command>
+                  <div className="px-2 py-2">
+                    <CommandInput
+                      placeholder="Attribut suchen…"
+                      value={attrQuery}
+                      onValueChange={setAttrQuery}
+                    />
+                  </div>
+                  <CommandList className="max-h-64 overflow-y-auto">
+                    <CommandEmpty>
+                      {attributeNames.length === 0
+                        ? "Keine Attribute für diesen Dokumententyp gefunden."
+                        : "Keine Ergebnisse gefunden."}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {filteredAttributes.map((name) => {
+                        const isActive = selectedAttrName === name;
+                        return (
+                          <CommandItem
+                            key={name}
+                            onSelect={() => setSelectedAttrName(name)}
+                            className={cn("cursor-pointer", isActive && "bg-muted")}
+                          >
+                            <div className="flex items-center gap-2">
+                              {isActive ? (
+                                <Check className="h-4 w-4 text-green-600" />
+                              ) : (
+                                <span className="inline-block w-4" />
+                              )}
+                              <span className="text-sm">{name}</span>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+
+              {selectedAttrName ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Ausgewähltes Attribut:</span>
+                  <Badge variant="secondary" className="text-xs">{selectedAttrName}</Badge>
+                </div>
+              ) : null}
+            </>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => onOpenChange(false)}>
               Abbrechen
             </Button>
-            <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={!selected}
-              onClick={() => {
-                if (!selected) return;
-                toast({
-                  title: "Verlinkungsziel gesetzt",
-                  description: `Dokument(e) werden mit „${selected.desc || selected.name}“ verlinkt.`,
-                  variant: "success",
-                });
-                onConfirm?.(selected);
-                onOpenChange(false);
-              }}
-            >
-              Bestätigen
-            </Button>
+            {step === 1 ? (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!selected}
+                onClick={() => {
+                  if (!selected) return;
+                  toast({
+                    title: "Dokumententyp gewählt",
+                    description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie ein Attribut.`,
+                    variant: "success",
+                  });
+                  setStep(2);
+                }}
+              >
+                Weiter
+              </Button>
+            ) : (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={!selectedAttrName}
+                onClick={() => {
+                  if (!selected || !selectedAttrName) return;
+                  toast({
+                    title: "Verlinkung vorbereitet",
+                    description: `Typ: „${selected.desc || selected.name}“, Attribut: „${selectedAttrName}“`,
+                    variant: "success",
+                  });
+                  onConfirm?.(selected);
+                  onOpenChange(false);
+                }}
+              >
+                Bestätigen
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
