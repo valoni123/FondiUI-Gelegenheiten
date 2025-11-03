@@ -15,6 +15,8 @@ import {
 import { Check, Link as LinkIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
+import { type CloudEnvironment } from "@/authorization/configLoader";
+import { getIdmEntityInfos, type IdmEntityInfo } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
