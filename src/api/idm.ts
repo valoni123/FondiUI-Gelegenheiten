@@ -819,7 +819,7 @@ export const getIdmItemByPid = async (
   environment: CloudEnvironment,
   pid: string,
   language: string = "de-DE"
-): Promise<{ pid: string; filename?: string; entityName?: string }> => {
+): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string }> => {
   const base = buildIdmBase(environment);
   const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
 
@@ -843,6 +843,7 @@ export const getIdmItemByPid = async (
     (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
     undefined;
   const entityName = item?.entityName ?? undefined;
+  const drillbackurl = item?.drillbackurl ?? undefined;
 
-  return { pid, filename, entityName };
+  return { pid, filename, entityName, drillbackurl };
 };

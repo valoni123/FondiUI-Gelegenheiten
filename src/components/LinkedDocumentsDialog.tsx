@@ -10,10 +10,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 
 type LinkedDocumentsDialogProps = {
   authToken: string;
@@ -21,7 +22,7 @@ type LinkedDocumentsDialogProps = {
   mainPid?: string;
 };
 
-type LinkedItem = { pid: string; filename?: string };
+type LinkedItem = { pid: string; filename?: string; drillbackurl?: string };
 
 const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   authToken,
@@ -45,7 +46,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
         pids.map(async (pid) => {
           try {
             const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
-            return { pid, filename: info.filename };
+            return { pid, filename: info.filename, drillbackurl: info.drillbackurl };
           } catch {
             return { pid };
           }
@@ -106,20 +107,42 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
           ) : linkedItems.length === 0 ? (
             <div className="text-sm text-muted-foreground">Keine verlinkten Dokumente gefunden.</div>
           ) : (
-            <ScrollArea className="max-h-[60vh]">
-              <ul className="space-y-2">
-                {linkedItems.map((it) => (
-                  <li key={it.pid} className="rounded-md bg-muted px-3 py-2">
-                    <div className="text-sm font-medium break-words">
-                      {it.filename ?? "Dateiname unbekannt"}
-                    </div>
-                    <div className="text-xs text-muted-foreground break-words" title={it.pid}>
-                      {it.pid}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </ScrollArea>
+            <TooltipProvider>
+              <ScrollArea className="max-h-[60vh]">
+                <ul className="space-y-2">
+                  {linkedItems.map((it) => (
+                    <li key={it.pid} className="rounded-md bg-muted px-3 py-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium break-words">
+                            {it.filename ?? "Dateiname unbekannt"}
+                          </div>
+                          <div className="text-xs text-muted-foreground break-words" title={it.pid}>
+                            {it.pid}
+                          </div>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className={it.drillbackurl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
+                              onClick={() => {
+                                if (it.drillbackurl) window.open(it.drillbackurl, "_blank", "noopener");
+                              }}
+                              aria-label="in IDM anzeigen"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={6}>in IDM anzeigen</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </ScrollArea>
+            </TooltipProvider>
           )}
         </DialogContent>
       </Dialog>
