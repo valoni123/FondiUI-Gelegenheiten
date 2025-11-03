@@ -289,6 +289,16 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Abbrechen
           </Button>
+
+          {step > 1 && (
+            <Button
+              variant="outline"
+              onClick={() => setStep(step === 3 ? 2 : 1)}
+            >
+              Zurück
+            </Button>
+          )}
+
           {step === 1 ? (
             <Button
               className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -315,30 +325,22 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                   .filter((a) => typeof a.value === "string" && a.value.length > 0)
                   .map((a) => ({ name: a.name, value: a.value! }));
 
-                try {
-                  const found = await searchIdmItemsByAttributesJson(
-                    authToken,
-                    cloudEnvironment,
-                    selected.name,
-                    filters,
-                    0,
-                    50,
-                    "de-DE"
-                  );
-                  setResults(found);
-                  toast({
-                    title: "Suche abgeschlossen",
-                    description: `${found.length} Dokument(e) gefunden.`,
-                    variant: "success",
-                  });
-                  setStep(3);
-                } catch (err: any) {
-                  toast({
-                    title: "Suche fehlgeschlagen",
-                    description: String(err?.message ?? "Unbekannter Fehler"),
-                    variant: "destructive",
-                  });
-                }
+                const found = await searchIdmItemsByAttributesJson(
+                  authToken,
+                  cloudEnvironment,
+                  selected.name,
+                  filters,
+                  0,
+                  50,
+                  "de-DE"
+                );
+                setResults(found);
+                toast({
+                  title: "Suche abgeschlossen",
+                  description: `${found.length} Dokument(e) gefunden.`,
+                  variant: "success",
+                });
+                setStep(3);
               }}
             >
               Suchen
