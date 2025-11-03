@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -21,6 +21,7 @@ import DocAttributesGrid from "./DocAttributesGrid";
 import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
+import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -55,6 +56,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false); // Confirm delete in preview
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false); // New state for link dialog
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -463,6 +465,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="bg-blue-600 text-white hover:bg-blue-700"
+                      onClick={() => setIsLinkDialogOpen(true)}
+                      title="Dokument(e) verlinken"
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" /> Dokument(e) verlinken
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="bg-orange-500 text-white hover:bg-orange-600"
                       onClick={() => setIsReplaceDialogOpen(true)}
                       title="Dokument ersetzen"
@@ -639,6 +650,21 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      <LinkDocumentsDialog
+        open={isLinkDialogOpen}
+        onOpenChange={setIsLinkDialogOpen}
+        authToken={authToken}
+        cloudEnvironment={cloudEnvironment}
+        onConfirm={async (selected) => {
+          // Placeholder action: show success; future linking logic can go here.
+          toast({
+            title: "Verlinkung gestartet",
+            description: `Ausgewählter Typ: ${selected.desc || selected.name}`,
+            variant: "success",
+          });
+        }}
+      />
     </div>
   );
 };

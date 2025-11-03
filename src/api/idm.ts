@@ -85,6 +85,59 @@ export type IdmAttribute = {
   type?: string; // add type to detect date fields
 };
 
+export type IdmEntityInfo = {
+  name: string;
+  desc: string;
+  entity: any;
+};
+
+// Fetch entities with their desc, keep full entity object for background use
+export const getIdmEntityInfos = async (
+  token: string,
+  environment: CloudEnvironment,
+  language: string = "de-DE"
+): Promise<IdmEntityInfo[]> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/datamodel/entities?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] entities (desc) request failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+
+  const toArray = (obj: any): any[] => {
+    if (Array.isArray(obj)) return obj;
+    const entityNode = obj?.entities?.entity ?? obj?.entity ?? obj?.entities;
+    if (Array.isArray(entityNode)) return entityNode;
+    if (entityNode && typeof entityNode === "object") {
+      const values = Object.values(entityNode);
+      return Array.isArray(values) ? values : [values];
+    }
+    return [];
+  };
+
+  const list = toArray(json);
+  const infos: IdmEntityInfo[] = list
+    .map((e: any) => ({
+      name: String(e?.name ?? ""),
+      desc: String(e?.desc ?? ""),
+      entity: e,
+    }))
+    .filter((i: IdmEntityInfo) => i.name.length > 0);
+
+  return infos;
+};
+
 /**
  * Search union of entities for a given opportunity and return SmallPreview + Preview URLs per item.
  */
