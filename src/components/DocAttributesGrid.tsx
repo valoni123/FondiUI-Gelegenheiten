@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save, Trash2 } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -35,6 +35,7 @@ import {
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
+import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -310,7 +311,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Doc (160) | Attributes | Delete (30)
   const gridTemplate =
-    `30px 30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
+    `30px 30px 30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
 
   return (
     <div className="h-full w-full">
@@ -354,6 +355,7 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
               <div className="px-2"></div> {/* Checkbox: Select */}
               <div className="px-2"></div> {/* Button: Save */}
               <div className="px-2"></div> {/* Button: Replace */}
+              <div className="px-2"></div> {/* Button: Linked Docs */}
               <div className="px-2">Dokumenttyp / Name</div>
               {columns.map((col) => (
                 <div key={col} className="px-2">
@@ -465,6 +467,40 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
                       >
                         <ArrowLeftRight className="h-3 w-3" />
                       </Button>
+                    </div>
+
+                    {/* Linked Documents Button */}
+                    <div className="px-2">
+                      {doc.pid ? (
+                        <LinkedDocumentsDialog
+                          authToken={authToken}
+                          cloudEnvironment={cloudEnvironment}
+                          mainPid={doc.pid}
+                          trigger={({ setOpen }) => (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-violet-600 hover:text-violet-700"
+                              onClick={() => setOpen(true)}
+                              title="Verlinkte Dokumente anzeigen"
+                              aria-label="Verlinkte Dokumente anzeigen"
+                            >
+                              <LinkIcon className="h-3 w-3" />
+                            </Button>
+                          )}
+                        />
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-50 cursor-not-allowed"
+                          disabled
+                          title="PID fehlt – keine Verlinkungen"
+                          aria-label="Verlinkte Dokumente anzeigen"
+                        >
+                          <LinkIcon className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
 
                     {/* Dokumenttyp */}

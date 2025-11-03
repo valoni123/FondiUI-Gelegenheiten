@@ -18,18 +18,22 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/comp
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog";
 import FileTypeIcon from "@/components/FileTypeIcon";
 
+type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string };
+
+type LinkedDialogTrigger = (args: { open: boolean; setOpen: (v: boolean) => void }) => React.ReactNode;
+
 type LinkedDocumentsDialogProps = {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   mainPid?: string;
+  trigger?: LinkedDialogTrigger; // optionaler eigener Trigger (z. B. Icon-Button)
 };
-
-type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string };
 
 const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   authToken,
   cloudEnvironment,
   mainPid,
+  trigger,
 }) => {
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -94,16 +98,20 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="sm"
-        className="bg-violet-600 text-white hover:bg-violet-700"
-        disabled={!mainPid}
-        onClick={() => setOpen(true)}
-        title={mainPid ? "Verlinkte Dokumente anzeigen" : "Kein Hauptdokument ausgewählt"}
-      >
-        <LinkIcon className="mr-2 h-4 w-4" /> Verlinkte Dokumente
-      </Button>
+      {trigger ? (
+        trigger({ open, setOpen })
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          className="bg-violet-600 text-white hover:bg-violet-700"
+          disabled={!mainPid}
+          onClick={() => setOpen(true)}
+          title={mainPid ? "Verlinkte Dokumente anzeigen" : "Kein Hauptdokument ausgewählt"}
+        >
+          <LinkIcon className="mr-2 h-4 w-4" /> Verlinkte Dokumente
+        </Button>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl sm:max-w-4xl">
