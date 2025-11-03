@@ -19,6 +19,7 @@ import { type CloudEnvironment } from "@/authorization/configLoader";
 import AttributeValueField from "@/components/AttributeValueField";
 import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview } from "@/api/idm";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -265,30 +266,44 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 {results.length === 0 ? "Keine Dokumente gefunden." : `${results.length} Dokument(e) gefunden:`}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {results.map((r, idx) => (
-                  <div
-                    key={`${r.pid ?? r.filename ?? idx}`}
-                    className="border rounded-md p-2 hover:bg-muted cursor-pointer"
-                    onClick={() => {
-                      if (r.resourceUrl) {
-                        window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
-                      }
-                    }}
-                  >
-                    <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                      <img
-                        src={r.fullUrl ?? r.smallUrl}
-                        alt={r.filename ?? "Vorschau"}
-                        className="w-full h-full object-contain"
-                      />
+              <TooltipProvider>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {results.map((r, idx) => (
+                    <div
+                      key={`${r.pid ?? r.filename ?? idx}`}
+                      className="border rounded-md p-2 hover:bg-muted cursor-pointer"
+                      onClick={() => {
+                        if (r.resourceUrl) {
+                          window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                    >
+                      <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                        <img
+                          src={r.fullUrl ?? r.smallUrl}
+                          alt={r.filename ?? "Vorschau"}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      {r.filename ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div
+                              className="mt-2 text-xs text-muted-foreground line-clamp-2"
+                              title={r.filename}
+                            >
+                              {r.filename}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="start">
+                            <div className="max-w-[300px] break-words">{r.filename}</div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : null}
                     </div>
-                    {r.filename ? (
-                      <div className="mt-2 text-xs text-muted-foreground line-clamp-2">{r.filename}</div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </TooltipProvider>
             </div>
           ) : null}
         </div>
