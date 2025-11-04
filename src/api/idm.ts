@@ -937,3 +937,89 @@ export const unlinkIdmItemDocument = async (
     );
   }
 };
+
+// NEW: Unlink multiple linked PIDs while keeping all other colls intact
+export const unlinkIdmItemDocuments = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  removePids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  if (!removePids?.length) return;
+
+  const base = buildIdmBase(environment);
+
+  // Load current item with its colls
+  const getUrl = `${base}/api/items/${encodeURIComponent(mainPid)}?%24language=${encodeURIComponent(language)}`;
+  const getRes = await fetch(getUrl, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!getRes.ok) {
+    const errText = await getRes.text();
+    throw new Error(`[IDM] load main item failed: ${getRes.status} ${getRes.statusText} - ${errText}`);
+  }
+  const json = await getRes.json();
+  const item = (json as any)?.item ?? json;
+  const entityName: string = String(item?.entityName ?? "");
+
+  // Normalize groups
+  const collsContainer = item?.colls ?? {};
+  const groupsRaw = (collsContainer?.coll ?? collsContainer) as any;
+  const groups: any[] = Array.isArray(groupsRaw) ? groupsRaw : groupsRaw ? [groupsRaw] : [];
+
+  const toRemove = new Set(removePids.map(String));
+
+  // Filter out any entries in "Dokument_Verlinkung" whose Value is in toRemove
+  const updatedGroups = groups.map((g) => {
+    const name = g?.name ?? g?.["name"];
+    let entriesRaw = (g?.coll ?? g?.item ?? []) as any;
+    const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
+
+    if (name === "Dokument_Verlinkung") {
+      const filtered = entries.filter((entry) => {
+        const attrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+        const attrs: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+        const valueAttr = attrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+        const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+        return !toRemove.has(String(value));
+      });
+      return { name: "Dokument_Verlinkung", coll: filtered };
+    }
+    return g;
+  });
+
+  // PUT back with updated colls
+  const putUrl =
+    `${base}/api/items/${encodeURIComponent(mainPid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const body = {
+    item: {
+      colls: updatedGroups,
+      entityName,
+      pid: mainPid,
+    },
+  };
+
+  const putRes = await fetch(putUrl, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!putRes.ok) {
+    const errorText = await putRes.text();
+    throw new Error(
+      `[IDM] bulk unlink failed for PIDs [${removePids.join(", ")}] on main '${mainPid}': ${putRes.status} ${putRes.statusText} - ${errorText}`
+    );
+  }
+};

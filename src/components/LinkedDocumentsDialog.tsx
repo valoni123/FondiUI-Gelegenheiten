@@ -10,8 +10,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon, ExternalLink, Download, Trash2, Check, X } from "lucide-react";
-import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument } from "@/api/idm";
+import { Loader2, Link as LinkIcon, ExternalLink, Download, Trash2, Check, X, Link2Off } from "lucide-react";
+import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument, unlinkIdmItemDocuments } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string };
 
@@ -51,6 +52,9 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   const [previewData, setPreviewData] = React.useState<{ url?: string; title?: string }>({});
   const [pendingDelete, setPendingDelete] = React.useState<LinkedItem | null>(null);
   const [deleting, setDeleting] = React.useState(false);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [pendingBulk, setPendingBulk] = React.useState(false);
+  const selectedCount = selected.size;
 
   const loadLinked = React.useCallback(async () => {
     if (!mainPid) return;
@@ -59,6 +63,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
       const pids = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
       if (!pids || pids.length === 0) {
         setLinkedItems([]);
+        setSelected(new Set());
         return;
       }
       const details = await Promise.all(
@@ -78,6 +83,8 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
         })
       );
       setLinkedItems(details);
+      // Clear previous selection after refresh
+      setSelected(new Set());
     } catch (err: any) {
       toast({
         title: "Fehler beim Laden der Verlinkungen",
@@ -93,7 +100,19 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
     if (open && mainPid) {
       loadLinked();
     }
+    if (!open) {
+      setSelected(new Set());
+    }
   }, [open, loadLinked, mainPid]);
+
+  const toggleSelect = (pid: string, checked: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(pid);
+      else next.delete(pid);
+      return next;
+    });
+  };
 
   const openPreview = (item: LinkedItem) => {
     if (item.previewUrl) {
@@ -139,6 +158,21 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
             </DialogDescription>
           </DialogHeader>
 
+          {selectedCount > 1 && (
+            <div className="mb-2 flex justify-end">
+              <Button
+                variant="destructive"
+                size="sm"
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={() => setPendingBulk(true)}
+                title="Ausgewähle Verlinkungen entfernen"
+              >
+                <Link2Off className="mr-2 h-4 w-4" />
+                Ausgewähle Verlinkungen entfernen
+              </Button>
+            </div>
+          )}
+
           {!mainPid ? (
             <div className="text-sm text-muted-foreground">Bitte ein Dokument mit gültiger PID öffnen.</div>
           ) : loading ? (
@@ -154,20 +188,28 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                   {linkedItems.map((it) => (
                     <li key={it.pid} className="rounded-md bg-muted px-3 py-2">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <FileTypeIcon filename={it.filename} />
-                            <button
-                              type="button"
-                              className="text-sm font-medium break-words text-blue-700 hover:underline text-left"
-                              onClick={() => openPreview(it)}
-                              title="Vorschau anzeigen"
-                            >
-                              {it.filename ?? "Dateiname unbekannt"}
-                            </button>
-                          </div>
-                          <div className="text-xs text-muted-foreground break-words" title={it.pid}>
-                            {it.pid}
+                        <div className="min-w-0 flex items-start gap-3">
+                          <Checkbox
+                            checked={selected.has(it.pid)}
+                            onCheckedChange={(v) => toggleSelect(it.pid, !!v)}
+                            className="mt-1"
+                            aria-label="Auswählen"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <FileTypeIcon filename={it.filename} />
+                              <button
+                                type="button"
+                                className="text-sm font-medium break-words text-blue-700 hover:underline text-left"
+                                onClick={() => openPreview(it)}
+                                title="Vorschau anzeigen"
+                              >
+                                {it.filename ?? "Dateiname unbekannt"}
+                              </button>
+                            </div>
+                            <div className="text-xs text-muted-foreground break-words" title={it.pid}>
+                              {it.pid}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
@@ -265,6 +307,63 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                     variant: "success",
                   });
                   setPendingDelete(null);
+                  await loadLinked();
+                } catch (err: any) {
+                  toast({
+                    title: (
+                      <span className="inline-flex items-center gap-2">
+                        <X className="h-4 w-4 text-white" />
+                        Entfernen fehlgeschlagen
+                      </span>
+                    ),
+                    description: String(err?.message ?? err ?? "Unbekannter Fehler"),
+                    variant: "destructive",
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              Ja
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm bulk unlink dialog */}
+      <AlertDialog
+        open={pendingBulk}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setPendingBulk(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Soll die Verlinkung entfernt werden?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Es werden {selectedCount} Verlinkungen entfernt. Die Dokumente bleiben im IDM erhalten.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel disabled={deleting}>Nein</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting || selectedCount < 2 || !mainPid}
+              onClick={async () => {
+                if (!mainPid) return;
+                const toRemove = Array.from(selected);
+                try {
+                  setDeleting(true);
+                  await unlinkIdmItemDocuments(authToken, cloudEnvironment, mainPid, toRemove);
+                  toast({
+                    title: (
+                      <span className="inline-flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        Verlinkungen entfernt
+                      </span>
+                    ),
+                    variant: "success",
+                  });
+                  setPendingBulk(false);
                   await loadLinked();
                 } catch (err: any) {
                   toast({
