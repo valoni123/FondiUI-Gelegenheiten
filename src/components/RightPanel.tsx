@@ -23,8 +23,6 @@ import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import Re
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
-import SharePointIcon from "@/components/icons/sharepoint-icon";
-import SharePointFrameDialog from "@/components/SharePointFrameDialog";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -60,7 +58,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false); // Confirm delete in preview
   const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false); // New state for link dialog
-  const [isSharePointDialogOpen, setIsSharePointDialogOpen] = React.useState(false); // SharePoint popup
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -498,17 +495,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Dokument löschen
                     </Button>
-                    {/* SharePoint link button (icon-only) */}
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="bg-teal-600 text-white hover:bg-teal-700"
-                      onClick={() => setIsSharePointDialogOpen(true)}
-                      title="Open SharePoint"
-                      aria-label="Open SharePoint"
-                    >
-                      <SharePointIcon className="h-4 w-4" />
-                    </Button>
                   </>
                 )}
               </div>
@@ -687,12 +673,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         }}
       />
 
-      {/* SharePoint popup dialog with iframe */}
-      <SharePointFrameDialog
-        open={isSharePointDialogOpen}
-        onOpenChange={setIsSharePointDialogOpen}
-        url="https://gacit.sharepoint.com/:f:/s/Dokumente/EpgibEZiqZ1KvkzBluxJGBkBVxix5faN5sVh58v8U4TpZQ?e=dXxa2G"
-      />
+      {/* REMOVED: SharePoint popup dialog */}
     </div>
   );
 };
