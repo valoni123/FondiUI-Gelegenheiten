@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon, ExternalLink, Download, Trash2, Check, X, Link2Off } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
 import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument, unlinkIdmItemDocuments } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -223,7 +223,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                                 aria-label="Verlinkung entfernen"
                                 title="Verlinkung entfernen"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Link2Off className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent sideOffset={6}>Verlinkung entfernen</TooltipContent>
