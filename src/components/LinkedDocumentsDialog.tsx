@@ -10,13 +10,22 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon, ExternalLink, Download } from "lucide-react";
-import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
+import { Loader2, Link as LinkIcon, ExternalLink, Download, Trash2, Check, X } from "lucide-react";
+import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import DocumentPreviewDialog from "@/components/DocumentPreviewDialog";
 import FileTypeIcon from "@/components/FileTypeIcon";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string };
 
@@ -40,6 +49,8 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   const [linkedItems, setLinkedItems] = React.useState<LinkedItem[]>([]);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [previewData, setPreviewData] = React.useState<{ url?: string; title?: string }>({});
+  const [pendingDelete, setPendingDelete] = React.useState<LinkedItem | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   const loadLinked = React.useCallback(async () => {
     if (!mainPid) return;
@@ -165,6 +176,21 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                className="h-8 w-8 text-red-600 hover:text-red-700"
+                                onClick={() => setPendingDelete(it)}
+                                aria-label="Verlinkung entfernen"
+                                title="Verlinkung entfernen"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent sideOffset={6}>Verlinkung entfernen</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
                                 className={it.drillbackurl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
                                 onClick={() => {
                                   if (it.drillbackurl) window.open(it.drillbackurl, "_blank", "noopener");
@@ -202,6 +228,65 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirm unlink dialog */}
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => {
+          if (!o && !deleting) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Soll die Verlinkung entfernt werden?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Diese Aktion entfernt nur die Verknüpfung. Das Dokument bleibt im IDM erhalten.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel disabled={deleting}>Nein</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleting}
+              onClick={async () => {
+                if (!pendingDelete || !mainPid) {
+                  setPendingDelete(null);
+                  return;
+                }
+                try {
+                  setDeleting(true);
+                  await unlinkIdmItemDocument(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
+                  toast({
+                    title: (
+                      <span className="inline-flex items-center gap-2">
+                        <Check className="h-4 w-4" />
+                        Verlinkung entfernt
+                      </span>
+                    ),
+                    variant: "success",
+                  });
+                  setPendingDelete(null);
+                  await loadLinked();
+                } catch (err: any) {
+                  toast({
+                    title: (
+                      <span className="inline-flex items-center gap-2">
+                        <X className="h-4 w-4 text-white" />
+                        Entfernen fehlgeschlagen
+                      </span>
+                    ),
+                    description: String(err?.message ?? err ?? "Unbekannter Fehler"),
+                    variant: "destructive",
+                  });
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              Ja
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DocumentPreviewDialog
         open={previewOpen}
