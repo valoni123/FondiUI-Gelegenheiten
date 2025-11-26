@@ -55,7 +55,8 @@ export const getMetadataUrl = (environment: CloudEnvironment): string => {
 
 export const getSsoProxyPath = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  return `/infor-sso/${config.ti}/as/${config.ot}`;
+  // Use a stable relative proxy path, independent of ot content
+  return `/infor-sso/${config.ti}/as/token.oauth2`;
 };
 
 export const getAuthUrl = (environment: CloudEnvironment): string => {
