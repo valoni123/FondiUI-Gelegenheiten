@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getIonApiConfig, getTokenUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
+import { getIonApiConfig, getTokenUrl, getRedirectUri, getSsoProxyPath, type CloudEnvironment } from "@/authorization/configLoader";
 import { setExternalAccessToken } from "@/authorization/authService";
 
 const OAuthCallback: React.FC = () => {
@@ -31,36 +31,61 @@ const OAuthCallback: React.FC = () => {
         const redirectUri = getRedirectUri(env);
 
         if (!accessToken && code) {
-          // Exchange authorization code for token via direct endpoint (pu + ot)
+          // Build body for token exchange
           const cfg = getIonApiConfig(env);
-          const tokenEndpoint = getTokenUrl(env); // Use direct token URL instead of dev proxy
           const codeVerifier = sessionStorage.getItem("pkce_verifier") || "";
+          const redirectUri = getRedirectUri(env);
 
           const body = new URLSearchParams();
           body.append("grant_type", "authorization_code");
           body.append("code", code);
           body.append("redirect_uri", redirectUri);
           body.append("client_id", cfg.ci);
-          // Include client_secret for compatibility with confidential clients
           body.append("client_secret", cfg.cs);
           if (codeVerifier) {
             body.append("code_verifier", codeVerifier);
           }
 
-          const resp = await fetch(tokenEndpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString(),
-          });
+          // Prefer same-origin proxy path; fall back to direct token URL if proxy is unavailable
+          const proxyEndpoint = getSsoProxyPath(env); // e.g., /infor-sso/{ti}/as/token.oauth2
+          const directEndpoint = getTokenUrl(env);    // e.g., https://mingle-sso.../as/token.oauth2
 
-          if (!resp.ok) {
-            const errorText = await resp.text();
-            throw new Error(`Token-Austausch fehlgeschlagen: ${resp.status} ${resp.statusText} - ${errorText}`);
+          // Try proxy first
+          let data: any | null = null;
+          let usedEndpoint = "proxy";
+          try {
+            const proxyResp = await fetch(proxyEndpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: body.toString(),
+            });
+
+            const contentType = proxyResp.headers.get("content-type") || "";
+            const looksLikeHtml = contentType.includes("text/html");
+
+            if (!proxyResp.ok || looksLikeHtml) {
+              // Proxy path likely not configured; fall back to direct endpoint
+              usedEndpoint = "direct";
+              const directResp = await fetch(directEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: body.toString(),
+              });
+              if (!directResp.ok) {
+                const errorText = await directResp.text();
+                throw new Error(`Token-Austausch fehlgeschlagen (direkt): ${directResp.status} ${directResp.statusText} - ${errorText}`);
+              }
+              data = await directResp.json();
+            } else {
+              data = await proxyResp.json();
+            }
+          } catch (e) {
+            // Network-level failure (e.g., CORS on direct), rethrow for outer catch
+            throw e;
           }
 
-          const data = await resp.json();
-          if (!data.access_token) {
-            throw new Error("Kein Access Token in der Token-Antwort gefunden.");
+          if (!data?.access_token) {
+            throw new Error(`Kein Access Token in der Token-Antwort gefunden (${usedEndpoint}).`);
           }
 
           accessToken = data.access_token;
