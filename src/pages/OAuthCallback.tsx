@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { getIonApiConfig, getSsoProxyPath, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
+import { getIonApiConfig, getTokenUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 import { setExternalAccessToken } from "@/authorization/authService";
 
 const OAuthCallback: React.FC = () => {
@@ -31,9 +31,9 @@ const OAuthCallback: React.FC = () => {
         const redirectUri = getRedirectUri(env);
 
         if (!accessToken && code) {
-          // Exchange authorization code for token via proxy
+          // Exchange authorization code for token via direct endpoint (pu + ot)
           const cfg = getIonApiConfig(env);
-          const tokenEndpoint = getSsoProxyPath(env); // /infor-sso/{ti}/as/token.oauth2 (proxied)
+          const tokenEndpoint = getTokenUrl(env); // Use direct token URL instead of dev proxy
           const codeVerifier = sessionStorage.getItem("pkce_verifier") || "";
 
           const body = new URLSearchParams();
