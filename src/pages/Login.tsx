@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { toast } from "sonner";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
+import { sha256 as jsSha256 } from "js-sha256";
 
 interface LoginProps {
   cloudEnvironment: CloudEnvironment;
@@ -79,12 +80,23 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
 
     const generateCodeVerifier = () => {
       const array = new Uint8Array(32);
-      crypto.getRandomValues(array);
+      if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+        crypto.getRandomValues(array);
+      } else {
+        for (let i = 0; i < array.length; i++) {
+          array[i] = Math.floor(Math.random() * 256);
+        }
+      }
+      // hex string (64 chars) is a valid PKCE code_verifier
       return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join("");
     };
-    const sha256 = async (plain: string) => {
-      const data = new TextEncoder().encode(plain);
-      return crypto.subtle.digest("SHA-256", data);
+    const sha256Buffer = async (plain: string): Promise<ArrayBuffer> => {
+      if (typeof crypto !== "undefined" && crypto.subtle && typeof TextEncoder !== "undefined") {
+        const data = new TextEncoder().encode(plain);
+        return crypto.subtle.digest("SHA-256", data);
+      }
+      // Fallback using js-sha256 for non-secure contexts/older browsers
+      return jsSha256.arrayBuffer(plain) as ArrayBuffer;
     };
     const base64UrlEncode = (arrayBuffer: ArrayBuffer) => {
       const bytes = new Uint8Array(arrayBuffer);
@@ -96,7 +108,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     };
 
     const codeVerifier = generateCodeVerifier();
-    const codeChallenge = base64UrlEncode(await sha256(codeVerifier));
+    const codeChallenge = base64UrlEncode(await sha256Buffer(codeVerifier));
     sessionStorage.setItem("pkce_verifier", codeVerifier);
 
     const params = new URLSearchParams({
@@ -135,7 +147,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           localStorage.setItem("oauthExpiresAt", String(data.expiresAt));
         }
         toast.success("Login erfolgreich!");
-        // Notify app about auth state change in the same window (iframe-safe)
         window.dispatchEvent(new Event("fondiui:auth-updated"));
         window.removeEventListener("message", messageHandler);
         setTokenReady(true);
