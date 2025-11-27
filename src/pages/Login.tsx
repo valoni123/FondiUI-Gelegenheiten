@@ -87,17 +87,14 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
           array[i] = Math.floor(Math.random() * 256);
         }
       }
-      // hex string (64 chars) is a valid PKCE code_verifier
       return Array.from(array).map((b) => b.toString(16).padStart(2, "0")).join("");
     };
+
+    // Always use js-sha256 to work on HTTP (no WebCrypto required)
     const sha256Buffer = async (plain: string): Promise<ArrayBuffer> => {
-      if (typeof crypto !== "undefined" && crypto.subtle && typeof TextEncoder !== "undefined") {
-        const data = new TextEncoder().encode(plain);
-        return crypto.subtle.digest("SHA-256", data);
-      }
-      // Fallback using js-sha256 for non-secure contexts/older browsers
       return jsSha256.arrayBuffer(plain) as ArrayBuffer;
     };
+
     const base64UrlEncode = (arrayBuffer: ArrayBuffer) => {
       const bytes = new Uint8Array(arrayBuffer);
       let binary = "";
