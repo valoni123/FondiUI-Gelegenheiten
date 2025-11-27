@@ -16,6 +16,30 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   const [tokenReady, setTokenReady] = useState<boolean>(false);
   const [opportunityId, setOpportunityId] = useState<string>("");
 
+  // Safe UUID generator: uses crypto.randomUUID if available, otherwise RFC4122 v4 fallback
+  const generateUUID = (): string => {
+    if (typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function") {
+      return (crypto as any).randomUUID();
+    }
+
+    const fillRandom = (arr: Uint8Array) => {
+      if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+        return crypto.getRandomValues(arr);
+      }
+      for (let i = 0; i < arr.length; i++) {
+        arr[i] = Math.floor(Math.random() * 256);
+      }
+      return arr;
+    };
+
+    const bytes = fillRandom(new Uint8Array(16));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 10xx
+
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+
   useEffect(() => {
     // If already authenticated, enable opening apps
     const existingToken = localStorage.getItem("oauthAccessToken");
@@ -49,7 +73,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     const cfg = getIonApiConfig(cloudEnvironment);
     const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
     const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
-    const state = crypto.randomUUID();
+    const state = generateUUID(); // use safe UUID
 
     localStorage.setItem("cloudEnvironment", cloudEnvironment);
 
