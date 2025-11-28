@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 32100;
 
 // 1) Proxy for Infor SSO
+//    Requests to /infor-sso/... will be forwarded to https://mingle-sso.eu1.inforcloudsuite.com/...
+//    Example: POST /infor-sso/FONDIUM_TRN/as/token.oauth2  ->
+//             https://mingle-sso.eu1.inforcloudsuite.com/FONDIUM_TRN/as/token.oauth2
 app.use(
   "/infor-sso",
   createProxyMiddleware({
@@ -25,8 +28,9 @@ app.use(
 // 2) Serve static files from dist
 app.use(express.static(path.join(__dirname, "dist")));
 
-// 3) SPA fallback (make sure this is AFTER the proxy)
-app.get("*", (req, res) => {
+// 3) SPA fallback (must be AFTER proxy + static).
+//    Using a RegExp here avoids the path-to-regexp "*" error.
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
