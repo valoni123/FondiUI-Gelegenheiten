@@ -74,10 +74,14 @@ export const getTokenUrl = (environment: CloudEnvironment): string => {
 // Provide redirect URI, prefer ionapi.ru if present, else fallback to current origin + /callback
 export const getRedirectUri = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  if (config.ru) return config.ru;
-  const fallback = `${window.location.origin}/callback`;
-  console.warn(`ionapi.ru missing for ${environment}. Using fallback redirect URI: ${fallback}`);
-  return fallback;
+  const desired = `${window.location.origin}/callback`;
+  if (config.ru && config.ru !== desired) {
+    console.warn(
+      `ionapi.ru (${config.ru}) differs from current origin. Using dynamic redirect: ${desired}. ` +
+      `Ensure this URL is registered as an allowed redirect URI in ION for ${environment}.`
+    );
+  }
+  return desired;
 };
 
 // Build proxied revoke endpoint: /infor-sso/{ti}/as/{or}
