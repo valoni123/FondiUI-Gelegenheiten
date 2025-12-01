@@ -5,8 +5,8 @@ import { parseStringPromise } from "xml2js";
 
 const buildIdmBase = (environment: CloudEnvironment) => {
   const cfg = getIonApiConfig(environment);
-  // Use the local proxy in the browser to avoid CORS; fall back to full host in non-browser contexts
-  const hostBase = typeof window !== "undefined" ? "/ionapi" : `${cfg.iu}`;
+  // Always use local proxy to avoid any direct external calls
+  const hostBase = "/ionapi";
   return `${hostBase}/${cfg.ti}/IDM`;
 };
 
@@ -768,7 +768,7 @@ export const linkIdmItemDocuments = async (
   linkedPids: string[],
   language: string = "de-DE"
 ): Promise<void> => {
-  const base = (environment && getIonApiConfig(environment)) ? `${getIonApiConfig(environment).iu}/${getIonApiConfig(environment).ti}/IDM` : "";
+  const base = buildIdmBase(environment);
   const url =
     `${base}/api/items/${encodeURIComponent(mainPid)}?` +
     `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
