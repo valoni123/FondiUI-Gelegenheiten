@@ -40,17 +40,20 @@ export const getIonApiConfig = (environment: CloudEnvironment): IonApiConfig => 
 
 export const getApiBaseUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  return `${config.iu}/${config.ti}/LN/lnapi/odata/txsmi.opp`;
+  // Use local proxy to avoid CORS
+  return `/ionapi/${config.ti}/LN/lnapi/odata/txsmi.opp`;
 };
 
 export const getBusinessPartnersApiUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  return `${config.iu}/${config.ti}/LN/lnapi/odata/tcapi.comBusinessPartner/BusinessPartners`;
+  // Use local proxy to avoid CORS
+  return `/ionapi/${config.ti}/LN/lnapi/odata/tcapi.comBusinessPartner/BusinessPartners`;
 };
 
 export const getMetadataUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
-  return `${config.iu}/${config.ti}/LN/lnapi/odata/txsmi.opp/$metadata`;
+  // Use local proxy to avoid CORS
+  return `/ionapi/${config.ti}/LN/lnapi/odata/txsmi.opp/$metadata`;
 };
 
 export const getSsoProxyPath = (environment: CloudEnvironment): string => {
