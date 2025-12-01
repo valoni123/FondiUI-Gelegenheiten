@@ -5,7 +5,9 @@ import { parseStringPromise } from "xml2js";
 
 const buildIdmBase = (environment: CloudEnvironment) => {
   const cfg = getIonApiConfig(environment);
-  return `${cfg.iu}/${cfg.ti}/IDM`;
+  // Use the local proxy in the browser to avoid CORS; fall back to full host in non-browser contexts
+  const hostBase = typeof window !== "undefined" ? "/ionapi" : `${cfg.iu}`;
+  return `${hostBase}/${cfg.ti}/IDM`;
 };
 
 /**
