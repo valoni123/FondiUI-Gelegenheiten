@@ -25,6 +25,19 @@ app.use(
   })
 );
 
+// ADD: Proxy for Ion API to avoid CORS
+app.use(
+  "/ionapi",
+  createProxyMiddleware({
+    target: "https://mingle-ionapi.eu1.inforcloudsuite.com",
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: {
+      "^/ionapi": "",
+    },
+  })
+);
+
 // 2) Serve static files from dist
 app.use(express.static(path.join(__dirname, "dist")));
 

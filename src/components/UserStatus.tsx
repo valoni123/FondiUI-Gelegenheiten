@@ -30,7 +30,8 @@ interface MeResponse {
 }
 
 const fetchMe = async (cloudEnvironment: CloudEnvironment, token: string): Promise<MeResponse> => {
-  const url = `https://mingle-ionapi.eu1.inforcloudsuite.com/${cloudEnvironment}/ifsservice/usermgt/v2/users/me`;
+  // Use server proxy to avoid browser CORS issues
+  const url = `/ionapi/${cloudEnvironment}/ifsservice/usermgt/v2/users/me`;
   const res = await fetch(url, {
     method: "GET",
     headers: {
