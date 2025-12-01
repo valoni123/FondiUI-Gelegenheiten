@@ -15,6 +15,13 @@ export default defineConfig(() => ({
         rewrite: (path) => path.replace(/^\/infor-sso/, ""), // Remove the /infor-sso prefix when forwarding
         secure: true, // Ensure SSL certificates are validated
       },
+      // Proxy requests starting with /ionapi to the Infor Ion API URL
+      "/ionapi": {
+        target: "https://mingle-ionapi.eu1.inforcloudsuite.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/ionapi/, ""), // Remove the /ionapi prefix when forwarding
+        secure: true, // Ensure SSL certificates are validated
+      },
     },
   },
   plugins: [dyadComponentTagger(), react()],
