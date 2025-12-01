@@ -130,46 +130,48 @@ const GridList: React.FC<GridListProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40px] text-center px-1 py-1"></TableHead> {/* For view details button */}
-              <TableHead className="w-[40px] text-center px-1 py-1">
-                <span className="sr-only">Select</span> {/* New TableHead for checkbox */}
-              </TableHead>
-              {visibleKeys.map((key) => (
-                <TableHead
-                  key={key}
-                  className={cn(
-                    "px-1 py-1", // Further reduced padding
-                    "min-w-[60px]",
-                    key === "id" && "min-w-[100px]",
-                    key === "Project" && "min-w-[100px]",
-                    key === "description" && "min-w-[150px]"
-                  )}
-                >
-                  <div className="flex flex-col space-y-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSort(key)}
-                      className="flex items-center gap-1 justify-start px-1 font-bold"
-                    >
-                      {getColumnLabel(key)}
-                      {sortConfig?.key === key && (
-                        <ArrowDownUp
-                          className={cn(
-                            "h-3 w-3",
-                            sortConfig.direction === "desc" ? "rotate-180" : ""
-                          )}
-                        />
-                      )}
-                    </Button>
-                    <Input
-                      value={filters[key] || ""}
-                      onChange={(e) => handleFilterChange(key, e.target.value)}
-                      className="h-7 text-xs"
-                    />
-                  </div>
-                </TableHead>
-              ))}
+              {[
+                <TableHead key="_view" className="w-[40px] text-center px-1 py-1"></TableHead>,
+                <TableHead key="_select" className="w-[40px] text-center px-1 py-1">
+                  <span className="sr-only">Select</span>
+                </TableHead>,
+                ...visibleKeys.map((key) => (
+                  <TableHead
+                    key={key}
+                    className={cn(
+                      "px-1 py-1",
+                      "min-w-[60px]",
+                      key === "id" && "min-w-[100px]",
+                      key === "Project" && "min-w-[100px]",
+                      key === "description" && "min-w-[150px]"
+                    )}
+                  >
+                    <div className="flex flex-col space-y-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleSort(key)}
+                        className="flex items-center gap-1 justify-start px-1 font-bold"
+                      >
+                        {getColumnLabel(key)}
+                        {sortConfig?.key === key && (
+                          <ArrowDownUp
+                            className={cn(
+                              "h-3 w-3",
+                              sortConfig.direction === "desc" ? "rotate-180" : ""
+                            )}
+                          />
+                        )}
+                      </Button>
+                      <Input
+                        value={filters[key] || ""}
+                        onChange={(e) => handleFilterChange(key, e.target.value)}
+                        className="h-7 text-xs"
+                      />
+                    </div>
+                  </TableHead>
+                )),
+              ]}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -178,10 +180,9 @@ const GridList: React.FC<GridListProps> = ({
                 key={item.id}
                 className={cn(
                   "hover:bg-muted cursor-pointer",
-                  selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900" // Visual feedback for selected row
+                  selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
                 )}
                 onClick={() => {
-                  // Toggle selection: if already selected, deselect; otherwise, select
                   if (selectedOpportunityId === item.id) {
                     onSelectOpportunity(null);
                   } else {
@@ -189,89 +190,91 @@ const GridList: React.FC<GridListProps> = ({
                   }
                 }}
               >
-                <TableCell className="text-center px-1 py-1">
-                  <Button
-                    variant="default"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Verhindert, dass der Zeilenklick die Detailansicht auslöst
-                      onViewDetails(item);
-                    }}
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-                <TableCell className="text-center px-1 py-1">
-                  {/* Checkbox is now purely visual, reflecting the selected state */}
-                  <Checkbox
-                    checked={selectedOpportunityId === item.id}
-                    onCheckedChange={() => {
-                      // Toggle selection when checkbox is clicked
-                      if (selectedOpportunityId === item.id) {
-                        onSelectOpportunity(null);
-                      } else {
-                        onSelectOpportunity(item.id);
-                      }
-                    }}
-                    aria-label={`Select opportunity ${item.id}`}
-                  />
-                </TableCell>
-                {visibleKeys.map((key) => (
-                  <TableCell key={`${item.id}-${key}`} className="px-1 py-1"> {/* Further reduced padding */}
-                    {key === "Status" && opportunityStatusOptions.length > 0 ? (
-                      <Select
-                        value={String(item[key])}
-                        onValueChange={(value) => onUpdateItem(item.id, key, value)}
-                      >
-                        <SelectTrigger className="w-full h-7 text-xs">
-                          <SelectValue placeholder="Select Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {opportunityStatusOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : key === "SoldtoBusinessPartner" ? (
-                      <div className="flex items-center gap-2">
+                {[
+                  <TableCell key={`${item.id}-view`} className="text-center px-1 py-1">
+                    <Button
+                      variant="default"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onViewDetails(item);
+                      }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </TableCell>,
+                  <TableCell key={`${item.id}-check`} className="text-center px-1 py-1">
+                    <Checkbox
+                      checked={selectedOpportunityId === item.id}
+                      onCheckedChange={() => {
+                        if (selectedOpportunityId === item.id) {
+                          onSelectOpportunity(null);
+                        } else {
+                          onSelectOpportunity(item.id);
+                        }
+                      }}
+                      aria-label={`Select opportunity ${item.id}`}
+                    />
+                  </TableCell>,
+                  ...visibleKeys.map((key) => (
+                    <TableCell key={`${item.id}-${key}`} className="px-1 py-1">
+                      {key === "Status" && opportunityStatusOptions.length > 0 ? (
+                        <Select
+                          value={String(item[key])}
+                          onValueChange={(value) => onUpdateItem(item.id, key, value)}
+                        >
+                          <SelectTrigger className="w-full h-7 text-xs">
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {opportunityStatusOptions.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : key === "SoldtoBusinessPartner" ? (
+                        <div className="flex items-center gap-2">
+                          <EditableCellInput
+                            itemId={item.id}
+                            fieldKey={key}
+                            initialValue={item[key] || ""}
+                            onUpdateItem={onUpdateItem}
+                            className="pr-10 w-full"
+                            disabled={false}
+                            hasSearchButton={true}
+                            onSearchButtonClick={handleOpenBpSelectDialog}
+                          />
+                          {item.SoldtoBusinessPartnerName && (
+                            <p className="text-sm text-muted-foreground whitespace-nowrap">
+                              {item.SoldtoBusinessPartnerName}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
                         <EditableCellInput
                           itemId={item.id}
                           fieldKey={key}
                           initialValue={item[key] || ""}
                           onUpdateItem={onUpdateItem}
-                          className="pr-10 w-full"
-                          disabled={false}
-                          hasSearchButton={true}
-                          onSearchButtonClick={handleOpenBpSelectDialog}
+                          type={typeof item[key] === "number" ? "number" : "text"}
+                          className="w-full"
+                          disabled={
+                            key === "id" ||
+                            key === "Opportunity" ||
+                            key === "Guid" ||
+                            key === "CreationDate" ||
+                            key === "LastTransactionDate" ||
+                            key === "CreatedBy" ||
+                            key === "LastModifiedBy"
+                          }
                         />
-                        {item.SoldtoBusinessPartnerName && (
-                          <p className="text-sm text-muted-foreground whitespace-nowrap">{item.SoldtoBusinessPartnerName}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <EditableCellInput
-                        itemId={item.id}
-                        fieldKey={key}
-                        initialValue={item[key] || ""}
-                        onUpdateItem={onUpdateItem}
-                        type={typeof item[key] === "number" ? "number" : "text"}
-                        className="w-full"
-                        disabled={
-                          key === "id" ||
-                          key === "Opportunity" ||
-                          key === "Guid" ||
-                          key === "CreationDate" ||
-                          key === "LastTransactionDate" ||
-                          key === "CreatedBy" ||
-                          key === "LastModifiedBy"
-                        }
-                      />
-                    )}
-                  </TableCell>
-                ))}
+                      )}
+                    </TableCell>
+                  )),
+                ]}
               </TableRow>
             ))}
           </TableBody>

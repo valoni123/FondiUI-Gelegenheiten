@@ -10,9 +10,6 @@ const app = express();
 const PORT = process.env.PORT || 32100;
 
 // 1) Proxy for Infor SSO
-//    Requests to /infor-sso/... will be forwarded to https://mingle-sso.eu1.inforcloudsuite.com/...
-//    Example: POST /infor-sso/FONDIUM_TRN/as/token.oauth2  ->
-//             https://mingle-sso.eu1.inforcloudsuite.com/FONDIUM_TRN/as/token.oauth2
 app.use(
   "/infor-sso",
   createProxyMiddleware({
@@ -25,7 +22,7 @@ app.use(
   })
 );
 
-// ADD: Proxy for Ion API to avoid CORS
+// ADD: 1b) Proxy for Ion API (avoids CORS by going through the app server)
 app.use(
   "/ionapi",
   createProxyMiddleware({
