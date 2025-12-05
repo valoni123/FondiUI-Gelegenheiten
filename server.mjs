@@ -4,6 +4,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import https from "node:https";
 import fs from "node:fs";
+import os from "node:os";
+import selfsigned from "selfsigned";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,20 +76,69 @@ const HTTPS_CERT_PATH = process.env.HTTPS_CERT_PATH;
 const HTTPS_KEY_PATH = process.env.HTTPS_KEY_PATH;
 const HTTPS_PORT = process.env.HTTPS_PORT || 443;
 
-if (HTTPS_PFX_PATH || (HTTPS_CERT_PATH && HTTPS_KEY_PATH)) {
-  let httpsOptions;
-  if (HTTPS_PFX_PATH) {
-    httpsOptions = {
-      pfx: fs.readFileSync(HTTPS_PFX_PATH),
-      passphrase: process.env.HTTPS_PFX_PASSPHRASE || undefined,
-    };
-  } else {
-    httpsOptions = {
-      key: fs.readFileSync(HTTPS_KEY_PATH),
-      cert: fs.readFileSync(HTTPS_CERT_PATH),
-    };
+// REPLACED: only-start-https-when-env-set
+let httpsOptions;
+
+// Prefer provided certs if configured
+if (HTTPS_PFX_PATH) {
+  httpsOptions = {
+    pfx: fs.readFileSync(HTTPS_PFX_PATH),
+    passphrase: process.env.HTTPS_PFX_PASSPHRASE || undefined,
+  };
+} else if (HTTPS_CERT_PATH && HTTPS_KEY_PATH) {
+  httpsOptions = {
+    key: fs.readFileSync(HTTPS_KEY_PATH),
+    cert: fs.readFileSync(HTTPS_CERT_PATH),
+  };
+} else {
+  // Auto-generate a self-signed certificate and persist it for reuse
+  const certDir = path.join(__dirname, "certs");
+  const keyFile = path.join(certDir, "selfsigned.key");
+  const certFile = path.join(certDir, "selfsigned.crt");
+
+  if (!fs.existsSync(certDir)) {
+    fs.mkdirSync(certDir, { recursive: true });
   }
 
+  if (fs.existsSync(keyFile) && fs.existsSync(certFile)) {
+    httpsOptions = {
+      key: fs.readFileSync(keyFile),
+      cert: fs.readFileSync(certFile),
+    };
+    console.log("Using cached self-signed certificate from certs/.");
+  } else {
+    const nets = os.networkInterfaces();
+    const altNames = [
+      { type: 2, value: "localhost" }, // DNS
+      { type: 7, ip: "127.0.0.1" },    // IP
+    ];
+
+    // Add all local IPv4 addresses to SAN for better compatibility
+    Object.values(nets).forEach((ifaces) => {
+      (ifaces || []).forEach((iface) => {
+        if (iface && iface.family === "IPv4" && !iface.internal) {
+          altNames.push({ type: 7, ip: iface.address });
+        }
+      });
+    });
+
+    const attrs = [{ name: "commonName", value: "localhost" }];
+    const pems = selfsigned.generate(attrs, {
+      days: 365,
+      keySize: 2048,
+      algorithm: "sha256",
+      extensions: [{ name: "subjectAltName", altNames }],
+    });
+
+    fs.writeFileSync(keyFile, pems.private, { encoding: "utf8" });
+    fs.writeFileSync(certFile, pems.cert, { encoding: "utf8" });
+
+    httpsOptions = { key: pems.private, cert: pems.cert };
+    console.log("Generated new self-signed certificate in certs/.");
+  }
+}
+
+if (httpsOptions) {
   https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
     console.log(`HTTPS server running at https://localhost:${HTTPS_PORT}`);
   });
