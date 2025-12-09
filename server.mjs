@@ -45,6 +45,16 @@ app.use(
     pathRewrite: {
       "^/ionapi": "",
     },
+    onProxyReq: (proxyReq) => {
+      // Remove Origin header so Ion treats it as a server request (no CORS validation)
+      if (proxyReq.getHeader("origin")) {
+        proxyReq.removeHeader("origin");
+      }
+      // Optionally also remove Referer if present
+      if (proxyReq.getHeader("referer")) {
+        proxyReq.removeHeader("referer");
+      }
+    },
   })
 );
 
