@@ -36,6 +36,22 @@ app.use(
 );
 
 // 1b) Proxy für Ion API
+// Strip browser-origin headers before proxying
+app.use("/ionapi", (req, _res, next) => {
+  delete req.headers.origin;
+  delete req.headers.referer;
+  delete req.headers["x-forwarded-for"];
+  delete req.headers["x-forwarded-host"];
+  delete req.headers["x-forwarded-proto"];
+  delete req.headers["x-forwarded-port"];
+  delete req.headers["sec-fetch-site"];
+  delete req.headers["sec-fetch-mode"];
+  delete req.headers["sec-fetch-dest"];
+  delete req.headers["access-control-request-method"];
+  delete req.headers["access-control-request-headers"];
+  next();
+});
+
 app.use(
   "/ionapi",
   createProxyMiddleware({
@@ -47,14 +63,27 @@ app.use(
     },
     xfwd: false, // do not add X-Forwarded-* headers
     onProxyReq: (proxyReq) => {
-      // Remove Origin/Referer so Ion treats this as a server request (no browser-origin validation)
-      proxyReq.removeHeader("origin");
-      proxyReq.removeHeader("referer");
-      // Also strip X-Forwarded-* which some upstreams use to infer origin
-      proxyReq.removeHeader("x-forwarded-for");
-      proxyReq.removeHeader("x-forwarded-host");
-      proxyReq.removeHeader("x-forwarded-proto");
-      proxyReq.removeHeader("x-forwarded-port");
+      // Double‑ensure these headers are not sent upstream
+      const headersToStrip = [
+        "origin",
+        "referer",
+        "x-forwarded-for",
+        "x-forwarded-host",
+        "x-forwarded-proto",
+        "x-forwarded-port",
+        "sec-fetch-site",
+        "sec-fetch-mode",
+        "sec-fetch-dest",
+        "access-control-request-method",
+        "access-control-request-headers",
+      ];
+      headersToStrip.forEach((h) => {
+        try {
+          proxyReq.removeHeader(h);
+        } catch {
+          // ignore if not present
+        }
+      });
     },
   })
 );
