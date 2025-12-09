@@ -45,15 +45,16 @@ app.use(
     pathRewrite: {
       "^/ionapi": "",
     },
+    xfwd: false, // do not add X-Forwarded-* headers
     onProxyReq: (proxyReq) => {
-      // Remove Origin header so Ion treats it as a server request (no CORS validation)
-      if (proxyReq.getHeader("origin")) {
-        proxyReq.removeHeader("origin");
-      }
-      // Optionally also remove Referer if present
-      if (proxyReq.getHeader("referer")) {
-        proxyReq.removeHeader("referer");
-      }
+      // Remove Origin/Referer so Ion treats this as a server request (no browser-origin validation)
+      proxyReq.removeHeader("origin");
+      proxyReq.removeHeader("referer");
+      // Also strip X-Forwarded-* which some upstreams use to infer origin
+      proxyReq.removeHeader("x-forwarded-for");
+      proxyReq.removeHeader("x-forwarded-host");
+      proxyReq.removeHeader("x-forwarded-proto");
+      proxyReq.removeHeader("x-forwarded-port");
     },
   })
 );
