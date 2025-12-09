@@ -38,6 +38,19 @@ app.use(
 // 1b) Proxy für Ion API
 app.use(
   "/ionapi",
+  // Strip headers that trigger CORS checks so the upstream treats this as a server request
+  (req, _res, next) => {
+    delete req.headers.origin;
+    delete req.headers.referer;
+    delete req.headers["x-forwarded-for"];
+    delete req.headers["x-forwarded-host"];
+    delete req.headers["x-forwarded-proto"];
+    delete req.headers["x-forwarded-port"];
+    delete req.headers["sec-fetch-site"];
+    delete req.headers["sec-fetch-mode"];
+    delete req.headers["sec-fetch-dest"];
+    next();
+  },
   createProxyMiddleware({
     target: "https://mingle-ionapi.eu1.inforcloudsuite.com",
     changeOrigin: true,
@@ -45,16 +58,18 @@ app.use(
     pathRewrite: {
       "^/ionapi": "",
     },
-    xfwd: false, // do not add X-Forwarded-* headers
+    xfwd: false, // don't add X-Forwarded-* headers
     onProxyReq: (proxyReq) => {
-      // Remove Origin/Referer so Ion treats this as a server request (no browser-origin validation)
-      proxyReq.removeHeader("origin");
-      proxyReq.removeHeader("referer");
-      // Also strip X-Forwarded-* which some upstreams use to infer origin
-      proxyReq.removeHeader("x-forwarded-for");
-      proxyReq.removeHeader("x-forwarded-host");
-      proxyReq.removeHeader("x-forwarded-proto");
-      proxyReq.removeHeader("x-forwarded-port");
+      // Ensure no Origin/Referer sneak through
+      // Some Node versions don't support removeHeader on ClientRequest, so do both:
+      try { proxyReq.removeHeader && proxyReq.removeHeader("origin"); } catch {}
+      try { proxyReq.removeHeader && proxyReq.removeHeader("referer"); } catch {}
+      proxyReq.setHeader("origin", "");
+      proxyReq.setHeader("referer", "");
+      // Also clear sec-fetch-* if present
+      proxyReq.setHeader("sec-fetch-site", "");
+      proxyReq.setHeader("sec-fetch-mode", "");
+      proxyReq.setHeader("sec-fetch-dest", "");
     },
   })
 );
