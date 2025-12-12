@@ -236,13 +236,14 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       <div className="w-full px-4 space-y-6 flex flex-col flex-grow">
         <AppHeader />
         
-        <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
+        {/* REMOVED: Overview 'Neue Gelegenheit' button */}
+        {/* <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
           {!selectedOpportunityId && (
             <Button onClick={handleAddItem}>
               <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
             </Button>
           )}
-        </div>
+        </div> */}
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow">
           {selectedOpportunityId ? (

@@ -347,11 +347,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <div className="flex h-full flex-col p-4">
-      <div className="mb-4 flex items-center">
+      {/* Header row with title and back button aligned horizontally */}
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
-      </div>
-
-      <div className="flex justify-end mb-3">
         <BackToOverviewButton onBack={onClose} />
       </div>
 
