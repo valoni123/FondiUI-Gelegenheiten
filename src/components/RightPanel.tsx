@@ -352,7 +352,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       </div>
 
       <div className="flex justify-end mb-3">
-        <BackToOverviewButton />
+        <BackToOverviewButton onBack={onClose} />
       </div>
 
       <Card className="flex-grow flex flex-col">
