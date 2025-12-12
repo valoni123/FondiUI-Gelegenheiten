@@ -10,9 +10,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// HTTP- und HTTPS-Ports
-const HTTP_PORT = process.env.PORT || 32100; // wie bisher
-const HTTPS_PORT = process.env.HTTPS_PORT || 443; // neuer HTTPS-Port
+// Nur noch HTTPS-Port
+const HTTPS_PORT = process.env.HTTPS_PORT || 443;
 
 // HTTPS-Zertifikat (PFX) laden
 const httpsOptions = {
@@ -61,9 +60,12 @@ app.use(
     xfwd: false, // don't add X-Forwarded-* headers
     onProxyReq: (proxyReq) => {
       // Ensure no Origin/Referer sneak through
-      // Some Node versions don't support removeHeader on ClientRequest, so do both:
-      try { proxyReq.removeHeader && proxyReq.removeHeader("origin"); } catch {}
-      try { proxyReq.removeHeader && proxyReq.removeHeader("referer"); } catch {}
+      try {
+        proxyReq.removeHeader && proxyReq.removeHeader("origin");
+      } catch {}
+      try {
+        proxyReq.removeHeader && proxyReq.removeHeader("referer");
+      } catch {}
       proxyReq.setHeader("origin", "");
       proxyReq.setHeader("referer", "");
       // Also clear sec-fetch-* if present
@@ -82,12 +84,7 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// HTTP-Server (optional, wie bisher)
-app.listen(HTTP_PORT, () => {
-  console.log(`HTTP server running at http://localhost:${HTTP_PORT}`);
-});
-
-// HTTPS-Server mit Zertifikat
+// *** Nur noch HTTPS-Server mit Zertifikat ***
 https.createServer(httpsOptions, app).listen(HTTPS_PORT, () => {
   console.log(`HTTPS server running at https://localhost:${HTTPS_PORT}`);
 });
