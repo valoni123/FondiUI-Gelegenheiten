@@ -23,7 +23,6 @@ import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner } from "@/api/businessPartners";
 import EditableCellInput from "./EditableCellInput";
 import { CloudEnvironment } from "@/authorization/configLoader";
-import { Checkbox } from "@/components/ui/checkbox"; // Import Checkbox
 
 interface GridListProps {
   items: Item[];
@@ -132,9 +131,6 @@ const GridList: React.FC<GridListProps> = ({
             <TableRow>
               {[
                 <TableHead key="_view" className="w-[40px] text-center px-1 py-1"></TableHead>,
-                <TableHead key="_select" className="w-[40px] text-center px-1 py-1">
-                  <span className="sr-only">Select</span>
-                </TableHead>,
                 ...visibleKeys.map((key) => (
                   <TableHead
                     key={key}
@@ -203,19 +199,6 @@ const GridList: React.FC<GridListProps> = ({
                     >
                       <ArrowRight className="h-4 w-4" />
                     </Button>
-                  </TableCell>,
-                  <TableCell key={`${item.id}-check`} className="text-center px-1 py-1">
-                    <Checkbox
-                      checked={selectedOpportunityId === item.id}
-                      onCheckedChange={() => {
-                        if (selectedOpportunityId === item.id) {
-                          onSelectOpportunity(null);
-                        } else {
-                          onSelectOpportunity(item.id);
-                        }
-                      }}
-                      aria-label={`Select opportunity ${item.id}`}
-                    />
                   </TableCell>,
                   ...visibleKeys.map((key) => (
                     <TableCell key={`${item.id}-${key}`} className="px-1 py-1">
