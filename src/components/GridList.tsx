@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownUp, Search } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -130,7 +131,9 @@ const GridList: React.FC<GridListProps> = ({
           <TableHeader>
             <TableRow>
               {[
-                <TableHead key="_view" className="w-[40px] text-center px-1 py-1"></TableHead>,
+                <TableHead key="_select" className="w-[40px] text-center px-1 py-1">
+                  <span className="sr-only">Select</span>
+                </TableHead>,
                 ...visibleKeys.map((key) => (
                   <TableHead
                     key={key}
@@ -187,18 +190,18 @@ const GridList: React.FC<GridListProps> = ({
                 }}
               >
                 {[
-                  <TableCell key={`${item.id}-view`} className="text-center px-1 py-1">
-                    <Button
-                      variant="default"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDetails(item);
+                  <TableCell key={`${item.id}-check`} className="text-center px-1 py-1">
+                    <Checkbox
+                      checked={selectedOpportunityId === item.id}
+                      onCheckedChange={() => {
+                        if (selectedOpportunityId === item.id) {
+                          onSelectOpportunity(null);
+                        } else {
+                          onSelectOpportunity(item.id);
+                        }
                       }}
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
+                      aria-label={`Select opportunity ${item.id}`}
+                    />
                   </TableCell>,
                   ...visibleKeys.map((key) => (
                     <TableCell key={`${item.id}-${key}`} className="px-1 py-1">
