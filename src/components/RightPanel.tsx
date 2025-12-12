@@ -23,6 +23,7 @@ import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import Re
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
+import BackToOverviewButton from "./BackToOverviewButton";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -348,6 +349,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
     <div className="flex h-full flex-col p-4">
       <div className="mb-4 flex items-center">
         <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
+      </div>
+
+      <div className="flex justify-end mb-3">
+        <BackToOverviewButton />
       </div>
 
       <Card className="flex-grow flex flex-col">
