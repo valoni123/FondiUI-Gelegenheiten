@@ -16,7 +16,6 @@ const BackToOverviewButton: React.FC<Props> = ({ className, label = "Zur Übersi
   const handleClick = () => {
     if (typeof onBack === "function") {
       onBack();
-      return;
     }
     navigate("/opportunities");
   };
