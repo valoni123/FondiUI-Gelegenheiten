@@ -109,7 +109,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       const refreshInterval = setInterval(() => {
         console.log("Performing silent opportunities refresh...");
         loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
-      }, 30000);
+      }, 10000); // reduced to 10 seconds
 
       return () => clearInterval(refreshInterval);
     }
@@ -255,7 +255,14 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             >
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
-                onClose={() => setSelectedOpportunityId(null)}
+                onClose={() => {
+                  // Close detail panel and silently reload opportunities
+                  setSelectedOpportunityId(null);
+                  if (authToken) {
+                    // trigger silent reload without user noticing
+                    loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
+                  }
+                }}
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
