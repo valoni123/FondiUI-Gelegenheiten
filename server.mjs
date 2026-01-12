@@ -12,6 +12,8 @@ const app = express();
 
 // Nur noch HTTPS-Port
 const HTTPS_PORT = process.env.HTTPS_PORT || 443;
+// ADD: HTTP port (default 32100)
+const HTTP_PORT = process.env.PORT || 32100;
 
 // HTTPS-Zertifikat (PFX) laden
 const httpsOptions = {
@@ -82,6 +84,11 @@ app.use(express.static(path.join(__dirname, "dist")));
 // 3) SPA-Fallback (muss NACH Proxy + static kommen)
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
+// ADD: Start HTTP server on :32100 again
+app.listen(HTTP_PORT, () => {
+  console.log(`HTTP server running at http://localhost:${HTTP_PORT}`);
 });
 
 // *** Nur noch HTTPS-Server mit Zertifikat ***
