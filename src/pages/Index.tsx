@@ -49,15 +49,18 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
+    const startedAt = new Date();
+    console.log(`[Opportunities] Reload gestartet um ${startedAt.toISOString()} (silent=${silent})`);
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
       const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
+      console.log(`[Opportunities] Reload erfolgreich (silent=${silent}) – ${fetchedOpportunities.length} Einträge geladen`);
       setOpportunities(fetchedOpportunities);
       if (!silent) {
         toast.success("Opportunities loaded successfully!", { id: loadingToastId });
       }
     } catch (error) {
-      console.error("Failed to load opportunities:", error);
+      console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
       if (!silent) {
         toast.error("Failed to load opportunities.", { id: loadingToastId });
       } else {
@@ -67,6 +70,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       if (!silent) {
         setIsLoadingOpportunities(false);
       }
+      console.log(`[Opportunities] Reload beendet um ${new Date().toISOString()} (silent=${silent})`);
     }
   }, []);
 
@@ -107,7 +111,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) { // Only refresh if not viewing a specific opportunity
       const refreshInterval = setInterval(() => {
-        console.log("Performing silent opportunities refresh...");
+        console.log(`[Opportunities] Silent Intervall-Reload um ${new Date().toISOString()}`);
         loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
       }, 10000); // reduced to 10 seconds
 
@@ -259,6 +263,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                   // Close detail panel and silently reload opportunities
                   setSelectedOpportunityId(null);
                   if (authToken) {
+                    console.log("[Opportunities] Stiller Reload durch 'Zur Übersicht' ausgelöst");
                     // trigger silent reload without user noticing
                     loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
                   }
