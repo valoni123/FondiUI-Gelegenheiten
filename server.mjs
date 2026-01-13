@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // Nur noch HTTPS-Port
-const HTTPS_PORT = process.env.HTTPS_PORT || 443;
+const HTTPS_PORT = process.env.HTTPS_PORT || 32100;
 // ADD: HTTP port (default 32100)
 const HTTP_PORT = process.env.PORT || 32100;
 
