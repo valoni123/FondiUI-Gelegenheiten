@@ -167,7 +167,7 @@ export const updateItem = async (
 
 export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=10&$select=*`;
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=20&$select=*`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {
