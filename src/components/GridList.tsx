@@ -126,6 +126,13 @@ const GridList: React.FC<GridListProps> = ({
   return (
     <React.Fragment>
       <div className="space-y-4">
+        {/* Hinweis mit Anzahl der angezeigten Gelegenheiten */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {`Anmerkung: ${filteredAndSortedItems.length} Gelegenheiten angezeigt`}
+          </p>
+        </div>
+
         <Table>
           <TableHeader>
             <TableRow>
