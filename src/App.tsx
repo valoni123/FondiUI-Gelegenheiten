@@ -12,6 +12,7 @@ import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -123,18 +124,20 @@ const App = () => {
               />
               <Route
                 path="/opportunities"
-                element={<Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />}
+                element={
+                  <ProtectedRoute>
+                    <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                  </ProtectedRoute>
+                }
               />
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
               {/* Added deep-link route to catch opportunity id at root */}
               <Route
                 path="/:opportunityId"
                 element={
-                  isAuthenticated ? (
+                  <ProtectedRoute>
                     <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
-                  ) : (
-                    <Login cloudEnvironment={cloudEnvironment} />
-                  )
+                  </ProtectedRoute>
                 }
               />
               {/* Removed the /fondiumapps route as per request */}
