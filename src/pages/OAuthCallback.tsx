@@ -135,18 +135,25 @@ const OAuthCallback: React.FC = () => {
 
         // Notify opener and close
         if (window.opener) {
-          window.opener.postMessage({ type: "oauth-token", token: accessToken, expiresAt }, window.location.origin);
-        }
+          // Include optional refresh data so the parent can persist it
+          const refreshToken = localStorage.getItem("oauthRefreshToken") || undefined;
+          const idToken = localStorage.getItem("oauthIdToken") || undefined;
+          const tokenType = localStorage.getItem("oauthTokenType") || undefined;
+          const scope = localStorage.getItem("oauthGrantedScope") || undefined;
 
-        // Helpful summary in console
-        console.log("[OAuth] Login complete. Stored:", {
-          accessToken: !!accessToken,
-          refreshToken: !!localStorage.getItem("oauthRefreshToken"),
-          idToken: !!localStorage.getItem("oauthIdToken"),
-          tokenType: localStorage.getItem("oauthTokenType") || undefined,
-          scope: localStorage.getItem("oauthGrantedScope") || undefined,
-          expiresAt,
-        });
+          window.opener.postMessage(
+            {
+              type: "oauth-token",
+              token: accessToken,
+              expiresAt,
+              refreshToken,
+              idToken,
+              tokenType,
+              scope,
+            },
+            window.location.origin
+          );
+        }
 
         setMessage("Erfolgreich angemeldet. Dieses Fenster kann geschlossen werden.");
         setTimeout(() => window.close(), 500);

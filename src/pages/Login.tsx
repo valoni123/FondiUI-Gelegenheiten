@@ -178,10 +178,25 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       if (event.origin !== window.location.origin) return;
       const data = event.data as any;
       if (data?.type === "oauth-token" && data?.token) {
+        // Access token and expiry
         localStorage.setItem("oauthAccessToken", data.token);
         if (data.expiresAt) {
           localStorage.setItem("oauthExpiresAt", String(data.expiresAt));
         }
+        // Optional refresh-related fields
+        if (data.refreshToken) {
+          localStorage.setItem("oauthRefreshToken", String(data.refreshToken));
+        }
+        if (data.idToken) {
+          localStorage.setItem("oauthIdToken", String(data.idToken));
+        }
+        if (data.tokenType) {
+          localStorage.setItem("oauthTokenType", String(data.tokenType));
+        }
+        if (data.scope) {
+          localStorage.setItem("oauthGrantedScope", String(data.scope));
+        }
+
         toast.success("Login erfolgreich!");
         window.dispatchEvent(new Event("fondiui:auth-updated"));
         window.removeEventListener("message", messageHandler);
