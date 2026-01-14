@@ -17,8 +17,8 @@ import {
 import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
-import { useSearchParams, useParams } from "react-router-dom"; // Import useSearchParams
-import { refreshAccessToken } from "@/authorization/authService"; // NEW: refresh support
+import { useSearchParams, useParams, useNavigate } from "react-router-dom";
+import { refreshAccessToken } from "@/authorization/authService";
 
 interface IndexProps {
   companyNumber: string;
@@ -26,9 +26,10 @@ interface IndexProps {
 }
 
 const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
-  const [searchParams] = useSearchParams(); // Get URL search parameters
-  const { opportunityId: paramOpportunityId } = useParams(); // Get ID from path like /M0000007
-  const urlOpportunityId = searchParams.get("opportunity"); // Extract 'opportunity' parameter
+  const [searchParams] = useSearchParams();
+  const { opportunityId: paramOpportunityId } = useParams();
+  const navigate = useNavigate();
+  const urlOpportunityId = searchParams.get("opportunity");
   const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
@@ -39,7 +40,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [opportunityStatusOptions, setOpportunityStatusOptions] = useState<string[]>([]);
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId); // Initialize with URL or path param
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
 
   // New state for panel sizes
@@ -134,6 +135,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             setAuthToken(token);
           } catch (e) {
             console.warn("[Auth] Silent refresh failed before interval reload.", e);
+            const target = `${window.location.pathname}${window.location.search || ""}`;
+            navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
+            return;
           }
         }
 
@@ -142,7 +146,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, navigate]);
 
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
@@ -297,6 +301,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                       setAuthToken(token);
                     } catch (e) {
                       console.warn("[Auth] Silent refresh failed after 'Zur Übersicht'.", e);
+                      const target = `${window.location.pathname}${window.location.search || ""}`;
+                      navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
+                      return;
                     }
                   }
 

@@ -19,7 +19,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       const expiresAtRaw = localStorage.getItem("oauthExpiresAt");
       const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : 0;
 
-      // Environment from storage (fallback to FONDIUM_TRN)
       const env = (localStorage.getItem("cloudEnvironment") as CloudEnvironment) || "FONDIUM_TRN";
       const company = localStorage.getItem("companyNumber") || "7000";
 
@@ -28,7 +27,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           setStatus("ok");
           return;
         }
-        // Try silent refresh if possible
         const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
         if (hasRefresh) {
           await ensureValidAccessToken(company, env);
@@ -49,7 +47,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (status === "redirect") {
     const redirectTarget = `${location.pathname}${location.search || ""}`;
-    return <Navigate to={`/login?redirect=${encodeURIComponent(redirectTarget)}`} replace />;
+    return (
+      <Navigate
+        to={`/login?redirect=${encodeURIComponent(redirectTarget)}&error=${encodeURIComponent("Token abgelaufen.")}`}
+        replace
+      />
+    );
   }
 
   return children;

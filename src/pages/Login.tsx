@@ -79,6 +79,13 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   }, [cloudEnvironment]);
 
   useEffect(() => {
+    const err = searchParams.get("error");
+    if (err) {
+      toast.error(err);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     // Prefill from URL if present (e.g., /login?opportunity=M0000007 or /M0000007)
     const fromUrl = searchParams.get("opportunity");
     const fromParam = params.opportunityId;
