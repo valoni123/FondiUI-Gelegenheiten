@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import type { CloudEnvironment } from "@/authorization/configLoader";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { revokeAccessToken } from "@/authorization/authService";
+import { revokeAccessToken, clearAuth } from "@/authorization/authService";
 
 interface UserStatusProps {
   isAuthenticated: boolean;
@@ -86,8 +86,9 @@ const UserStatus: React.FC<UserStatusProps> = ({ isAuthenticated, cloudEnvironme
     } catch (e) {
       console.warn("Logout revoke failed:", e);
     } finally {
-      localStorage.removeItem("oauthAccessToken");
-      localStorage.removeItem("oauthExpiresAt");
+      // Clear all tokens and user-related auth state
+      clearAuth();
+      // Remove any PKCE verifier remnants
       sessionStorage.removeItem("pkce_verifier");
       toast.success("Abgemeldet.");
       // Force route update and fresh auth state recalculation
