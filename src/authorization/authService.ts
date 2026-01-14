@@ -92,6 +92,89 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
   }
 };
 
+export const refreshAccessToken = async (cloudEnvironment: CloudEnvironment): Promise<string> => {
+  const ionapiConfig = getIonApiConfig(cloudEnvironment);
+  const PROXY_TOKEN_PATH = getSsoProxyPath(cloudEnvironment);
+
+  const refreshToken = localStorage.getItem("oauthRefreshToken");
+  if (!refreshToken) {
+    throw new Error("No refresh token available.");
+  }
+
+  const params = new URLSearchParams();
+  params.append("grant_type", "refresh_token");
+  params.append("refresh_token", refreshToken);
+  params.append("client_id", ionapiConfig.ci);
+  params.append("client_secret", ionapiConfig.cs);
+
+  const resp = await fetch(PROXY_TOKEN_PATH, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
+
+  const text = await resp.text();
+  if (!resp.ok) {
+    throw new Error(`Refresh token request failed: ${resp.status} ${resp.statusText} - ${text}`);
+  }
+
+  let data: any;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid refresh response: ${text}`);
+  }
+
+  const newAccessToken: string | undefined = data.access_token;
+  const newExpiresInSec: number = Number(data.expires_in || 3600);
+  const rotatedRefreshToken: string | undefined = data.refresh_token;
+
+  if (!newAccessToken) {
+    throw new Error("Refresh response missing access_token.");
+  }
+
+  // Update local cache and storage
+  const expiresAt = Date.now() + newExpiresInSec * 1000 - 60 * 1000;
+  localStorage.setItem("oauthAccessToken", newAccessToken);
+  localStorage.setItem("oauthExpiresAt", String(expiresAt));
+  if (rotatedRefreshToken) {
+    localStorage.setItem("oauthRefreshToken", rotatedRefreshToken);
+  }
+
+  // Best-effort sync with in-memory cache
+  const companyNumber = localStorage.getItem("companyNumber") || "7000";
+  tokenCache = {
+    accessToken: newAccessToken,
+    expiresAt,
+    cachedCompanyNumber: companyNumber,
+    cachedCloudEnvironment: cloudEnvironment,
+  };
+
+  console.log("[Auth] Access token refreshed successfully.");
+  return newAccessToken;
+};
+
+export const ensureValidAccessToken = async (
+  companyNumber: string,
+  cloudEnvironment: CloudEnvironment
+): Promise<string> => {
+  const token = localStorage.getItem("oauthAccessToken");
+  const expiresAtRaw = localStorage.getItem("oauthExpiresAt");
+  const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : 0;
+
+  if (token && expiresAt && Date.now() < expiresAt) {
+    return token;
+  }
+
+  const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+  if (hasRefresh) {
+    const newToken = await refreshAccessToken(cloudEnvironment);
+    return newToken;
+  }
+
+  throw new Error("Access token expired and no refresh token available.");
+};
+
 export const revokeAccessToken = async (cloudEnvironment: CloudEnvironment, token: string): Promise<void> => {
   try {
     const ionapiConfig = getIonApiConfig(cloudEnvironment);

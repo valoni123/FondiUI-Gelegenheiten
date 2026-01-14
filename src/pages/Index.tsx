@@ -18,6 +18,7 @@ import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
 import { useSearchParams, useParams } from "react-router-dom"; // Import useSearchParams
+import { refreshAccessToken } from "@/authorization/authService"; // NEW: refresh support
 
 interface IndexProps {
   companyNumber: string;
@@ -77,25 +78,35 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   useEffect(() => {
     const initWithLoginToken = async () => {
       try {
-        const token = localStorage.getItem("oauthAccessToken");
+        let token = localStorage.getItem("oauthAccessToken");
+        const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+        const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+        // Silent refresh if expired and refresh token is available
+        if ((!token || (expiresAt && Date.now() >= expiresAt)) && hasRefresh) {
+          try {
+            console.log("[Auth] Silent refresh during init...");
+            token = await refreshAccessToken(cloudEnvironment);
+          } catch (e) {
+            console.warn("[Auth] Silent refresh failed during init.", e);
+          }
+        }
+
         if (!token) {
           setIsAuthLoading(false);
           return;
         }
         setAuthToken(token);
+
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
         const entities = await getIdmEntities(token, cloudEnvironment);
         setIdmEntityNames(entities);
 
-        // Only load all opportunities if no specific opportunity is requested via URL or path
         if (!effectiveOpportunityId) {
           await loadOpportunities(token, companyNumber, cloudEnvironment, false);
         } else {
-          // If a specific opportunity is requested, ensure the right panel is open
           setSelectedOpportunityId(effectiveOpportunityId);
-
-          // NEW: silently load opportunities so selected project's name is available for prefill
           await loadOpportunities(token, companyNumber, cloudEnvironment, true);
         }
       } catch (error) {
@@ -109,11 +120,25 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
 
   useEffect(() => {
-    if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) { // Only refresh if not viewing a specific opportunity
-      const refreshInterval = setInterval(() => {
+    if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
+      const refreshInterval = setInterval(async () => {
         console.log(`[Opportunities] Silent Intervall-Reload um ${new Date().toISOString()}`);
-        loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
-      }, 10000); // reduced to 10 seconds
+        let token = localStorage.getItem("oauthAccessToken") || authToken;
+        const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+        const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+        if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
+          try {
+            console.log("[Auth] Silent refresh before interval reload...");
+            token = await refreshAccessToken(cloudEnvironment);
+            setAuthToken(token);
+          } catch (e) {
+            console.warn("[Auth] Silent refresh failed before interval reload.", e);
+          }
+        }
+
+        await loadOpportunities(token, companyNumber, cloudEnvironment, true);
+      }, 10000);
 
       return () => clearInterval(refreshInterval);
     }
@@ -259,13 +284,24 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             >
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
-                onClose={() => {
-                  // Close detail panel and silently reload opportunities
+                onClose={async () => {
                   setSelectedOpportunityId(null);
-                  if (authToken) {
-                    console.log("[Opportunities] Stiller Reload durch 'Zur Übersicht' ausgelöst");
-                    // trigger silent reload without user noticing
-                    loadOpportunities(authToken, companyNumber, cloudEnvironment, true);
+                  let token = localStorage.getItem("oauthAccessToken") || authToken || "";
+                  const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+                  const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+                  if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
+                    try {
+                      console.log("[Auth] Silent refresh triggered by 'Zur Übersicht'...");
+                      token = await refreshAccessToken(cloudEnvironment);
+                      setAuthToken(token);
+                    } catch (e) {
+                      console.warn("[Auth] Silent refresh failed after 'Zur Übersicht'.", e);
+                    }
+                  }
+
+                  if (token) {
+                    await loadOpportunities(token, companyNumber, cloudEnvironment, true);
                   }
                 }}
                 authToken={authToken || ""}
