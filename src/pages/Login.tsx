@@ -99,11 +99,16 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   // If a token is ready and we have an opportunity, go directly to the page
   useEffect(() => {
     if (tokenReady) {
+      const redirect = searchParams.get("redirect");
+      if (redirect) {
+        navigate(redirect);
+        return;
+      }
       const id = opportunityId.trim();
       const path = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
       navigate(path);
     }
-  }, [tokenReady, opportunityId, navigate]);
+  }, [tokenReady, opportunityId, navigate, searchParams]);
 
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
