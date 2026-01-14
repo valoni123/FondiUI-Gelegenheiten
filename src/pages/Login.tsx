@@ -5,6 +5,7 @@ import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card"
 import { toast } from "sonner";
 import { getIonApiConfig, getAuthUrl, getRedirectUri, type CloudEnvironment } from "@/authorization/configLoader";
 import { sha256 as jsSha256 } from "js-sha256";
+import { refreshAccessToken } from "@/authorization/authService";
 
 interface LoginProps {
   cloudEnvironment: CloudEnvironment;
@@ -41,13 +42,41 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   };
 
+  // STARTUP: validate token, try refresh if expired; only show login if both fail
   useEffect(() => {
-    // If already authenticated, enable opening apps
-    const existingToken = localStorage.getItem("oauthAccessToken");
-    if (existingToken) {
-      setTokenReady(true);
-    }
-  }, [navigate]);
+    let cancelled = false;
+    const initAuthCheck = async () => {
+      const token = localStorage.getItem("oauthAccessToken");
+      const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+      const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+      // valid token → proceed
+      if (token && expiresAt && Date.now() < expiresAt) {
+        if (!cancelled) setTokenReady(true);
+        return;
+      }
+
+      // expired/missing → try refresh
+      if (hasRefresh) {
+        try {
+          console.log("[Auth] Startup: token invalid, attempting silent refresh...");
+          await refreshAccessToken(cloudEnvironment);
+          if (!cancelled) setTokenReady(true);
+          return;
+        } catch (e) {
+          console.warn("[Auth] Startup: silent refresh failed.", e);
+        }
+      }
+
+      // no valid token and refresh failed → show normal login
+      if (!cancelled) setTokenReady(false);
+    };
+
+    initAuthCheck();
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudEnvironment]);
 
   useEffect(() => {
     // Prefill from URL if present (e.g., /login?opportunity=M0000007 or /M0000007)
@@ -63,16 +92,11 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   // If a token is ready and we have an opportunity, go directly to the page
   useEffect(() => {
     if (tokenReady) {
-      const redirect = searchParams.get("redirect"); // bevorzugter Rücksprung
-      if (redirect) {
-        navigate(redirect);
-        return;
-      }
       const id = opportunityId.trim();
       const path = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
       navigate(path);
     }
-  }, [tokenReady, opportunityId, navigate, searchParams]);
+  }, [tokenReady, opportunityId, navigate]);
 
   const handleLogin = useCallback(async () => {
     console.log("Starting login for environment:", cloudEnvironment);
@@ -198,18 +222,6 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
             >
               Mit Infor ION anmelden
             </Button>
-            {tokenReady && (
-              <Button
-                className="bg-black text-white hover:bg-black/80"
-                onClick={() => {
-                  const id = opportunityId.trim();
-                  const path = id ? `/opportunities?opportunity=${encodeURIComponent(id)}` : "/opportunities";
-                  navigate(path);
-                }}
-              >
-                FondiUI Apps öffnen
-              </Button>
-            )}
           </CardFooter>
         </Card>
       </div>
