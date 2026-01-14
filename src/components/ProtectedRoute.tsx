@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { ensureValidAccessToken, clearAuth } from "@/authorization/authService";
 import type { CloudEnvironment } from "@/authorization/configLoader";
 
@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       const refreshToken = localStorage.getItem("oauthRefreshToken");
       const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : 0;
 
-      // Track if the user had any auth artifacts (access/refresh/expiry) before we potentially clear them
+      // Track whether there was any prior auth state
       const hadAnyAuthArtifacts = !!token || !!refreshToken || !!expiresAtRaw;
 
       const env = (localStorage.getItem("cloudEnvironment") as CloudEnvironment) || "FONDIUM_TRN";
@@ -32,18 +32,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           setStatus("ok");
           return;
         }
-        const hasRefresh = !!refreshToken;
-        if (hasRefresh) {
+        if (refreshToken) {
           await ensureValidAccessToken(company, env);
           setStatus("ok");
           return;
         }
-        // No valid token and no refresh available: first-time or fully logged-out -> no error
+        // No valid token and no refresh available → first-time or logged-out
         setShouldShowExpiredError(hadAnyAuthArtifacts);
         clearAuth();
         setStatus("redirect");
       } catch {
-        // Refresh failed: show error only if we had prior auth artifacts
+        // Refresh failed
         setShouldShowExpiredError(hadAnyAuthArtifacts);
         clearAuth();
         setStatus("redirect");
@@ -52,19 +51,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     check();
   }, []);
 
+  React.useEffect(() => {
+    if (status === "redirect") {
+      const redirectTarget = `${location.pathname}${location.search || ""}`;
+      const base = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
+      const url = shouldShowExpiredError
+        ? `${base}&error=${encodeURIComponent("Token abgelaufen.")}`
+        : base;
+      // Force a hard navigation so iframes respect the redirect even after manual reload
+      window.location.replace(url);
+    }
+  }, [status, shouldShowExpiredError, location.pathname, location.search]);
+
   if (status === "checking") {
     return null;
   }
-
   if (status === "redirect") {
-    const redirectTarget = `${location.pathname}${location.search || ""}`;
-    const base = `/login?redirect=${encodeURIComponent(redirectTarget)}`;
-    const url = shouldShowExpiredError
-      ? `${base}&error=${encodeURIComponent("Token abgelaufen.")}`
-      : base;
-    return <Navigate to={url} replace />;
+    // We already triggered a hard redirect; render nothing
+    return null;
   }
-
   return children;
 };
 

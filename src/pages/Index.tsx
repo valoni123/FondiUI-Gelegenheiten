@@ -83,6 +83,16 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
         const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
 
+        // Guard: if no token and no refresh, redirect immediately to login
+        if (!token && !hasRefresh) {
+          setIsAuthLoading(false);
+          clearAuth();
+          const target = `${window.location.pathname}${window.location.search || ""}`;
+          // Use hard navigation for robustness inside iframes
+          window.location.replace(`/login?redirect=${encodeURIComponent(target)}`);
+          return;
+        }
+
         // Silent refresh if expired and refresh token is available
         if ((!token || (expiresAt && Date.now() >= expiresAt)) && hasRefresh) {
           try {
@@ -90,6 +100,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             token = await refreshAccessToken(cloudEnvironment);
           } catch (e) {
             console.warn("[Auth] Silent refresh failed during init.", e);
+            // Hard redirect to login with error when refresh fails
+            clearAuth();
+            const target = `${window.location.pathname}${window.location.search || ""}`;
+            window.location.replace(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`);
+            return;
           }
         }
 
