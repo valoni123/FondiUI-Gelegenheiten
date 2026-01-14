@@ -18,7 +18,7 @@ import RightPanel from "@/components/RightPanel";
 import { getIdmEntities } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
-import { refreshAccessToken } from "@/authorization/authService";
+import { refreshAccessToken, clearAuth } from "@/authorization/authService";
 
 interface IndexProps {
   companyNumber: string;
@@ -135,6 +135,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
             setAuthToken(token);
           } catch (e) {
             console.warn("[Auth] Silent refresh failed before interval reload.", e);
+            // Clear all user-related info and redirect to login with error
+            clearAuth();
             const target = `${window.location.pathname}${window.location.search || ""}`;
             navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
             return;
@@ -301,6 +303,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                       setAuthToken(token);
                     } catch (e) {
                       console.warn("[Auth] Silent refresh failed after 'Zur Übersicht'.", e);
+                      // Clear all user-related info and redirect to login with error
+                      clearAuth();
                       const target = `${window.location.pathname}${window.location.search || ""}`;
                       navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
                       return;

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { ensureValidAccessToken } from "@/authorization/authService";
+import { ensureValidAccessToken, clearAuth } from "@/authorization/authService";
 import type { CloudEnvironment } from "@/authorization/configLoader";
 
 type ProtectedRouteProps = {
@@ -33,8 +33,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           setStatus("ok");
           return;
         }
+        // No token and no refresh available
+        clearAuth();
         setStatus("redirect");
       } catch {
+        // Refresh failed
+        clearAuth();
         setStatus("redirect");
       }
     };

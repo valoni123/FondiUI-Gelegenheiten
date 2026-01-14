@@ -219,3 +219,24 @@ export const setExternalAccessToken = (
   };
   console.log("External OAuth2 Token set and cached.");
 };
+
+export const clearAuth = (): void => {
+  // Remove all token-related data
+  localStorage.removeItem("oauthAccessToken");
+  localStorage.removeItem("oauthExpiresAt");
+  localStorage.removeItem("oauthRefreshToken");
+  localStorage.removeItem("oauthIdToken");
+  localStorage.removeItem("oauthTokenType");
+  localStorage.removeItem("oauthGrantedScope");
+
+  // Reset in-memory cache
+  tokenCache = {
+    accessToken: null,
+    expiresAt: null,
+    cachedCompanyNumber: null,
+    cachedCloudEnvironment: null,
+  };
+
+  // Notify app so UI (e.g., UserStatus) hides user info immediately
+  window.dispatchEvent(new Event("fondiui:auth-updated"));
+};
