@@ -120,7 +120,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       response_type: "code",
       client_id: cfg.ci,
       redirect_uri: redirectUri,
-      scope: "openid",
+      scope: "openid offline_access", // request refresh tokens
       state,
       response_mode: "query",
       code_challenge: codeChallenge,

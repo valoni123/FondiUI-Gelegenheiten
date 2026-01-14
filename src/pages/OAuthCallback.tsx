@@ -90,6 +90,32 @@ const OAuthCallback: React.FC = () => {
 
           accessToken = data.access_token;
           expiresInSec = Number(data.expires_in || 3600);
+
+          // NEW: capture optional refresh_token and id_token
+          const refreshToken: string | undefined = data.refresh_token;
+          const idToken: string | undefined = data.id_token;
+          const tokenType: string | undefined = data.token_type;
+          const grantedScope: string | undefined = data.scope;
+
+          // Store tokens in localStorage
+          if (refreshToken) {
+            localStorage.setItem("oauthRefreshToken", refreshToken);
+            console.log("[OAuth] Received refresh_token (stored).");
+          } else {
+            console.warn("[OAuth] No refresh_token present in token response.");
+          }
+          if (idToken) {
+            localStorage.setItem("oauthIdToken", idToken);
+            console.log("[OAuth] Received id_token (stored).");
+          }
+
+          if (tokenType) {
+            localStorage.setItem("oauthTokenType", tokenType);
+          }
+          if (grantedScope) {
+            localStorage.setItem("oauthGrantedScope", grantedScope);
+          }
+
           sessionStorage.removeItem("pkce_verifier");
         }
 
@@ -111,6 +137,16 @@ const OAuthCallback: React.FC = () => {
         if (window.opener) {
           window.opener.postMessage({ type: "oauth-token", token: accessToken, expiresAt }, window.location.origin);
         }
+
+        // Helpful summary in console
+        console.log("[OAuth] Login complete. Stored:", {
+          accessToken: !!accessToken,
+          refreshToken: !!localStorage.getItem("oauthRefreshToken"),
+          idToken: !!localStorage.getItem("oauthIdToken"),
+          tokenType: localStorage.getItem("oauthTokenType") || undefined,
+          scope: localStorage.getItem("oauthGrantedScope") || undefined,
+          expiresAt,
+        });
 
         setMessage("Erfolgreich angemeldet. Dieses Fenster kann geschlossen werden.");
         setTimeout(() => window.close(), 500);
