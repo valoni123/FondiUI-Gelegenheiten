@@ -479,18 +479,26 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                           <SelectValue placeholder="Dokumententyp wählen" />
                         </SelectTrigger>
                         <SelectContent>
-                          {(
-                            (entityOptions && entityOptions.length
-                              ? entityOptions
-                              : entityNames.map((n) => ({ name: n, desc: n })))
-                          )
-                            // Only show entries whose desc starts with "*" (even if options fallback to names)
-                            .filter((opt) => (opt.desc || "").trim().startsWith("*"))
-                            .map((opt) => (
+                          {(() => {
+                            const baseOptions =
+                              entityOptions && entityOptions.length
+                                ? entityOptions
+                                : entityNames.map((n) => ({ name: n, desc: n }));
+
+                            const prepared = baseOptions
+                              .filter((opt) => (opt.desc || "").trim().startsWith("*"))
+                              .map((opt) => ({
+                                ...opt,
+                                label: (opt.desc || opt.name).replace(/^\*/, "").trim(),
+                              }))
+                              .sort((a, b) => a.label.localeCompare(b.label, "de"));
+
+                            return prepared.map((opt) => (
                               <SelectItem key={opt.name} value={opt.name}>
-                                {(opt.desc || opt.name).replace(/^\*/, "")}
+                                {opt.label}
                               </SelectItem>
-                            ))}
+                            ));
+                          })()}
                         </SelectContent>
                       </Select>
                       {row.duplicateExists && (
