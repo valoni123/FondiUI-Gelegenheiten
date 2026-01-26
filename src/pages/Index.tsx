@@ -15,7 +15,7 @@ import {
   ResizableHandle,
 } from "@/components/ui/resizable";
 import RightPanel from "@/components/RightPanel";
-import { getIdmEntities } from "@/api/idm";
+import { getIdmEntityInfos } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { refreshAccessToken, clearAuth } from "@/authorization/authService";
@@ -116,8 +116,13 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
-        const entities = await getIdmEntities(token, cloudEnvironment);
-        setIdmEntityNames(entities);
+
+        // LOAD ENTITY INFOS and filter by desc starting with "*"
+        const infos = await getIdmEntityInfos(token, cloudEnvironment);
+        const filteredNames = (infos || [])
+          .filter((i) => (i.desc || "").trim().startsWith("*"))
+          .map((i) => i.name);
+        setIdmEntityNames(filteredNames);
 
         if (!effectiveOpportunityId) {
           await loadOpportunities(token, companyNumber, cloudEnvironment, false);
