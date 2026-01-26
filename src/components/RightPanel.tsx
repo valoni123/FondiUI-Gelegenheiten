@@ -31,6 +31,8 @@ interface RightPanelProps {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
+  // NEW: options for dropdown display
+  entityOptions?: { name: string; desc: string }[];
   selectedOpportunityProject?: string; // New optional prop
 }
 
@@ -40,6 +42,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   authToken,
   cloudEnvironment,
   entityNames,
+  entityOptions, // Destructure new prop
   selectedOpportunityProject, // Destructure new prop
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
@@ -426,6 +429,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
             }}
             files={files}
             entityNames={entityNames}
+            // NEW: pass name+desc display options
+            entityOptions={entityOptions}
             authToken={authToken}
             cloudEnvironment={cloudEnvironment}
             onCompleted={async () => {

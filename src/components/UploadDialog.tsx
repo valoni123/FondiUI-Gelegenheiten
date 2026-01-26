@@ -33,7 +33,10 @@ type UploadDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   files: File[];
+  // Keep original names for API values
   entityNames: string[];
+  // NEW: options with desc for display
+  entityOptions?: { name: string; desc: string }[];
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   onCompleted: () => void;
@@ -60,6 +63,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   onOpenChange,
   files,
   entityNames,
+  entityOptions,
   authToken,
   cloudEnvironment,
   onCompleted,
@@ -475,11 +479,18 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                           <SelectValue placeholder="Dokumententyp wählen" />
                         </SelectTrigger>
                         <SelectContent>
-                          {entityNames.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
-                            </SelectItem>
-                          ))}
+                          {(
+                            (entityOptions && entityOptions.length
+                              ? entityOptions
+                              : entityNames.map((n) => ({ name: n, desc: n })))
+                          )
+                            // Only show entries whose desc starts with "*" (even if options fallback to names)
+                            .filter((opt) => (opt.desc || "").trim().startsWith("*"))
+                            .map((opt) => (
+                              <SelectItem key={opt.name} value={opt.name}>
+                                {(opt.desc || opt.name).replace(/^\*/, "")}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       {row.duplicateExists && (

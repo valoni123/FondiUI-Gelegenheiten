@@ -42,6 +42,8 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
+  // NEW: store name+desc for dropdown display
+  const [idmEntityOptions, setIdmEntityOptions] = useState<{ name: string; desc: string }[]>([]);
 
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
@@ -117,12 +119,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         const options = await getOpportunityStatusOptions(token, cloudEnvironment);
         setOpportunityStatusOptions(options);
 
-        // LOAD ENTITY INFOS and filter by desc starting with "*"
+        // Load entity infos and filter by desc starting with "*"
         const infos = await getIdmEntityInfos(token, cloudEnvironment);
-        const filteredNames = (infos || [])
-          .filter((i) => (i.desc || "").trim().startsWith("*"))
-          .map((i) => i.name);
-        setIdmEntityNames(filteredNames);
+        const filtered = (infos || []).filter((i) => (i.desc || "").trim().startsWith("*"));
+        setIdmEntityNames(filtered.map((i) => i.name));
+        setIdmEntityOptions(filtered.map((i) => ({ name: i.name, desc: i.desc })));
 
         if (!effectiveOpportunityId) {
           await loadOpportunities(token, companyNumber, cloudEnvironment, false);
@@ -338,6 +339,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
                 entityNames={idmEntityNames}
+                entityOptions={idmEntityOptions}
                 selectedOpportunityProject={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Project
                 }
