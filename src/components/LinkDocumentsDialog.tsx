@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import AttributeValueField from "@/components/AttributeValueField";
 import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview } from "@/api/idm";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { linkIdmItemDocuments, getExistingLinkedPids } from "@/api/idm";
@@ -89,27 +88,50 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     };
   }, [open, authToken, cloudEnvironment]);
 
+  const preparedEntities = React.useMemo(() => {
+    // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
+    return entities
+      .filter((e) => (e.desc || "").trim().startsWith("*"))
+      .map((e) => ({
+        entity: e,
+        label: (e.desc || e.name).replace(/^\*/, "").trim(),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label, "de"));
+  }, [entities]);
+
   const filtered = React.useMemo(() => {
-    if (!query.trim()) return entities;
+    if (!query.trim()) return preparedEntities;
     const q = query.toLowerCase();
-    return entities.filter((e) => (e.desc || e.name).toLowerCase().includes(q));
-  }, [entities, query]);
+    return preparedEntities.filter(
+      ({ entity, label }) =>
+        label.toLowerCase().includes(q) ||
+        (entity.name || "").toLowerCase().includes(q) ||
+        (entity.desc || "").toLowerCase().includes(q)
+    );
+  }, [preparedEntities, query]);
+
+  const selectedLabel = React.useMemo(() => {
+    if (!selected) return "";
+    return (selected.desc || selected.name).replace(/^\*/, "").trim();
+  }, [selected]);
 
   const attributesFull: IdmAttribute[] = React.useMemo(() => {
     const raw = selected?.entity?.attrs?.attr ?? [];
     const arr: any[] = Array.isArray(raw) ? raw : raw ? [raw] : [];
-    return arr.map((a) => {
-      const vs = a?.valueset?.value;
-      const valueset = Array.isArray(vs)
-        ? vs.map((v: any) => ({ name: String(v.name ?? ""), desc: String(v.desc ?? "") }))
-        : undefined;
-      return {
-        name: String(a?.name ?? ""),
-        desc: String(a?.desc ?? ""),
-        valueset,
-        type: String(a?.type ?? ""),
-      } as IdmAttribute;
-    }).filter((a: IdmAttribute) => a.name.length > 0);
+    return arr
+      .map((a) => {
+        const vs = a?.valueset?.value;
+        const valueset = Array.isArray(vs)
+          ? vs.map((v: any) => ({ name: String(v.name ?? ""), desc: String(v.desc ?? "") }))
+          : undefined;
+        return {
+          name: String(a?.name ?? ""),
+          desc: String(a?.desc ?? ""),
+          valueset,
+          type: String(a?.type ?? ""),
+        } as IdmAttribute;
+      })
+      .filter((a: IdmAttribute) => a.name.length > 0);
   }, [selected]);
 
   const attributeNames = React.useMemo(() => attributesFull.map((a) => a.name), [attributesFull]);
@@ -208,13 +230,13 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                       {loading ? "Laden…" : "Keine Ergebnisse gefunden."}
                     </CommandEmpty>
                     <CommandGroup>
-                      {filtered.map((e) => {
-                        const isActive = selected?.name === e.name;
+                      {filtered.map(({ entity, label }) => {
+                        const isActive = selected?.name === entity.name;
                         return (
                           <CommandItem
-                            key={e.name}
+                            key={entity.name}
                             onSelect={() => {
-                              setSelected(e);
+                              setSelected(entity);
                               setSelectedAttributes([]);
                             }}
                             className={cn("cursor-pointer", isActive && "bg-muted")}
@@ -225,7 +247,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                               ) : (
                                 <span className="inline-block w-4" />
                               )}
-                              <span className="text-sm">{e.desc || e.name}</span>
+                              <span className="text-sm">{label}</span>
                             </div>
                           </CommandItem>
                         );
@@ -238,7 +260,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               {selected ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">Ausgewählt:</span>
-                  <Badge variant="secondary" className="text-xs">{selected.desc || selected.name}</Badge>
+                  <Badge variant="secondary" className="text-xs">{selectedLabel}</Badge>
                 </div>
               ) : null}
             </>
@@ -295,7 +317,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                           <AttributeValueField
                             attr={full}
                             value={a.value ?? ""}
-                            onChange={(val) => setAttrValue(a.name, val)}
+                            onChange={(val: string) => setAttrValue(a.name, val)}
                           />
                         ) : null}
                       </div>
@@ -340,7 +362,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => togglePid(r.pid)}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
                           />
                         </div>
@@ -398,7 +420,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 if (!selected) return;
                 toast({
                   title: "Dokumententyp gewählt",
-                  description: `„${selected.desc || selected.name}“ ausgewählt. Bitte wählen Sie Attribute.`,
+                  description: `„${selectedLabel || selected.name}“ ausgewählt. Bitte wählen Sie Attribute.`,
                   variant: "success",
                 });
                 setStep(2);
