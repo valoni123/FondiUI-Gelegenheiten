@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -353,7 +353,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
       {/* Header row with title and back button aligned horizontally */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
-        <BackToOverviewButton onBack={onClose} />
+        <div className="flex items-center gap-2">
+          <BackToOverviewButton onBack={onClose} />
+          <Button
+            variant="outline"
+            onClick={() => {
+              window.open(
+                "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx",
+                "_blank",
+                "noopener,noreferrer"
+              );
+            }}
+            title="Zu SharePoint"
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Zu SharePoint
+          </Button>
+        </div>
       </div>
 
       <Card className="flex-grow flex flex-col">
