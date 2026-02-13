@@ -208,10 +208,11 @@ export const getIdmThumbnailForOpportunity = async (
   token: string,
   environment: CloudEnvironment,
   opportunityId: string,
+  project?: string,
   language: string = "de-DE"
 ): Promise<{ url: string; contentType: string } | null> => {
   const base = buildIdmBase(environment);
-  const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
+  const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"${project ? ` OR @Projekt = "${project}"` : ""}]`;
   const url =
     `${base}/api/items/search/item/resource/SmallPreview?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
@@ -250,10 +251,11 @@ export const getIdmFullPreviewForOpportunity = async (
   token: string,
   environment: CloudEnvironment,
   opportunityId: string,
+  project?: string,
   language: string = "de-DE"
 ): Promise<{ url: string; contentType: string } | null> => {
   const base = buildIdmBase(environment);
-  const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"]`;
+  const query = `/Anfrage_Kunde[@Gelegenheit = "${opportunityId}"${project ? ` OR @Projekt = "${project}"` : ""}]`;
   const url =
     `${base}/api/items/search/item/resource/Preview?` +
     `%24query=${encodeURIComponent(query)}&%24state=0&%24language=${encodeURIComponent(language)}`;
