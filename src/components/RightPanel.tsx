@@ -126,11 +126,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
   React.useEffect(() => {
     console.log("[RightPanel] Props changed:", {
       selectedOpportunityId,
+      selectedOpportunityProject,
       authToken: authToken ? "PRESENT" : "MISSING",
       cloudEnvironment,
       entityNames,
     });
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+  }, [selectedOpportunityId, selectedOpportunityProject, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
     setFullPreviewData(doc);
