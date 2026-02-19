@@ -211,6 +211,13 @@ const DocAttributesGrid: React.FC<Props> = ({
   const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
   React.useEffect(() => setEdited(initial), [initial]);
 
+  // Column filters (by display column id)
+  const [filters, setFilters] = React.useState<Record<string, string>>({});
+  React.useEffect(() => {
+    // Reset filters when docs set changes (e.g. switching opportunity) to avoid confusing empty results
+    setFilters({});
+  }, [docs]);
+
   const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
 
   // Populate edited for new rows without overriding existing edits
@@ -285,6 +292,67 @@ const DocAttributesGrid: React.FC<Props> = ({
     },
     []
   );
+
+  const getDisplayValueForFilter = React.useCallback(
+    (
+      doc: IdmDocPreview,
+      rowEdited: Record<string, string>,
+      rowInitial: Record<string, string>,
+      defs: Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>,
+      col: DisplayColumn
+    ) => {
+      if (col.kind === "meta") {
+        return (col.getValue(doc) ?? "").toString();
+      }
+
+      const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
+      const raw = (rowEdited[attrName] ?? "").toString();
+
+      const def = defs[attrName];
+      const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
+      if (isDate && raw) {
+        try {
+          return format(parse(raw, "yyyy-MM-dd", new Date()), "dd.MM.yyyy");
+        } catch {
+          return raw;
+        }
+      }
+
+      if (def?.valueset?.length) {
+        const match = def.valueset.find((vs) => vs.name === raw);
+        return match?.desc || raw;
+      }
+
+      return raw;
+    },
+    [resolveAttrName]
+  );
+
+  const filteredDocs = React.useMemo(() => {
+    const activeFilters = Object.entries(filters)
+      .map(([k, v]) => [k, v.trim().toLowerCase()] as const)
+      .filter(([, v]) => v.length > 0);
+
+    if (!activeFilters.length) return docs.map((doc, idx) => ({ doc, idx }));
+
+    return docs
+      .map((doc, idx) => ({ doc, idx }))
+      .filter(({ doc, idx }) => {
+        const rowEdited = edited[idx] ?? {};
+        const rowInitial = initial[idx] ?? {};
+        const entityName = doc.entityName || "";
+        const defs = attrDefsByEntity[entityName] || {};
+
+        for (const [colId, q] of activeFilters) {
+          const col = displayColumns.find((c) => c.id === colId);
+          if (!col) continue;
+          const value = getDisplayValueForFilter(doc, rowEdited, rowInitial, defs, col)
+            .toLowerCase();
+          if (!value.includes(q)) return false;
+        }
+        return true;
+      });
+  }, [docs, edited, initial, filters, displayColumns, attrDefsByEntity, getDisplayValueForFilter]);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
@@ -550,9 +618,39 @@ const DocAttributesGrid: React.FC<Props> = ({
               <div className="px-2"></div> {/* Button: Delete */}
             </div>
 
+            {/* Filters */}
+            <div
+              className="grid gap-1 border-b py-2"
+              style={{ gridTemplateColumns: gridTemplate }}
+            >
+              <div className="px-2"></div>
+              <div className="px-2"></div>
+              <div className="px-2"></div>
+              <div className="px-2"></div>
+              <div className="px-2"></div>
+
+              {displayColumns.map((col) => (
+                <div key={`filter-${col.id}`} className="px-2">
+                  <Input
+                    value={filters[col.id] || ""}
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        [col.id]: e.target.value,
+                      }))
+                    }
+                    placeholder={`Filter…`}
+                    className="h-6 text-[10px] px-1"
+                  />
+                </div>
+              ))}
+
+              <div className="px-2"></div>
+            </div>
+
             {/* Rows */}
             <div className="divide-y">
-              {docs.map((doc, idx) => {
+              {filteredDocs.map(({ doc, idx }) => {
                 const rowEdited = edited[idx] ?? {};
                 const rowInitial = initial[idx] ?? {};
                 const entityName = doc.entityName || "";
