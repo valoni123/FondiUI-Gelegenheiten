@@ -603,7 +603,7 @@ const DocAttributesGrid: React.FC<Props> = ({
   return (
     <div className="w-full">
       {(title || !hideSaveAllButton) && (
-        <div className="mb-2 flex items-center justify-between gap-3 pr-4">
+        <div className="mb-2 flex items-center justify-between gap-3">
           {title ? (
             <div className="text-sm font-medium text-muted-foreground">{title}</div>
           ) : (
@@ -644,7 +644,7 @@ const DocAttributesGrid: React.FC<Props> = ({
       <TooltipProvider>
         {/* Use native horizontal scrolling so the scrollbar becomes visible when the table is wider than the viewport */}
         <div className="w-full overflow-x-auto">
-          <div className="pr-4">
+          <div>
             <div
               className="grid w-max min-w-full"
               style={{ gridTemplateColumns: gridTemplate }}
