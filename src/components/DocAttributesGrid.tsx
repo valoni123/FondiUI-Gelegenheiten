@@ -40,7 +40,7 @@ import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
-  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
+  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>; 
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
   title?: string;
@@ -489,7 +489,7 @@ const DocAttributesGrid: React.FC<Props> = ({
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="w-full">
       {(title || !hideSaveAllButton) && (
         <div className="mb-2 flex items-center justify-between gap-3 pr-4">
           {title ? (
@@ -530,7 +530,7 @@ const DocAttributesGrid: React.FC<Props> = ({
       )}
 
       <TooltipProvider>
-        <ScrollArea className="h-full w-full">
+        <ScrollArea className="w-full">
           <div className="pr-4">
             {/* Header */}
             <div

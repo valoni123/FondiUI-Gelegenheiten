@@ -476,7 +476,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <Separator className="my-4" />
 
           {/* MITTE: Dokumentenliste */}
-          <div className="min-h-0 flex-1">
+          <div className="flex-shrink-0">
             <DocAttributesGrid
               title="Dokumentenliste"
               docs={docPreviews}
