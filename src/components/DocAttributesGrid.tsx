@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -530,8 +529,9 @@ const DocAttributesGrid: React.FC<Props> = ({
       )}
 
       <TooltipProvider>
-        <ScrollArea className="w-full">
-          <div className="pr-4">
+        {/* Use native horizontal scrolling so the scrollbar becomes visible when the table is wider than the viewport */}
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-max pr-4">
             {/* Header */}
             <div
               className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
@@ -615,7 +615,8 @@ const DocAttributesGrid: React.FC<Props> = ({
                               return {
                                 name: attrName,
                                 value: rowEdited[attrName] ?? "",
-                                changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+                                changed:
+                                  (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
                               };
                             })
                             .filter((u) => u.changed)
@@ -707,9 +708,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         const value = col.getValue(doc);
                         return (
                           <div key={`${idx}-${col.id}`} className="px-2">
-                            <div className="truncate text-[10px] text-foreground">
-                              {value || ""}
-                            </div>
+                            <div className="truncate text-[10px] text-foreground">{value || ""}</div>
                           </div>
                         );
                       }
@@ -770,7 +769,10 @@ const DocAttributesGrid: React.FC<Props> = ({
                                   )}
                                 >
                                   {rowEdited[attrName]
-                                    ? format(parse(rowEdited[attrName], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                    ? format(
+                                        parse(rowEdited[attrName], "yyyy-MM-dd", new Date()),
+                                        "dd.MM.yyyy"
+                                      )
                                     : "Datum wählen"}
                                 </Button>
                               </PopoverTrigger>
@@ -836,7 +838,7 @@ const DocAttributesGrid: React.FC<Props> = ({
               })}
             </div>
           </div>
-        </ScrollArea>
+        </div>
       </TooltipProvider>
 
       {/* Confirm Delete Dialog */}
