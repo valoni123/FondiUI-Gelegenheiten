@@ -53,6 +53,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
   const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
 
+  // Full preview state
+  const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null);
+  const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
+  const [fullPreviewIndex, setFullPreviewIndex] = React.useState<number | null>(null);
+  const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
+
+  // Dialog state inside full preview
+  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false);
+  const [isReplacing, setIsReplacing] = React.useState(false);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false);
+  const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false);
+
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
     // fallback when pid is missing
