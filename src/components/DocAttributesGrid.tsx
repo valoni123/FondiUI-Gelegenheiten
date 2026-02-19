@@ -601,38 +601,37 @@ const DocAttributesGrid: React.FC<Props> = ({
       <TooltipProvider>
         {/* Use native horizontal scrolling so the scrollbar becomes visible when the table is wider than the viewport */}
         <div className="w-full overflow-x-auto">
-          <div className="min-w-max pr-4">
-            {/* Header */}
+          <div className="pr-4">
             <div
-              className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
+              className="grid w-max min-w-full gap-1"
               style={{ gridTemplateColumns: gridTemplate }}
             >
-              <div className="px-2"></div> {/* Button: Details */}
-              <div className="px-2"></div> {/* Checkbox: Select */}
-              <div className="px-2"></div> {/* Button: Save */}
-              <div className="px-2"></div> {/* Button: Replace */}
-              <div className="px-2"></div> {/* Button: Linked Docs */}
+              {/* Header */}
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
               {displayColumns.map((col) => (
-                <div key={col.id} className="px-2 min-w-0">
+                <div
+                  key={col.id}
+                  className="px-2 py-2 text-xs font-medium text-muted-foreground min-w-0"
+                >
                   <div className="truncate">{col.header}</div>
                 </div>
               ))}
-              <div className="px-2"></div> {/* Button: Delete */}
-            </div>
+              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
 
-            {/* Filters */}
-            <div
-              className="grid gap-1 border-b py-2"
-              style={{ gridTemplateColumns: gridTemplate }}
-            >
-              <div className="px-2"></div>
-              <div className="px-2"></div>
-              <div className="px-2"></div>
-              <div className="px-2"></div>
-              <div className="px-2"></div>
+              <div className="col-span-full h-px bg-border" />
 
+              {/* Filters */}
+              <div className="px-2 py-2"></div>
+              <div className="px-2 py-2"></div>
+              <div className="px-2 py-2"></div>
+              <div className="px-2 py-2"></div>
+              <div className="px-2 py-2"></div>
               {displayColumns.map((col) => (
-                <div key={`filter-${col.id}`} className="px-2 min-w-0">
+                <div key={`filter-${col.id}`} className="px-2 py-2 min-w-0">
                   <Input
                     value={filters[col.id] || ""}
                     onChange={(e) =>
@@ -645,13 +644,12 @@ const DocAttributesGrid: React.FC<Props> = ({
                   />
                 </div>
               ))}
+              <div className="px-2 py-2"></div>
 
-              <div className="px-2"></div>
-            </div>
+              <div className="col-span-full h-px bg-border" />
 
-            {/* Rows */}
-            <div className="divide-y">
-              {filteredDocs.map(({ doc, idx }) => {
+              {/* Rows */}
+              {filteredDocs.map(({ doc, idx }, rowIndex) => {
                 const rowEdited = edited[idx] ?? {};
                 const rowInitial = initial[idx] ?? {};
                 const entityName = doc.entityName || "";
@@ -663,20 +661,15 @@ const DocAttributesGrid: React.FC<Props> = ({
                 });
 
                 return (
-                  <div
-                    key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                    className="grid items-center gap-1 py-2"
-                    style={{ gridTemplateColumns: gridTemplate }}
-                  >
+                  <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
                     {/* Detail Button */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
                         onClick={() =>
                           onOpenFullPreview(doc, (updatedDoc) => {
-                            // This callback will be called when the DetailDialog saves changes
                             console.log("Doc updated from DetailDialog:", updatedDoc);
                           })
                         }
@@ -687,7 +680,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Select Checkbox */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       <Checkbox
                         checked={selectedRows.has(idx)}
                         onCheckedChange={() => toggleRowSelected(idx)}
@@ -698,7 +691,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Save Button */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -730,7 +723,6 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 next.add(idx);
                                 return next;
                               });
-                              // Flash success for the saved columns
                               flashSuccess(idx, updates.map((u) => u.name));
                             } else {
                               const colsToFlash = res.errorAttributes?.length
@@ -753,7 +745,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Replace Button */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -768,7 +760,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Linked Documents Button */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       {doc.pid ? (
                         <LinkedDocumentsDialog
                           authToken={authToken}
@@ -806,7 +798,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                       if (col.kind === "meta") {
                         const value = col.getValue(doc);
                         return (
-                          <div key={`${idx}-${col.id}`} className="px-2">
+                          <div key={`${idx}-${col.id}`} className="px-2 py-2 min-w-0">
                             <div className="truncate text-[10px] text-foreground">{value || ""}</div>
                           </div>
                         );
@@ -832,7 +824,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                           : "";
 
                       return (
-                        <div key={`${idx}-${col.id}`} className="px-2">
+                        <div key={`${idx}-${col.id}`} className="px-2 py-2 min-w-0">
                           {def?.valueset && def.valueset.length > 0 ? (
                             <Select
                               value={(rowEdited[attrName] ?? "") || undefined}
@@ -846,7 +838,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                             >
                               <SelectTrigger
                                 className={cn(
-                                  "h-6 text-[10px] px-1",
+                                  "h-6 w-full min-w-0 text-[10px] px-1",
                                   statusClass,
                                   hasError &&
                                     !hasSuccess &&
@@ -872,7 +864,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "h-6 w-full justify-start text-left text-[10px] px-1",
+                                    "h-6 w-full min-w-0 justify-start text-left text-[10px] px-1",
                                     hasError &&
                                       !hasSuccess &&
                                       "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -918,7 +910,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 })
                               }
                               className={cn(
-                                "h-6 text-[10px] px-1",
+                                "h-6 w-full min-w-0 text-[10px] px-1",
                                 hasError &&
                                   !hasSuccess &&
                                   "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -933,7 +925,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     })}
 
                     {/* Delete Button */}
-                    <div className="px-2">
+                    <div className="px-2 py-2 flex items-center">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -946,7 +938,11 @@ const DocAttributesGrid: React.FC<Props> = ({
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                  </div>
+
+                    {rowIndex < filteredDocs.length - 1 && (
+                      <div className="col-span-full h-px bg-border/60" />
+                    )}
+                  </React.Fragment>
                 );
               })}
             </div>
