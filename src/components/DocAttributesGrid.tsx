@@ -37,732 +37,767 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 
+export type DocAttributesGridHandle = {
+  saveAllChanges: () => Promise<void>;
+};
+
 type Props = {
   docs: IdmDocPreview[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
-  hideSaveAllButton?: boolean; // New prop
+  hideSaveAllButton?: boolean;
   onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
   authToken: string;
   cloudEnvironment: CloudEnvironment;
+  onChangedRowCountChange?: (count: number) => void;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, onDeleteDoc, authToken, cloudEnvironment }) => {
-  const columns = React.useMemo<string[]>(() => {
-    const names = new Set<string>();
-    for (const d of docs) {
-      (d.attributes ?? []).forEach((a) => {
-        if (a?.name) names.add(String(a.name));
+const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(
+  (
+    {
+      docs,
+      onOpenFullPreview,
+      onSaveRow,
+      onReplaceDoc,
+      hideSaveAllButton,
+      onDeleteDoc,
+      authToken,
+      cloudEnvironment,
+      onChangedRowCountChange,
+    },
+    ref
+  ) => {
+    const columns = React.useMemo<string[]>(() => {
+      const names = new Set<string>();
+      for (const d of docs) {
+        (d.attributes ?? []).forEach((a) => {
+          if (a?.name) names.add(String(a.name));
+        });
+      }
+      // Filter out "Gelegenheit" and "MDS_ID"
+      return Array.from(names).filter((col) => col !== "Gelegenheit" && col !== "MDS_ID");
+    }, [docs]);
+
+    const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
+      const map: Record<number, Record<string, string>> = {};
+      docs.forEach((d, idx) => {
+        const row: Record<string, string> = {};
+        (d.attributes ?? []).forEach((a) => {
+          if (a?.name) row[a.name] = a.value ?? "";
+        });
+        map[idx] = row;
       });
-    }
-    // Filter out "Gelegenheit" and "MDS_ID"
-    return Array.from(names).filter((col) => col !== "Gelegenheit" && col !== "MDS_ID");
-  }, [docs]);
+      return map;
+    }, [docs]);
 
-  const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
-    const map: Record<number, Record<string, string>> = {};
-    docs.forEach((d, idx) => {
-      const row: Record<string, string> = {};
-      (d.attributes ?? []).forEach((a) => {
-        if (a?.name) row[a.name] = a.value ?? "";
-      });
-      map[idx] = row;
-    });
-    return map;
-  }, [docs]);
+    const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
+    React.useEffect(() => setEdited(initial), [initial]);
 
-  const [edited, setEdited] = React.useState<Record<number, Record<string, string>>>(initial);
-  React.useEffect(() => setEdited(initial), [initial]);
+    const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
 
-  const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
-
-  // Populate edited for new rows without overriding existing edits
-  React.useEffect(() => {
-    setEdited((prev) => {
-      const next = { ...prev };
-      docs.forEach((_, idx) => {
-        if (!(idx in next)) {
-          next[idx] = { ...(initial[idx] ?? {}) };
-        }
-      });
-      return next;
-    });
-  }, [docs, initial]);
-
-  // When initial changes (e.g., after server refresh), only sync rows that were saved successfully
-  React.useEffect(() => {
-    if (!syncWithInitial.size) return;
-    setEdited((prev) => {
-      const next = { ...prev };
-      syncWithInitial.forEach((idx) => {
-        next[idx] = { ...(initial[idx] ?? {}) };
-      });
-      return next;
-    });
-    // clear the sync set after applying
-    setSyncWithInitial(new Set());
-  }, [initial, syncWithInitial]);
-
-  // Cache of attribute definitions by entity: { [entityName]: { [attrName]: { valueset?, type? } } }
-  const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>>({});
-
-  // Load attribute definitions for each entity present in docs (only missing ones)
-  React.useEffect(() => {
-    const entityNames = Array.from(new Set((docs.map((d) => d.entityName).filter(Boolean) as string[])));
-    const missing = entityNames.filter((name) => !attrDefsByEntity[name]);
-    if (!missing.length) return;
-    (async () => {
-      const entries = await Promise.all(
-        missing.map(async (name) => {
-          try {
-            const attrs = await getIdmEntityAttributes(authToken, cloudEnvironment, name);
-            const map: Record<string, { valueset?: { name: string; desc: string }[]; type?: string }> = {};
-            attrs.forEach((a) => {
-              map[a.name] = { valueset: a.valueset, type: a.type };
-            });
-            return [name, map] as const;
-          } catch {
-            return [name, {}] as const;
+    // Populate edited for new rows without overriding existing edits
+    React.useEffect(() => {
+      setEdited((prev) => {
+        const next = { ...prev };
+        docs.forEach((_, idx) => {
+          if (!(idx in next)) {
+            next[idx] = { ...(initial[idx] ?? {}) };
           }
-        })
-      );
-      setAttrDefsByEntity((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
-    })();
-  }, [docs, authToken, cloudEnvironment, attrDefsByEntity]);
+        });
+        return next;
+      });
+    }, [docs, initial]);
 
-  // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
-  const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+    // When initial changes (e.g., after server refresh), only sync rows that were saved successfully
+    React.useEffect(() => {
+      if (!syncWithInitial.size) return;
+      setEdited((prev) => {
+        const next = { ...prev };
+        syncWithInitial.forEach((idx) => {
+          next[idx] = { ...(initial[idx] ?? {}) };
+        });
+        return next;
+      });
+      // clear the sync set after applying
+      setSyncWithInitial(new Set());
+    }, [initial, syncWithInitial]);
 
-  // Erfolg-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
-  const [successHighlights, setSuccessHighlights] = React.useState<Record<number, string[]>>({});
+    // Cache of attribute definitions by entity: { [entityName]: { [attrName]: { valueset?, type? } } }
+    const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<
+      Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>
+    >({});
 
-  const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
-    if (!cols.length) return;
-    setErrorHighlights((prev) => {
-      const next = { ...prev };
-      const current = new Set(next[rowIdx] ?? []);
-      cols.forEach((c) => current.add(c));
-      next[rowIdx] = Array.from(current);
-      return next;
-    });
-    // Entferne Highlight nach kurzer Zeit
-    setTimeout(() => {
+    // Load attribute definitions for each entity present in docs (only missing ones)
+    React.useEffect(() => {
+      const entityNames = Array.from(new Set((docs.map((d) => d.entityName).filter(Boolean) as string[])));
+      const missing = entityNames.filter((name) => !attrDefsByEntity[name]);
+      if (!missing.length) return;
+      (async () => {
+        const entries = await Promise.all(
+          missing.map(async (name) => {
+            try {
+              const attrs = await getIdmEntityAttributes(authToken, cloudEnvironment, name);
+              const map: Record<string, { valueset?: { name: string; desc: string }[]; type?: string }> = {};
+              attrs.forEach((a) => {
+                map[a.name] = { valueset: a.valueset, type: a.type };
+              });
+              return [name, map] as const;
+            } catch {
+              return [name, {}] as const;
+            }
+          })
+        );
+        setAttrDefsByEntity((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
+      })();
+    }, [docs, authToken, cloudEnvironment, attrDefsByEntity]);
+
+    // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+    const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
+
+    // Erfolg-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
+    const [successHighlights, setSuccessHighlights] = React.useState<Record<number, string[]>>({});
+
+    const flashError = React.useCallback((rowIdx: number, cols: string[]) => {
+      if (!cols.length) return;
       setErrorHighlights((prev) => {
         const next = { ...prev };
         const current = new Set(next[rowIdx] ?? []);
-        cols.forEach((c) => current.delete(c));
+        cols.forEach((c) => current.add(c));
         next[rowIdx] = Array.from(current);
-        if (!next[rowIdx]?.length) delete next[rowIdx];
         return next;
       });
-    }, 1800);
-  }, []);
+      // Entferne Highlight nach kurzer Zeit
+      setTimeout(() => {
+        setErrorHighlights((prev) => {
+          const next = { ...prev };
+          const current = new Set(next[rowIdx] ?? []);
+          cols.forEach((c) => current.delete(c));
+          next[rowIdx] = Array.from(current);
+          if (!next[rowIdx]?.length) delete next[rowIdx];
+          return next;
+        });
+      }, 1800);
+    }, []);
 
-  const flashSuccess = React.useCallback((rowIdx: number, cols: string[]) => {
-    if (!cols.length) return;
-    setSuccessHighlights((prev) => {
-      const next = { ...prev };
-      const current = new Set(next[rowIdx] ?? []);
-      cols.forEach((c) => current.add(c));
-      next[rowIdx] = Array.from(current);
-      return next;
-    });
-    // Entferne Highlight nach kurzer Zeit
-    setTimeout(() => {
+    const flashSuccess = React.useCallback((rowIdx: number, cols: string[]) => {
+      if (!cols.length) return;
       setSuccessHighlights((prev) => {
         const next = { ...prev };
         const current = new Set(next[rowIdx] ?? []);
-        cols.forEach((c) => current.delete(c));
+        cols.forEach((c) => current.add(c));
         next[rowIdx] = Array.from(current);
-        if (!next[rowIdx]?.length) delete next[rowIdx];
         return next;
       });
-    }, 1800);
-  }, []);
+      // Entferne Highlight nach kurzer Zeit
+      setTimeout(() => {
+        setSuccessHighlights((prev) => {
+          const next = { ...prev };
+          const current = new Set(next[rowIdx] ?? []);
+          cols.forEach((c) => current.delete(c));
+          next[rowIdx] = Array.from(current);
+          if (!next[rowIdx]?.length) delete next[rowIdx];
+          return next;
+        });
+      }, 1800);
+    }, []);
 
-  // Calculate how many rows have changes
-  const changedRowCount = React.useMemo(() => {
-    let count = 0;
-    docs.forEach((doc, idx) => {
-      const rowEdited = edited[idx] ?? {};
-      const rowInitial = initial[idx] ?? {};
-      const rowHasChanges = columns.some(
-        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-      );
-      if (rowHasChanges) {
-        count++;
-      }
-    });
-    return count;
-  }, [docs, edited, initial, columns]);
+    // Calculate how many rows have changes
+    const changedRowCount = React.useMemo(() => {
+      let count = 0;
+      docs.forEach((doc, idx) => {
+        const rowEdited = edited[idx] ?? {};
+        const rowInitial = initial[idx] ?? {};
+        const rowHasChanges = columns.some((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""));
+        if (rowHasChanges) {
+          count++;
+        }
+      });
+      return count;
+    }, [docs, edited, initial, columns]);
 
-  const enableSaveAllButton = changedRowCount > 0; // Enable if any row has changes
+    React.useEffect(() => {
+      onChangedRowCountChange?.(changedRowCount);
+    }, [changedRowCount, onChangedRowCountChange]);
 
-  const handleSaveAllChanges = async () => {
-    const successfulSaves: number[] = [];
-    const failedRows: number[] = [];
-    const successfulUpdates: { rowIdx: number; cols: string[] }[] = [];
-    
-    for (let idx = 0; idx < docs.length; idx++) {
-      const doc = docs[idx];
-      const rowEdited = edited[idx] ?? {};
-      const rowInitial = initial[idx] ?? {};
-      const hasChanges = columns.some(
-        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-      );
+    const enableSaveAllButton = changedRowCount > 0;
 
-      if (hasChanges && doc.pid) {
-        const updates = columns
-          .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
-          .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
-        
-        try {
-          const res = await onSaveRow(doc, updates);
-          if (res.ok) {
-            successfulSaves.push(idx);
-            successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
-          } else {
+    const handleSaveAllChanges = async () => {
+      const successfulSaves: number[] = [];
+      const failedRows: number[] = [];
+      const successfulUpdates: { rowIdx: number; cols: string[] }[] = [];
+
+      for (let idx = 0; idx < docs.length; idx++) {
+        const doc = docs[idx];
+        const rowEdited = edited[idx] ?? {};
+        const rowInitial = initial[idx] ?? {};
+        const hasChanges = columns.some((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""));
+
+        if (hasChanges && doc.pid) {
+          const updates = columns
+            .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
+            .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
+
+          try {
+            const res = await onSaveRow(doc, updates);
+            if (res.ok) {
+              successfulSaves.push(idx);
+              successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
+            } else {
+              failedRows.push(idx);
+              const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
+              flashError(idx, colsToFlash);
+            }
+          } catch {
             failedRows.push(idx);
-            const colsToFlash = res.errorAttributes?.length
-              ? res.errorAttributes
-              : updates.map((u) => u.name);
+            const colsToFlash = updates.map((u) => u.name);
             flashError(idx, colsToFlash);
           }
-        } catch (error) {
-          failedRows.push(idx);
-          const colsToFlash = updates.map((u) => u.name);
-          flashError(idx, colsToFlash);
         }
       }
-    }
-    
-    // Flash success for all successful updates
-    successfulUpdates.forEach(({ rowIdx, cols }) => {
-      flashSuccess(rowIdx, cols);
-    });
-    
-    // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
-    setEdited((prev) => {
-      const newEdited = { ...prev };
-      successfulSaves.forEach((idx) => {
-        newEdited[idx] = { ...initial[idx] };
+
+      // Flash success for all successful updates
+      successfulUpdates.forEach(({ rowIdx, cols }) => {
+        flashSuccess(rowIdx, cols);
       });
-      return newEdited;
-    });
-    if (successfulSaves.length) {
-      setSyncWithInitial((prev) => {
+
+      // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
+      setEdited((prev) => {
+        const newEdited = { ...prev };
+        successfulSaves.forEach((idx) => {
+          newEdited[idx] = { ...initial[idx] };
+        });
+        return newEdited;
+      });
+      if (successfulSaves.length) {
+        setSyncWithInitial((prev) => {
+          const next = new Set(prev);
+          successfulSaves.forEach((idx) => next.add(idx));
+          return next;
+        });
+      }
+    };
+
+    React.useImperativeHandle(ref, () => ({
+      saveAllChanges: handleSaveAllChanges,
+    }));
+
+    // Replace flow state
+    const [confirmReplaceRow, setConfirmReplaceRow] = React.useState<number | null>(null);
+    const [uploadRow, setUploadRow] = React.useState<number | null>(null);
+    const [isReplacing, setIsReplacing] = React.useState(false);
+
+    // Delete confirmation dialog state
+    const [confirmDeleteRow, setConfirmDeleteRow] = React.useState<number | null>(null);
+
+    // Batch delete confirmation dialog state
+    const [confirmBatchDelete, setConfirmBatchDelete] = React.useState(false);
+
+    // Track selected rows
+    const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
+    React.useEffect(() => {
+      // Clear selection whenever docs change to avoid index mismatch after reloads
+      setSelectedRows(new Set());
+    }, [docs]);
+
+    const toggleRowSelected = (idx: number) => {
+      setSelectedRows((prev) => {
         const next = new Set(prev);
-        successfulSaves.forEach((idx) => next.add(idx));
+        if (next.has(idx)) next.delete(idx);
+        else next.add(idx);
         return next;
       });
-    }
-  };
+    };
 
-  // Replace flow state
-  const [confirmReplaceRow, setConfirmReplaceRow] = React.useState<number | null>(null);
-  const [uploadRow, setUploadRow] = React.useState<number | null>(null);
-  const [isReplacing, setIsReplacing] = React.useState(false);
+    const handleBatchDelete = async () => {
+      setConfirmBatchDelete(true);
+    };
 
-  // Delete confirmation dialog state
-  const [confirmDeleteRow, setConfirmDeleteRow] = React.useState<number | null>(null);
+    const executeBatchDelete = async () => {
+      const selectedDocs = Array.from(selectedRows)
+        .map((i) => docs[i])
+        .filter((d) => d && d.pid);
+      for (const doc of selectedDocs) {
+        await onDeleteDoc(doc as IdmDocPreview);
+      }
+      setSelectedRows(new Set());
+      setConfirmBatchDelete(false);
+    };
 
-  // Batch delete confirmation dialog state
-  const [confirmBatchDelete, setConfirmBatchDelete] = React.useState(false);
-
-  // Track selected rows
-  const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
-  React.useEffect(() => {
-    // Clear selection whenever docs change to avoid index mismatch after reloads
-    setSelectedRows(new Set());
-  }, [docs]);
-
-  const toggleRowSelected = (idx: number) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
-
-  const handleBatchDelete = async () => {
-    setConfirmBatchDelete(true);
-  };
-
-  const executeBatchDelete = async () => {
-    const selectedDocs = Array.from(selectedRows)
-      .map((i) => docs[i])
-      .filter((d) => d && d.pid);
-    for (const doc of selectedDocs) {
-      await onDeleteDoc(doc as IdmDocPreview);
-    }
-    setSelectedRows(new Set());
-    setConfirmBatchDelete(false);
-  };
-
-  if (!docs.length) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Keine Dokumente gefunden.
-      </div>
-    );
-  }
-
-  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Doc (160) | Attributes | Delete (30)
-  const gridTemplate =
-    `30px 30px 30px 30px 30px 160px ` + (columns.length ? columns.map(() => "100px").join(" ") : "") + " 30px";
-
-  return (
-    <div className="h-full w-full">
-      {!hideSaveAllButton && ( // Conditional rendering based on new prop
-        <div className="flex justify-end items-center gap-2 mb-2 pr-4">
-          {/* Batch delete appears only when more than one row is selected */}
-          {selectedRows.size > 1 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="h-8"
-              onClick={handleBatchDelete}
-              title="Ausgewählte Dokumente löschen"
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
-            </Button>
-          )}
-          <Button
-            variant="default"
-            size="sm"
-            className={cn(
-              "h-8",
-              enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
-            )}
-            disabled={!enableSaveAllButton}
-            onClick={handleSaveAllChanges}
-          >
-            <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
-          </Button>
+    if (!docs.length) {
+      return (
+        <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+          Keine Dokumente gefunden.
         </div>
-      )}
-      <TooltipProvider>
-        <ScrollArea className="h-full w-full">
-          <div className="pr-4">
-            {/* Header */}
-            <div
-              className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
-              style={{ gridTemplateColumns: gridTemplate }}
+      );
+    }
+
+    // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Doc (160) | Attributes | Delete (30)
+    const gridTemplate =
+      `30px 30px 30px 30px 30px 160px ` +
+      (columns.length ? columns.map(() => "100px").join(" ") : "") +
+      " 30px";
+
+    return (
+      <div className="h-full w-full">
+        {!hideSaveAllButton && (
+          <div className="flex justify-end items-center gap-2 mb-2">
+            {/* Batch delete appears only when more than one row is selected */}
+            {selectedRows.size > 1 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-8"
+                onClick={handleBatchDelete}
+                title="Ausgewählte Dokumente löschen"
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
+              </Button>
+            )}
+            <Button
+              variant="default"
+              size="sm"
+              className={cn(
+                "h-8",
+                enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
+              )}
+              disabled={!enableSaveAllButton}
+              onClick={handleSaveAllChanges}
             >
-              <div className="px-2"></div> {/* Button: Details */}
-              <div className="px-2"></div> {/* Checkbox: Select */}
-              <div className="px-2"></div> {/* Button: Save */}
-              <div className="px-2"></div> {/* Button: Replace */}
-              <div className="px-2"></div> {/* Button: Linked Docs */}
-              <div className="px-2">Dokumenttyp / Name</div>
-              {columns.map((col) => (
-                <div key={col} className="px-2">
-                  {col}
-                </div>
-              ))}
-              <div className="px-2"></div> {/* Button: Delete */}
-            </div>
+              <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+            </Button>
+          </div>
+        )}
+        <TooltipProvider>
+          <ScrollArea className="h-full w-full">
+            <div>
+              {/* Header */}
+              <div
+                className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
+                style={{ gridTemplateColumns: gridTemplate }}
+              >
+                <div className="px-2"></div> {/* Button: Details */}
+                <div className="px-2"></div> {/* Checkbox: Select */}
+                <div className="px-2"></div> {/* Button: Save */}
+                <div className="px-2"></div> {/* Button: Replace */}
+                <div className="px-2"></div> {/* Button: Linked Docs */}
+                <div className="px-2">Dokumenttyp / Name</div>
+                {columns.map((col) => (
+                  <div key={col} className="px-2">
+                    {col}
+                  </div>
+                ))}
+                <div className="px-2"></div> {/* Button: Delete */}
+              </div>
 
-            {/* Rows */}
-            <div className="divide-y">
-              {docs.map((doc, idx) => {
-                const rowEdited = edited[idx] ?? {};
-                const rowInitial = initial[idx] ?? {};
-                const hasChanges = columns.some(
-                  (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-                );
-                const entityName = doc.entityName || "";
-                const defs = attrDefsByEntity[entityName] || {};
+              {/* Rows */}
+              <div className="divide-y">
+                {docs.map((doc, idx) => {
+                  const rowEdited = edited[idx] ?? {};
+                  const rowInitial = initial[idx] ?? {};
+                  const hasChanges = columns.some((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""));
+                  const entityName = doc.entityName || "";
+                  const defs = attrDefsByEntity[entityName] || {};
 
-                return (
-                  <div
-                    key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
-                    className="grid items-center gap-1 py-2"
-                    style={{ gridTemplateColumns: gridTemplate }}
-                  >
-                    {/* Detail Button */}
-                    <div className="px-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => onOpenFullPreview(doc, (updatedDoc) => {
-                          // This callback will be called when the DetailDialog saves changes
-                          console.log("Doc updated from DetailDialog:", updatedDoc);
-                        })}
-                        title="Details anzeigen"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Select Checkbox */}
-                    <div className="px-2">
-                      <Checkbox
-                        checked={selectedRows.has(idx)}
-                        onCheckedChange={() => toggleRowSelected(idx)}
-                        className="h-4 w-4"
-                        disabled={!doc.pid}
-                        aria-label="Dokument auswählen"
-                      />
-                    </div>
-
-                    {/* Save Button */}
-                    <div className="px-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-6 w-6",
-                          hasChanges && "bg-orange-500 hover:bg-orange-600 text-white"
-                        )}
-                        disabled={!hasChanges || !doc.pid}
-                        onClick={async () => {
-                          const updates = columns
-                            .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
-                            .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
-                          if (updates.length) {
-                            const res = await onSaveRow(doc, updates);
-                            if (res.ok) {
-                              setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
-                              setSyncWithInitial((prev) => {
-                                const next = new Set(prev);
-                                next.add(idx);
-                                return next;
-                              });
-                              // Flash success for the saved columns
-                              flashSuccess(idx, updates.map((u) => u.name));
-                            } else {
-                              const colsToFlash = res.errorAttributes?.length
-                                ? res.errorAttributes
-                                : updates.map((u) => u.name);
-                              flashError(idx, colsToFlash);
-                            }
-                          }
-                        }}
-                        title={
-                          doc.pid
-                            ? hasChanges
-                              ? "Änderungen speichern"
-                              : "Keine Änderungen"
-                            : "PID fehlt – Speichern nicht möglich"
-                        }
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Replace Button */}
-                    <div className="px-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        disabled={!doc.pid}
-                        onClick={() => setConfirmReplaceRow(idx)}
-                        title="Dokument ersetzen"
-                        aria-label="Dokument ersetzen"
-                      >
-                        <ArrowLeftRight className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Linked Documents Button */}
-                    <div className="px-2">
-                      {doc.pid ? (
-                        <LinkedDocumentsDialog
-                          authToken={authToken}
-                          cloudEnvironment={cloudEnvironment}
-                          mainPid={doc.pid}
-                          trigger={({ setOpen }) => (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                              onClick={() => setOpen(true)}
-                              title="Verlinkte Dokumente anzeigen"
-                              aria-label="Verlinkte Dokumente anzeigen"
-                            >
-                              <LinkIcon className="h-3 w-3" />
-                            </Button>
-                          )}
-                        />
-                      ) : (
+                  return (
+                    <div
+                      key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}
+                      className="grid items-center gap-1 py-2"
+                      style={{ gridTemplateColumns: gridTemplate }}
+                    >
+                      {/* Detail Button */}
+                      <div className="px-2">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 opacity-50 cursor-not-allowed"
-                          disabled
-                          title="PID fehlt – keine Verlinkungen"
-                          aria-label="Verlinkte Dokumente anzeigen"
+                          className="h-6 w-6"
+                          onClick={() =>
+                            onOpenFullPreview(doc, (updatedDoc) => {
+                              // This callback will be called when the DetailDialog saves changes
+                              console.log("Doc updated from DetailDialog:", updatedDoc);
+                            })
+                          }
+                          title="Details anzeigen"
                         >
-                          <LinkIcon className="h-3 w-3" />
+                          <ChevronRight className="h-3 w-3" />
                         </Button>
-                      )}
-                    </div>
+                      </div>
 
-                    {/* Dokumenttyp */}
-                    <div className="px-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="inline-block">
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] font-normal cursor-help"
-                            >
-                              {doc.entityName || "Entity"}
-                            </Badge>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="start">
-                          <p className="text-xs">{doc.filename || "Dokument"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                      {/* Select Checkbox */}
+                      <div className="px-2">
+                        <Checkbox
+                          checked={selectedRows.has(idx)}
+                          onCheckedChange={() => toggleRowSelected(idx)}
+                          className="h-4 w-4"
+                          disabled={!doc.pid}
+                          aria-label="Dokument auswählen"
+                        />
+                      </div>
 
-                    {/* Attribute inputs */}
-                    {columns.map((col) => {
-                      const hasError = (errorHighlights[idx] ?? []).includes(col);
-                      const hasSuccess = (successHighlights[idx] ?? []).includes(col);
-                      const def = defs[col];
-                      const isDate =
-                        (def?.type === "7") || col === "Belegdatum";
-                      
-                      return (
-                        <div key={`${idx}-${col}`} className="px-2">
-                          {def?.valueset && def.valueset.length > 0 ? (
-                            <Select
-                              value={(rowEdited[col] ?? "") || undefined}
-                              onValueChange={(val) =>
-                                setEdited((prev) => {
-                                  const row = { ...(prev[idx] ?? {}) };
-                                  row[col] = val;
-                                  return { ...prev, [idx]: row };
-                                })
+                      {/* Save Button */}
+                      <div className="px-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6",
+                            hasChanges && "bg-orange-500 hover:bg-orange-600 text-white"
+                          )}
+                          disabled={!hasChanges || !doc.pid}
+                          onClick={async () => {
+                            const updates = columns
+                              .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
+                              .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
+                            if (updates.length) {
+                              const res = await onSaveRow(doc, updates);
+                              if (res.ok) {
+                                setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                                setSyncWithInitial((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(idx);
+                                  return next;
+                                });
+                                // Flash success for the saved columns
+                                flashSuccess(idx, updates.map((u) => u.name));
+                              } else {
+                                const colsToFlash = res.errorAttributes?.length
+                                  ? res.errorAttributes
+                                  : updates.map((u) => u.name);
+                                flashError(idx, colsToFlash);
                               }
-                            >
-                              <SelectTrigger
-                                className={cn(
-                                  "h-6 text-[10px] px-1",
-                                  hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                  hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                )}
+                            }
+                          }}
+                          title={
+                            doc.pid
+                              ? hasChanges
+                                ? "Änderungen speichern"
+                                : "Keine Änderungen"
+                              : "PID fehlt – Speichern nicht möglich"
+                          }
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Replace Button */}
+                      <div className="px-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={!doc.pid}
+                          onClick={() => setConfirmReplaceRow(idx)}
+                          title="Dokument ersetzen"
+                          aria-label="Dokument ersetzen"
+                        >
+                          <ArrowLeftRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Linked Documents Button */}
+                      <div className="px-2">
+                        {doc.pid ? (
+                          <LinkedDocumentsDialog
+                            authToken={authToken}
+                            cloudEnvironment={cloudEnvironment}
+                            mainPid={doc.pid}
+                            trigger={({ setOpen }) => (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-violet-600 hover:text-violet-700"
+                                onClick={() => setOpen(true)}
+                                title="Verlinkte Dokumente anzeigen"
+                                aria-label="Verlinkte Dokumente anzeigen"
                               >
-                                <SelectValue placeholder="Wählen…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {def.valueset.map((vs) => (
-                                  <SelectItem key={vs.name} value={vs.name}>
-                                    {vs.desc || vs.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : isDate ? (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
+                                <LinkIcon className="h-3 w-3" />
+                              </Button>
+                            )}
+                          />
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-50 cursor-not-allowed"
+                            disabled
+                            title="PID fehlt – keine Verlinkungen"
+                            aria-label="Verlinkte Dokumente anzeigen"
+                          >
+                            <LinkIcon className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Dokumenttyp */}
+                      <div className="px-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="inline-block">
+                              <Badge variant="secondary" className="text-[10px] font-normal cursor-help">
+                                {doc.entityName || "Entity"}
+                              </Badge>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="start">
+                            <p className="text-xs">{doc.filename || "Dokument"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+
+                      {/* Attribute inputs */}
+                      {columns.map((col) => {
+                        const hasError = (errorHighlights[idx] ?? []).includes(col);
+                        const hasSuccess = (successHighlights[idx] ?? []).includes(col);
+                        const def = defs[col];
+                        const isDate = def?.type === "7" || col === "Belegdatum";
+
+                        return (
+                          <div key={`${idx}-${col}`} className="px-2">
+                            {def?.valueset && def.valueset.length > 0 ? (
+                              <Select
+                                value={(rowEdited[col] ?? "") || undefined}
+                                onValueChange={(val) =>
+                                  setEdited((prev) => {
+                                    const row = { ...(prev[idx] ?? {}) };
+                                    row[col] = val;
+                                    return { ...prev, [idx]: row };
+                                  })
+                                }
+                              >
+                                <SelectTrigger
                                   className={cn(
-                                    "h-6 w-[100px] justify-start text-left text-[10px] px-1",
-                                    hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                    hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                    "h-6 text-[10px] px-1",
+                                    hasError &&
+                                      !hasSuccess &&
+                                      "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                    hasSuccess &&
+                                      !hasError &&
+                                      "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                   )}
                                 >
-                                  {rowEdited[col]
-                                    ? format(parse(rowEdited[col], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
-                                    : "Datum wählen"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={
-                                    rowEdited[col]
-                                      ? parse(rowEdited[col], "yyyy-MM-dd", new Date())
-                                      : undefined
-                                  }
-                                  onSelect={(date) =>
-                                    setEdited((prev) => {
-                                      const row = { ...(prev[idx] ?? {}) };
-                                      row[col] = date ? format(date, "yyyy-MM-dd") : "";
-                                      return { ...prev, [idx]: row };
-                                    })
-                                  }
-                                  initialFocus
-                                />
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            <Input
-                              value={rowEdited[col] ?? ""}
-                              onChange={(e) =>
-                                setEdited((prev) => {
-                                  const row = { ...(prev[idx] ?? {}) };
-                                  row[col] = e.target.value;
-                                  return { ...prev, [idx]: row };
-                                })
-                              }
-                              className={cn(
-                                "h-6 text-[10px] px-1",
-                                hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                              )}
-                              aria-label={`Attribut ${col}`}
-                              placeholder="-"
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
+                                  <SelectValue placeholder="Wählen…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {def.valueset.map((vs) => (
+                                    <SelectItem key={vs.name} value={vs.name}>
+                                      {vs.desc || vs.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : isDate ? (
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className={cn(
+                                      "h-6 w-[100px] justify-start text-left text-[10px] px-1",
+                                      hasError &&
+                                        !hasSuccess &&
+                                        "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                      hasSuccess &&
+                                        !hasError &&
+                                        "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                    )}
+                                  >
+                                    {rowEdited[col]
+                                      ? format(parse(rowEdited[col], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                      : "Datum wählen"}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="p-0" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={
+                                      rowEdited[col]
+                                        ? parse(rowEdited[col], "yyyy-MM-dd", new Date())
+                                        : undefined
+                                    }
+                                    onSelect={(date) =>
+                                      setEdited((prev) => {
+                                        const row = { ...(prev[idx] ?? {}) };
+                                        row[col] = date ? format(date, "yyyy-MM-dd") : "";
+                                        return { ...prev, [idx]: row };
+                                      })
+                                    }
+                                    initialFocus
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            ) : (
+                              <Input
+                                value={rowEdited[col] ?? ""}
+                                onChange={(e) =>
+                                  setEdited((prev) => {
+                                    const row = { ...(prev[idx] ?? {}) };
+                                    row[col] = e.target.value;
+                                    return { ...prev, [idx]: row };
+                                  })
+                                }
+                                className={cn(
+                                  "h-6 text-[10px] px-1",
+                                  hasError &&
+                                    !hasSuccess &&
+                                    "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                  hasSuccess &&
+                                    !hasError &&
+                                    "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                )}
+                                aria-label={`Attribut ${col}`}
+                                placeholder="-"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
 
-                    {/* Delete Button (rightmost) */}
-                    <div className="px-2 flex items-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        disabled={!doc.pid}
-                        onClick={() => setConfirmDeleteRow(idx)}
-                        title="Dokument löschen"
-                        aria-label="Dokument löschen"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {/* Delete Button (rightmost) */}
+                      <div className="px-2 flex items-center">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={!doc.pid}
+                          onClick={() => setConfirmDeleteRow(idx)}
+                          title="Dokument löschen"
+                          aria-label="Dokument löschen"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        </ScrollArea>
-      </TooltipProvider>
+          </ScrollArea>
+        </TooltipProvider>
 
-      {/* Confirm Delete Dialog */}
-      <Dialog
-        open={confirmDeleteRow !== null}
-        onOpenChange={(open) => {
-          if (!open) setConfirmDeleteRow(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
-            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
-              nein
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                const row = confirmDeleteRow;
-                setConfirmDeleteRow(null);
-                if (row == null) return;
-                const doc = docs[row];
+        {/* Confirm Delete Dialog */}
+        <Dialog
+          open={confirmDeleteRow !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfirmDeleteRow(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
+              <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
+                nein
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  const row = confirmDeleteRow;
+                  setConfirmDeleteRow(null);
+                  if (row == null) return;
+                  const doc = docs[row];
+                  if (!doc?.pid) return;
+                  await onDeleteDoc(doc);
+                }}
+              >
+                ja
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Batch Delete Dialog */}
+        <Dialog
+          open={confirmBatchDelete}
+          onOpenChange={(open) => {
+            if (!open) setConfirmBatchDelete(false);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sollen wirklich alle ausgewählten Dokumente gelöscht werden?</DialogTitle>
+              <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setConfirmBatchDelete(false)}>
+                nein
+              </Button>
+              <Button variant="destructive" onClick={executeBatchDelete}>
+                ja
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirm Replace Dialog */}
+        <Dialog
+          open={confirmReplaceRow !== null}
+          onOpenChange={(open) => {
+            if (!open) setConfirmReplaceRow(null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Soll das Dokument ersetzt werden?</DialogTitle>
+              <DialogDescription>Diese Aktion ersetzt den aktuellen Inhalt des Dokuments.</DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setConfirmReplaceRow(null)}>
+                nein
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setUploadRow(confirmReplaceRow);
+                  setConfirmReplaceRow(null);
+                }}
+              >
+                ja
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload Dialog */}
+        <Dialog
+          open={uploadRow !== null}
+          onOpenChange={(open) => {
+            if (!open || !isReplacing) setUploadRow(open ? uploadRow : null);
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Dokument ersetzen</DialogTitle>
+              <DialogDescription>
+                Legen Sie eine Datei ab oder klicken Sie, um eine neue Datei auszuwählen.
+              </DialogDescription>
+            </DialogHeader>
+            <ReplacementDropzone
+              disabled={isReplacing}
+              onFileSelected={async (file) => {
+                if (uploadRow === null) return;
+                const doc = docs[uploadRow];
                 if (!doc?.pid) return;
-                await onDeleteDoc(doc);
+                setIsReplacing(true);
+                const ok = await onReplaceDoc(doc, file);
+                setIsReplacing(false);
+                if (ok) {
+                  setUploadRow(null);
+                }
               }}
-            >
-              ja
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+            />
+            <div className="flex justify-end">
+              <Button variant="ghost" disabled={isReplacing} onClick={() => setUploadRow(null)}>
+                Abbrechen
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+);
 
-      {/* Confirm Batch Delete Dialog */}
-      <Dialog
-        open={confirmBatchDelete}
-        onOpenChange={(open) => {
-          if (!open) setConfirmBatchDelete(false);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sollen wirklich alle ausgewählten Dokumente gelöscht werden?</DialogTitle>
-            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setConfirmBatchDelete(false)}>
-              nein
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={executeBatchDelete}
-            >
-              ja
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirm Replace Dialog */}
-      <Dialog
-        open={confirmReplaceRow !== null}
-        onOpenChange={(open) => {
-          if (!open) setConfirmReplaceRow(null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Soll das Dokument ersetzt werden?</DialogTitle>
-            <DialogDescription>Diese Aktion ersetzt den aktuellen Inhalt des Dokuments.</DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setConfirmReplaceRow(null)}>
-              nein
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                setUploadRow(confirmReplaceRow);
-                setConfirmReplaceRow(null);
-              }}
-            >
-              ja
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Upload Dialog */}
-      <Dialog
-        open={uploadRow !== null}
-        onOpenChange={(open) => {
-          if (!open || !isReplacing) setUploadRow(open ? uploadRow : null);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Dokument ersetzen</DialogTitle>
-            <DialogDescription>Legen Sie eine Datei ab oder klicken Sie, um eine neue Datei auszuwählen.</DialogDescription>
-          </DialogHeader>
-          <ReplacementDropzone
-            disabled={isReplacing}
-            onFileSelected={async (file) => {
-              if (uploadRow === null) return;
-              const doc = docs[uploadRow];
-              if (!doc?.pid) return;
-              setIsReplacing(true);
-              const ok = await onReplaceDoc(doc, file);
-              setIsReplacing(false);
-              if (ok) {
-                setUploadRow(null);
-              }
-            }}
-          />
-          <div className="flex justify-end">
-            <Button variant="ghost" disabled={isReplacing} onClick={() => setUploadRow(null)}>
-              Abbrechen
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+DocAttributesGrid.displayName = "DocAttributesGrid";
 
 export default DocAttributesGrid;

@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import DocAttributesGrid from "./DocAttributesGrid";
+import DocAttributesGrid, { type DocAttributesGridHandle } from "./DocAttributesGrid";
 import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
@@ -63,6 +63,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false); // Confirm delete in preview
   const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false); // New state for link dialog
+
+  const docGridRef = React.useRef<DocAttributesGridHandle | null>(null);
+  const [docListChangedRowCount, setDocListChangedRowCount] = React.useState(0);
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async () => {
@@ -417,9 +420,26 @@ const RightPanel: React.FC<RightPanelProps> = ({
           <Separator className="my-4" />
 
           {/* MITTE: Dokumentenliste */}
-          <div className="min-h-0 flex-1">
-            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenliste</div>
+          <div className="min-h-0 flex-1 -mx-6">
+            <div className="mb-2 px-2 flex items-center justify-between gap-3">
+              <div className="text-sm font-medium text-muted-foreground">Dokumentenliste</div>
+              <Button
+                variant="default"
+                size="sm"
+                className={
+                  docListChangedRowCount > 0
+                    ? "h-8 bg-orange-500 hover:bg-orange-600 text-white"
+                    : "h-8"
+                }
+                disabled={docListChangedRowCount === 0}
+                onClick={() => docGridRef.current?.saveAllChanges()}
+              >
+                <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+              </Button>
+            </div>
+
             <DocAttributesGrid
+              ref={docGridRef}
               docs={docPreviews}
               onOpenFullPreview={openFullPreview}
               onSaveRow={handleSaveRow}
@@ -427,6 +447,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
               onDeleteDoc={handleDeleteDoc}
               authToken={authToken}
               cloudEnvironment={cloudEnvironment}
+              hideSaveAllButton
+              onChangedRowCountChange={setDocListChangedRowCount}
             />
           </div>
 
