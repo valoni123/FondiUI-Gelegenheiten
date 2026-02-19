@@ -60,16 +60,142 @@ const DocAttributesGrid: React.FC<Props> = ({
   authToken,
   cloudEnvironment,
 }) => {
-  const columns = React.useMemo<string[]>(() => {
-    const names = new Set<string>();
-    for (const d of docs) {
-      (d.attributes ?? []).forEach((a) => {
-        if (a?.name) names.add(String(a.name));
-      });
-    }
-    // Filter out "Gelegenheit" and "MDS_ID"
-    return Array.from(names).filter((col) => col !== "Gelegenheit" && col !== "MDS_ID");
-  }, [docs]);
+  type DisplayColumn =
+    | {
+        kind: "attr";
+        id: string;
+        header: string;
+        // attribute names to try (first match wins; fallback to first)
+        attrNames: string[];
+        // optional: treat as date
+        forceDate?: boolean;
+      }
+    | {
+        kind: "meta";
+        id: string;
+        header: string;
+        getValue: (doc: IdmDocPreview) => string;
+      };
+
+  const getAttrValue = React.useCallback(
+    (doc: IdmDocPreview, attrNames: string[]) => {
+      const attrs = doc.attributes ?? [];
+      for (const n of attrNames) {
+        const found = attrs.find((a) => a?.name === n);
+        if (found?.value != null && String(found.value).length > 0) return String(found.value);
+      }
+      return "";
+    },
+    []
+  );
+
+  // Fixed column order (always rendered, even if values are missing)
+  const displayColumns = React.useMemo<DisplayColumn[]>(
+    () => [
+      { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
+      {
+        kind: "meta",
+        id: "dokumenttyp",
+        header: "Dokumenttyp",
+        getValue: (doc) => String(doc.entityName ?? ""),
+      },
+      {
+        kind: "attr",
+        id: "dokumentenpaket",
+        header: "Dokumentenpaket",
+        attrNames: ["Dokumentenpaket"],
+      },
+      {
+        kind: "meta",
+        id: "dokumentname",
+        header: "Dokumentname",
+        getValue: (doc) => String(doc.filename ?? ""),
+      },
+      { kind: "attr", id: "titel", header: "Titel", attrNames: ["Titel"] },
+      { kind: "attr", id: "status", header: "Status", attrNames: ["Status"] },
+      {
+        kind: "attr",
+        id: "belegdatum",
+        header: "Belegdatum",
+        attrNames: ["Belegdatum"],
+        forceDate: true,
+      },
+      {
+        kind: "attr",
+        id: "belegnr",
+        header: "Belegnr.",
+        attrNames: ["Belegnummer"],
+      },
+      {
+        kind: "meta",
+        id: "createdBy",
+        header: "erstellt von",
+        getValue: (doc) =>
+          getAttrValue(doc, [
+            "erstellt von",
+            "Erstellt von",
+            "Ersteller",
+            "CreatedBy",
+            "createdBy",
+            "creator",
+          ]),
+      },
+      {
+        kind: "meta",
+        id: "createdAt",
+        header: "erstellt am",
+        getValue: (doc) =>
+          getAttrValue(doc, [
+            "erstellt am",
+            "Erstellt am",
+            "Erstellzeit",
+            "CreatedAt",
+            "createdAt",
+            "created",
+          ]),
+      },
+      {
+        kind: "meta",
+        id: "changedBy",
+        header: "geändert von",
+        getValue: (doc) =>
+          getAttrValue(doc, [
+            "geändert von",
+            "Geändert von",
+            "Geaendert von",
+            "ModifiedBy",
+            "modifiedBy",
+            "modifier",
+          ]),
+      },
+      {
+        kind: "meta",
+        id: "changedAt",
+        header: "geändert am",
+        getValue: (doc) =>
+          getAttrValue(doc, [
+            "geändert am",
+            "Geändert am",
+            "Geaendert am",
+            "ModifiedAt",
+            "modifiedAt",
+            "modified",
+            "updated",
+          ]),
+      },
+      {
+        kind: "attr",
+        id: "ort",
+        header: "Ort",
+        // some entities use "Werk" for location
+        attrNames: ["Ort", "Werk"],
+      },
+    ],
+    [getAttrValue]
+  );
+
+  // Keep a set of possible attribute names for diff/save logic
+  const editableColumns = React.useMemo(() => displayColumns.filter((c) => c.kind === "attr"), [displayColumns]);
 
   const initial = React.useMemo<Record<number, Record<string, string>>>(() => {
     const map: Record<number, Record<string, string>> = {};
@@ -142,6 +268,25 @@ const DocAttributesGrid: React.FC<Props> = ({
     })();
   }, [docs, authToken, cloudEnvironment, attrDefsByEntity]);
 
+  const resolveAttrName = React.useCallback(
+    (
+      rowEdited: Record<string, string>,
+      rowInitial: Record<string, string>,
+      defs: Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>,
+      col: Extract<DisplayColumn, { kind: "attr" }>
+    ) => {
+      // Prefer schema-defined attribute, else one present in data, else first configured name
+      for (const name of col.attrNames) {
+        if (defs?.[name]) return name;
+      }
+      for (const name of col.attrNames) {
+        if (name in rowEdited || name in rowInitial) return name;
+      }
+      return col.attrNames[0];
+    },
+    []
+  );
+
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
@@ -192,67 +337,73 @@ const DocAttributesGrid: React.FC<Props> = ({
     }, 1800);
   }, []);
 
-  // Calculate how many rows have changes
+  // Calculate how many rows have changes (only editable columns)
   const changedRowCount = React.useMemo(() => {
     let count = 0;
     docs.forEach((doc, idx) => {
       const rowEdited = edited[idx] ?? {};
       const rowInitial = initial[idx] ?? {};
-      const rowHasChanges = columns.some(
-        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-      );
-      if (rowHasChanges) {
-        count++;
-      }
+      const entityName = doc.entityName || "";
+      const defs = attrDefsByEntity[entityName] || {};
+
+      const rowHasChanges = editableColumns.some((c) => {
+        const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+        return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
+      });
+
+      if (rowHasChanges) count++;
     });
     return count;
-  }, [docs, edited, initial, columns]);
+  }, [docs, edited, initial, editableColumns, attrDefsByEntity, resolveAttrName]);
 
   const enableSaveAllButton = changedRowCount > 0; // Enable if any row has changes
 
   const handleSaveAllChanges = async () => {
     const successfulSaves: number[] = [];
-    const failedRows: number[] = [];
     const successfulUpdates: { rowIdx: number; cols: string[] }[] = [];
-    
+
     for (let idx = 0; idx < docs.length; idx++) {
       const doc = docs[idx];
       const rowEdited = edited[idx] ?? {};
       const rowInitial = initial[idx] ?? {};
-      const hasChanges = columns.some(
-        (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-      );
+      const entityName = doc.entityName || "";
+      const defs = attrDefsByEntity[entityName] || {};
 
-      if (hasChanges && doc.pid) {
-        const updates = columns
-          .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
-          .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
-        
+      const updates = editableColumns
+        .map((c) => {
+          const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+          return {
+            attrName,
+            value: rowEdited[attrName] ?? "",
+            changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+          };
+        })
+        .filter((u) => u.changed)
+        .map((u) => ({ name: u.attrName, value: u.value }));
+
+      if (updates.length && doc.pid) {
         try {
           const res = await onSaveRow(doc, updates);
           if (res.ok) {
             successfulSaves.push(idx);
             successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
           } else {
-            failedRows.push(idx);
             const colsToFlash = res.errorAttributes?.length
               ? res.errorAttributes
               : updates.map((u) => u.name);
             flashError(idx, colsToFlash);
           }
-        } catch (error) {
-          failedRows.push(idx);
-          const colsToFlash = updates.map((u) => u.name);
-          flashError(idx, colsToFlash);
+        } catch {
+          flashError(idx, updates.map((u) => u.name));
         }
       }
     }
-    
+
     // Flash success for all successful updates
     successfulUpdates.forEach(({ rowIdx, cols }) => {
       flashSuccess(rowIdx, cols);
     });
-    
+
     // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
     setEdited((prev) => {
       const newEdited = { ...prev };
@@ -312,17 +463,21 @@ const DocAttributesGrid: React.FC<Props> = ({
     setConfirmBatchDelete(false);
   };
 
-  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Doc (flex) | Attributes (flex) | Delete (30)
-  // Use minmax(..., fr) so the grid always expands to use the full available width,
-  // while still keeping sensible minimum widths (and allowing horizontal scroll if needed).
+  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
+  // Use minmax(..., fr) so the grid always expands to use the full available width.
   const gridTemplate = React.useMemo(() => {
     const fixed = ["30px", "30px", "30px", "30px", "30px"]; // icon/button columns
-    const docCol = "minmax(160px, 2fr)";
-    const attrCols = columns.length ? columns.map(() => "minmax(100px, 1fr)") : [];
-    const tail = "30px"; // delete
 
-    return [...fixed, docCol, ...attrCols, tail].join(" ");
-  }, [columns]);
+    const dataCols = displayColumns.map((c) => {
+      if (c.id === "dokumentname") return "minmax(220px, 2fr)";
+      if (c.id === "titel") return "minmax(180px, 2fr)";
+      if (c.id === "projekt") return "minmax(140px, 1.2fr)";
+      return "minmax(120px, 1fr)";
+    });
+
+    const tail = "30px"; // delete
+    return [...fixed, ...dataCols, tail].join(" ");
+  }, [displayColumns]);
 
   // IMPORTANT: don't return early before hooks (React Rules of Hooks)
   if (!docs.length) {
@@ -387,10 +542,9 @@ const DocAttributesGrid: React.FC<Props> = ({
               <div className="px-2"></div> {/* Button: Save */}
               <div className="px-2"></div> {/* Button: Replace */}
               <div className="px-2"></div> {/* Button: Linked Docs */}
-              <div className="px-2">Dokumenttyp / Name</div>
-              {columns.map((col) => (
-                <div key={col} className="px-2">
-                  {col}
+              {displayColumns.map((col) => (
+                <div key={col.id} className="px-2">
+                  {col.header}
                 </div>
               ))}
               <div className="px-2"></div> {/* Button: Delete */}
@@ -401,11 +555,13 @@ const DocAttributesGrid: React.FC<Props> = ({
               {docs.map((doc, idx) => {
                 const rowEdited = edited[idx] ?? {};
                 const rowInitial = initial[idx] ?? {};
-                const hasChanges = columns.some(
-                  (col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? "")
-                );
                 const entityName = doc.entityName || "";
                 const defs = attrDefsByEntity[entityName] || {};
+
+                const hasChanges = editableColumns.some((c) => {
+                  const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                  return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
+                });
 
                 return (
                   <div
@@ -419,10 +575,12 @@ const DocAttributesGrid: React.FC<Props> = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => onOpenFullPreview(doc, (updatedDoc) => {
-                          // This callback will be called when the DetailDialog saves changes
-                          console.log("Doc updated from DetailDialog:", updatedDoc);
-                        })}
+                        onClick={() =>
+                          onOpenFullPreview(doc, (updatedDoc) => {
+                            // This callback will be called when the DetailDialog saves changes
+                            console.log("Doc updated from DetailDialog:", updatedDoc);
+                          })
+                        }
                         title="Details anzeigen"
                       >
                         <ChevronRight className="h-3 w-3" />
@@ -451,9 +609,18 @@ const DocAttributesGrid: React.FC<Props> = ({
                         )}
                         disabled={!hasChanges || !doc.pid}
                         onClick={async () => {
-                          const updates = columns
-                            .filter((col) => (rowEdited[col] ?? "") !== (rowInitial[col] ?? ""))
-                            .map((col) => ({ name: col, value: rowEdited[col] ?? "" }));
+                          const updates = editableColumns
+                            .map((c) => {
+                              const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                              return {
+                                name: attrName,
+                                value: rowEdited[attrName] ?? "",
+                                changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+                              };
+                            })
+                            .filter((u) => u.changed)
+                            .map((u) => ({ name: u.name, value: u.value }));
+
                           if (updates.length) {
                             const res = await onSaveRow(doc, updates);
                             if (res.ok) {
@@ -534,42 +701,34 @@ const DocAttributesGrid: React.FC<Props> = ({
                       )}
                     </div>
 
-                    {/* Dokumenttyp */}
-                    <div className="px-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="inline-block">
-                            <Badge
-                              variant="secondary"
-                              className="text-[10px] font-normal cursor-help"
-                            >
-                              {doc.entityName || "Entity"}
-                            </Badge>
+                    {/* Data columns */}
+                    {displayColumns.map((col) => {
+                      if (col.kind === "meta") {
+                        const value = col.getValue(doc);
+                        return (
+                          <div key={`${idx}-${col.id}`} className="px-2">
+                            <div className="truncate text-[10px] text-foreground">
+                              {value || ""}
+                            </div>
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="start">
-                          <p className="text-xs">{doc.filename || "Dokument"}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
+                        );
+                      }
 
-                    {/* Attribute inputs */}
-                    {columns.map((col) => {
-                      const hasError = (errorHighlights[idx] ?? []).includes(col);
-                      const hasSuccess = (successHighlights[idx] ?? []).includes(col);
-                      const def = defs[col];
-                      const isDate =
-                        (def?.type === "7") || col === "Belegdatum";
-                      
+                      const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
+                      const hasError = (errorHighlights[idx] ?? []).includes(attrName);
+                      const hasSuccess = (successHighlights[idx] ?? []).includes(attrName);
+                      const def = defs[attrName];
+                      const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
+
                       return (
-                        <div key={`${idx}-${col}`} className="px-2">
+                        <div key={`${idx}-${col.id}`} className="px-2">
                           {def?.valueset && def.valueset.length > 0 ? (
                             <Select
-                              value={(rowEdited[col] ?? "") || undefined}
+                              value={(rowEdited[attrName] ?? "") || undefined}
                               onValueChange={(val) =>
                                 setEdited((prev) => {
                                   const row = { ...(prev[idx] ?? {}) };
-                                  row[col] = val;
+                                  row[attrName] = val;
                                   return { ...prev, [idx]: row };
                                 })
                               }
@@ -577,8 +736,12 @@ const DocAttributesGrid: React.FC<Props> = ({
                               <SelectTrigger
                                 className={cn(
                                   "h-6 text-[10px] px-1",
-                                  hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                  hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                  hasError &&
+                                    !hasSuccess &&
+                                    "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                  hasSuccess &&
+                                    !hasError &&
+                                    "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                 )}
                               >
                                 <SelectValue placeholder="Wählen…" />
@@ -597,13 +760,17 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 <Button
                                   variant="outline"
                                   className={cn(
-                                    "h-6 w-[100px] justify-start text-left text-[10px] px-1",
-                                    hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                    hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                    "h-6 w-full justify-start text-left text-[10px] px-1",
+                                    hasError &&
+                                      !hasSuccess &&
+                                      "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                    hasSuccess &&
+                                      !hasError &&
+                                      "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                   )}
                                 >
-                                  {rowEdited[col]
-                                    ? format(parse(rowEdited[col], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                  {rowEdited[attrName]
+                                    ? format(parse(rowEdited[attrName], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
                                     : "Datum wählen"}
                                 </Button>
                               </PopoverTrigger>
@@ -611,50 +778,51 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 <Calendar
                                   mode="single"
                                   selected={
-                                    rowEdited[col]
-                                      ? parse(rowEdited[col], "yyyy-MM-dd", new Date())
+                                    rowEdited[attrName]
+                                      ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
                                       : undefined
                                   }
                                   onSelect={(date) =>
                                     setEdited((prev) => {
                                       const row = { ...(prev[idx] ?? {}) };
-                                      row[col] = date ? format(date, "yyyy-MM-dd") : "";
+                                      row[attrName] = date ? format(date, "yyyy-MM-dd") : "";
                                       return { ...prev, [idx]: row };
                                     })
                                   }
-                                  initialFocus
                                 />
                               </PopoverContent>
                             </Popover>
                           ) : (
                             <Input
-                              value={rowEdited[col] ?? ""}
+                              value={rowEdited[attrName] ?? ""}
                               onChange={(e) =>
                                 setEdited((prev) => {
                                   const row = { ...(prev[idx] ?? {}) };
-                                  row[col] = e.target.value;
+                                  row[attrName] = e.target.value;
                                   return { ...prev, [idx]: row };
                                 })
                               }
                               className={cn(
                                 "h-6 text-[10px] px-1",
-                                hasError && !hasSuccess && "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                hasSuccess && !hasError && "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                hasError &&
+                                  !hasSuccess &&
+                                  "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                hasSuccess &&
+                                  !hasError &&
+                                  "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                               )}
-                              aria-label={`Attribut ${col}`}
-                              placeholder="-"
                             />
                           )}
                         </div>
                       );
                     })}
 
-                    {/* Delete Button (rightmost) */}
-                    <div className="px-2 flex items-center">
+                    {/* Delete Button */}
+                    <div className="px-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="h-6 w-6 text-destructive"
                         disabled={!doc.pid}
                         onClick={() => setConfirmDeleteRow(idx)}
                         title="Dokument löschen"
