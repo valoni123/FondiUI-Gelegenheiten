@@ -106,7 +106,7 @@ const BusinessPartnerGrid: React.FC<BusinessPartnerGridProps> = ({
                     variant="ghost"
                     size="sm"
                     onClick={() => handleSort(col.key)}
-                    className="flex items-center gap-1 justify-start px-2"
+                    className="flex items-center justify-start px-2"
                   >
                     {col.label}
                     {sortConfig?.key === col.key && (

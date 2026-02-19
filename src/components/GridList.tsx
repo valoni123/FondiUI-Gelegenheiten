@@ -149,7 +149,7 @@ const GridList: React.FC<GridListProps> = ({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleSort(key)}
-                        className="flex items-center gap-1 justify-start px-1 font-bold"
+                        className="flex items-center justify-start px-1 font-bold"
                       >
                         {getColumnLabel(key)}
                         {sortConfig?.key === key && (

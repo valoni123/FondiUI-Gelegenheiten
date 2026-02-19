@@ -212,7 +212,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center">
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button

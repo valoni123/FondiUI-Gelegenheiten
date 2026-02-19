@@ -485,7 +485,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             <div className="min-w-full pr-2">
               {/* Header */}
               <div
-                className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
+                className="grid border-b py-2 text-xs font-medium text-muted-foreground"
                 style={{ gridTemplateColumns: gridTemplate }}
               >
                 <div className="px-2">Dokumententyp</div>
@@ -501,7 +501,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                 {rows.map((row) => (
                   <div
                     key={row.key}
-                    className="grid items-center gap-1 py-2"
+                    className="grid items-center py-2"
                     style={{ gridTemplateColumns: gridTemplate }}
                   >
                     {/* Entity Select */}
