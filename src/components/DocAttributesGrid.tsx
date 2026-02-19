@@ -49,7 +49,12 @@ type Props = {
   cloudEnvironment: CloudEnvironment;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({
+export type DocAttributesGridHandle = {
+  saveAllChanges: () => Promise<{ ok: boolean }>;
+  hasUnsavedChanges: () => boolean;
+};
+
+const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
   highlightedDocKeys,
   onOpenFullPreview,
@@ -60,7 +65,7 @@ const DocAttributesGrid: React.FC<Props> = ({
   onDeleteDoc,
   authToken,
   cloudEnvironment,
-}) => {
+}, ref) => {
   const highlightedSet = React.useMemo(
     () => new Set(highlightedDocKeys ?? []),
     [highlightedDocKeys]
@@ -541,6 +546,15 @@ const DocAttributesGrid: React.FC<Props> = ({
 
     return { ok: !hadFailures };
   };
+
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      saveAllChanges: handleSaveAllChanges,
+      hasUnsavedChanges: () => enableSaveAllButton,
+    }),
+    [enableSaveAllButton]
+  );
 
   // Unsaved-changes guard (used when user tries other actions while "Alle Änderungen speichern" is active)
   const [unsavedDialogOpen, setUnsavedDialogOpen] = React.useState(false);
@@ -1252,6 +1266,8 @@ const DocAttributesGrid: React.FC<Props> = ({
       </Dialog>
     </div>
   );
-};
+});
+
+DocAttributesGrid.displayName = "DocAttributesGrid";
 
 export default DocAttributesGrid;

@@ -17,13 +17,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import DocAttributesGrid from "./DocAttributesGrid";
+import DocAttributesGrid, { type DocAttributesGridHandle } from "./DocAttributesGrid";
 import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
-import BackToOverviewButton from "./BackToOverviewButton";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
@@ -65,6 +64,28 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [isReplacing, setIsReplacing] = React.useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false);
   const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false);
+
+  const docListGridRef = React.useRef<DocAttributesGridHandle | null>(null);
+  const detailGridRef = React.useRef<DocAttributesGridHandle | null>(null);
+
+  const [backUnsavedDialogOpen, setBackUnsavedDialogOpen] = React.useState(false);
+  const [backUnsavedSaving, setBackUnsavedSaving] = React.useState(false);
+  const [backUnsavedSaveFailed, setBackUnsavedSaveFailed] = React.useState(false);
+
+  const handleBackToOverview = React.useCallback(() => {
+    const hasUnsavedList = !!docListGridRef.current?.hasUnsavedChanges();
+    const hasUnsavedDetail = !!detailGridRef.current?.hasUnsavedChanges();
+
+    if (hasUnsavedList || hasUnsavedDetail) {
+      setBackUnsavedSaveFailed(false);
+      setBackUnsavedDialogOpen(true);
+      return;
+    }
+
+    // Any navigation/close clears the one-time highlight
+    setHighlightedDocKeys([]);
+    onClose();
+  }, [onClose]);
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
@@ -461,7 +482,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
         </div>
 
         <div className="flex-1 flex items-center justify-end gap-2">
-          <BackToOverviewButton onBack={onClose} />
+          <Button variant="outline" onClick={handleBackToOverview}>
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Zur Übersicht
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
@@ -519,6 +543,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {/* MITTE: Dokumentenliste */}
           <div className="flex-shrink-0">
             <DocAttributesGrid
+              ref={docListGridRef}
               title="Dokumentenliste"
               docs={docPreviews}
               highlightedDocKeys={highlightedDocKeys}
@@ -645,6 +670,16 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBackToOverview}
+                  title="Zur Übersicht"
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Zur Übersicht
+                </Button>
+
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
                     <span className="text-xs text-muted-foreground">
@@ -724,6 +759,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {fullPreviewData && (
             <div className="flex-shrink-0 max-h-56 md:max-h-72 overflow-y-auto mt-4 border-t pt-4 px-6">
               <DocAttributesGrid
+                ref={detailGridRef}
                 docs={[fullPreviewData]} // Pass the single document as an array
                 onOpenFullPreview={openFullPreview} // Pass the existing handler
                 onSaveRow={handleSaveRow} // Pass the existing handler
@@ -798,6 +834,75 @@ const RightPanel: React.FC<RightPanelProps> = ({
               }}
             >
               ja
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved Changes Dialog (Back to overview) */}
+      <Dialog
+        open={backUnsavedDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBackUnsavedDialogOpen(false);
+            setBackUnsavedSaveFailed(false);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nicht gespeicherte Änderungen</DialogTitle>
+            <DialogDescription>
+              Es gibt Änderungen, die noch nicht gespeichert wurden. Möchten Sie zuerst speichern und dann zur Übersicht wechseln?
+            </DialogDescription>
+          </DialogHeader>
+
+          {backUnsavedSaveFailed && (
+            <div className="text-sm text-destructive">
+              Speichern nicht vollständig möglich. Bitte prüfen Sie die markierten Felder.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              disabled={backUnsavedSaving}
+              onClick={() => setBackUnsavedDialogOpen(false)}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              disabled={backUnsavedSaving}
+              onClick={async () => {
+                setBackUnsavedSaving(true);
+                try {
+                  let ok = true;
+
+                  if (docListGridRef.current?.hasUnsavedChanges()) {
+                    const res = await docListGridRef.current.saveAllChanges();
+                    ok = ok && res.ok;
+                  }
+
+                  if (detailGridRef.current?.hasUnsavedChanges()) {
+                    const res = await detailGridRef.current.saveAllChanges();
+                    ok = ok && res.ok;
+                  }
+
+                  if (!ok) {
+                    setBackUnsavedSaveFailed(true);
+                    return;
+                  }
+
+                  setBackUnsavedDialogOpen(false);
+                  setBackUnsavedSaveFailed(false);
+                  setHighlightedDocKeys([]);
+                  onClose();
+                } finally {
+                  setBackUnsavedSaving(false);
+                }
+              }}
+            >
+              {backUnsavedSaving ? "Speichern…" : "Speichern & zur Übersicht"}
             </Button>
           </div>
         </DialogContent>
