@@ -354,6 +354,26 @@ const DocAttributesGrid: React.FC<Props> = ({
       });
   }, [docs, edited, initial, filters, displayColumns, attrDefsByEntity, getDisplayValueForFilter]);
 
+  const statusColumnWidthPx = React.useMemo(() => {
+    // Best effort: determine the longest visible label in the Status valueset (across all entities)
+    // and convert it to a reasonable pixel width (keeps header/filter/cells perfectly aligned).
+    let maxLen = "Freigegeben".length;
+
+    for (const entityName of Object.keys(attrDefsByEntity)) {
+      const def = attrDefsByEntity?.[entityName]?.["Status"];
+      const valueset = def?.valueset ?? [];
+      for (const vs of valueset) {
+        const label = (vs.desc || vs.name || "").trim();
+        if (label.length > maxLen) maxLen = label.length;
+      }
+    }
+
+    // Approximate: 7px per character + padding/icons.
+    // Clamp so it doesn't get ridiculously wide.
+    const px = Math.round(maxLen * 7 + 44);
+    return Math.min(220, Math.max(96, px));
+  }, [attrDefsByEntity]);
+
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
@@ -539,14 +559,14 @@ const DocAttributesGrid: React.FC<Props> = ({
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
-      if (c.id === "status") return "minmax(110px, max-content)";
-      if (c.id === "belegdatum") return "minmax(110px, max-content)";
+      if (c.id === "status") return `${statusColumnWidthPx}px`;
+      if (c.id === "belegdatum") return "120px";
       return "minmax(120px, 1fr)";
     });
 
     const tail = "30px"; // delete
     return [...fixed, ...dataCols, tail].join(" ");
-  }, [displayColumns]);
+  }, [displayColumns, statusColumnWidthPx]);
 
   // IMPORTANT: don't return early before hooks (React Rules of Hooks)
   if (!docs.length) {
