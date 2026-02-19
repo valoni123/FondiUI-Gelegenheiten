@@ -39,7 +39,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title = "Gelegenheiten", subtitle
   }, [title]);
 
   return (
-    <header className="w-full mb-6">
+    <header className="w-full mb-0">
       <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-b-md">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-start py-5">
