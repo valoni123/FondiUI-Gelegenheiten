@@ -124,11 +124,25 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     setRows(next);
   }, [files, open]);
 
-  const loadAttrsForEntity = async (rowKey: string, entityName: string, fileName?: string) => {
+  const loadAttrsForEntity = async (
+    rowKey: string,
+    entityName: string,
+    fileName?: string,
+    opportunityIdHint?: string
+  ) => {
+    // IMPORTANT: do NOT reset values here.
+    // Users may change the document type after filling fields and we want to preserve matching values.
     setRows((prev) =>
       prev.map((r) =>
         r.key === rowKey
-          ? { ...r, entityName, loadingAttrs: true, attrs: [], values: {}, duplicateExists: false }
+          ? {
+              ...r,
+              entityName,
+              loadingAttrs: true,
+              attrs: [],
+              // keep existing values to merge later
+              duplicateExists: false,
+            }
           : r
       )
     );
@@ -136,39 +150,59 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       const attributes = await getIdmEntityAttributes(authToken, cloudEnvironment, entityName);
       const filtered = attributes.filter((a) => a.name !== "MDS_ID"); // remove MDS_ID
 
-      const initialValues: Record<string, string> = Object.fromEntries(filtered.map((a) => [a.name, ""]));
+      const baseValues: Record<string, string> = Object.fromEntries(
+        filtered.map((a) => [a.name, ""])
+      );
 
       // Pre-fill "Gelegenheit" if defaultOpportunityNumber is provided
       if (defaultOpportunityNumber) {
-        const opportunityAttr = filtered.find(attr => attr.name === "Gelegenheit");
+        const opportunityAttr = filtered.find((attr) => attr.name === "Gelegenheit");
         if (opportunityAttr) {
-          initialValues["Gelegenheit"] = defaultOpportunityNumber;
+          baseValues["Gelegenheit"] = defaultOpportunityNumber;
         }
       }
 
       // Pre-fill "Projekt" if defaultProjectName is provided
       if (defaultProjectName) {
-        const projectAttr = filtered.find(attr => attr.name === "Projekt");
+        const projectAttr = filtered.find((attr) => attr.name === "Projekt");
         if (projectAttr) {
-          initialValues["Projekt"] = defaultProjectName;
+          baseValues["Projekt"] = defaultProjectName;
         }
       }
 
+      // Merge: keep any previously entered value for attributes that still exist
+      let mergedValuesForCheck: Record<string, string> | null = null;
       setRows((prev) =>
-        prev.map((r) =>
-          r.key === rowKey
-            ? {
-                ...r,
-                attrs: filtered,
-                values: initialValues,
-                loadingAttrs: false,
-              }
-            : r
-        )
+        prev.map((r) => {
+          if (r.key !== rowKey) return r;
+
+          const mergedValues: Record<string, string> = { ...baseValues };
+          const prevValues = r.values || {};
+          for (const name of Object.keys(mergedValues)) {
+            const pv = prevValues[name];
+            if (pv != null && String(pv).trim().length > 0) {
+              mergedValues[name] = String(pv);
+            }
+          }
+
+          mergedValuesForCheck = mergedValues;
+
+          return {
+            ...r,
+            attrs: filtered,
+            values: mergedValues,
+            loadingAttrs: false,
+          };
+        })
       );
 
       // After attributes are loaded, perform duplicate check if we have filename and Gelegenheit
-      const opportunityId = initialValues["Gelegenheit"] || "";
+      // Use hint/merged values so changing the document type doesn't require re-entering Gelegenheit.
+      const opportunityId =
+        (opportunityIdHint ?? "").toString().trim() ||
+        (mergedValuesForCheck?.["Gelegenheit"] ?? "").toString().trim() ||
+        (defaultOpportunityNumber ?? "").toString().trim();
+
       if (fileName && opportunityId) {
         try {
           const result = await existsIdmItemByEntityFilenameOpportunity(
@@ -179,14 +213,12 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
             opportunityId,
             "de-DE"
           );
-          // Only set duplicateExists if all three fields match exactly
           setRows((prev) =>
             prev.map((r) =>
               r.key === rowKey ? { ...r, duplicateExists: result.exists } : r
             )
           );
-        } catch (dupErr) {
-          // If duplicate check fails, keep UI silent and assume no duplicate
+        } catch {
           setRows((prev) =>
             prev.map((r) =>
               r.key === rowKey ? { ...r, duplicateExists: false } : r
@@ -350,41 +382,49 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     }
   };
 
-  // Apply first row's entity and attributes to all rows
+  // Apply first row's attributes (values) to all rows (WITHOUT copying the document type)
   const applyAttributesToAll = async () => {
     const source = rows[0];
-    if (!source?.entityName) return;
+    if (!source?.entityName || source.attrs.length === 0) return;
 
-    // Copy entityName, attrs, and values to all other rows
+    const otherRows = rows.slice(1);
+
+    // Copy only values that exist on the target row (based on its loaded attrs)
     setRows((prev) =>
       prev.map((r, idx) => {
         if (idx === 0) return r;
-        const copiedValues: Record<string, string> = {};
-        source.attrs.forEach((a) => {
-          copiedValues[a.name] = source.values[a.name] ?? "";
+        if (r.attrs.length === 0) return r; // can't apply if the target didn't choose a document type yet
+
+        const nextValues: Record<string, string> = { ...(r.values || {}) };
+        r.attrs.forEach((a) => {
+          const v = source.values[a.name];
+          if (v != null && String(v).trim().length > 0) {
+            nextValues[a.name] = String(v);
+          }
         });
+
         return {
           ...r,
-          entityName: source.entityName,
-          attrs: source.attrs,
-          values: copiedValues,
+          // keep r.entityName!
+          values: nextValues,
           loadingAttrs: false,
-          // reset; will be recalculated below
           duplicateExists: false,
         };
       })
     );
 
-    // Re-run duplicate check per row using the Gelegenheit from source or default
+    // Re-run duplicate check per row with its OWN document type
     const opportunityId =
       source.values["Gelegenheit"] || defaultOpportunityNumber || "";
+
     if (opportunityId) {
-      rows.slice(1).forEach(async (r) => {
+      otherRows.forEach(async (r) => {
+        if (!r.entityName) return;
         try {
           const result = await existsIdmItemByEntityFilenameOpportunity(
             authToken,
             cloudEnvironment,
-            source.entityName!,
+            r.entityName,
             r.file.name,
             opportunityId,
             "de-DE"
@@ -403,7 +443,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     toast({
       title: "Attribute übernommen",
       description:
-        "Werte aus der ersten Zeile wurden auf alle Dokumente angewendet.",
+        "Werte aus der ersten Zeile wurden (ohne Dokumententyp) auf alle Dokumente angewendet.",
     });
   };
 
@@ -508,7 +548,14 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                     <div className="px-2">
                       <Select
                         value={row.entityName}
-                        onValueChange={(val) => loadAttrsForEntity(row.key, val, row.file.name)}
+                        onValueChange={(val) =>
+                          loadAttrsForEntity(
+                            row.key,
+                            val,
+                            row.file.name,
+                            row.values?.["Gelegenheit"] || defaultOpportunityNumber
+                          )
+                        }
                       >
                         <SelectTrigger className="h-8">
                           <SelectValue placeholder="Dokumententyp wählen" />
