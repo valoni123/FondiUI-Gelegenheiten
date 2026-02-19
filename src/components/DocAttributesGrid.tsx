@@ -539,6 +539,8 @@ const DocAttributesGrid: React.FC<Props> = ({
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
+      if (c.id === "status") return "minmax(110px, max-content)";
+      if (c.id === "belegdatum") return "minmax(110px, max-content)";
       return "minmax(120px, 1fr)";
     });
 
