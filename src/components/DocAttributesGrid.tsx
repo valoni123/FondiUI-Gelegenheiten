@@ -613,8 +613,8 @@ const DocAttributesGrid: React.FC<Props> = ({
               <div className="px-2"></div> {/* Button: Replace */}
               <div className="px-2"></div> {/* Button: Linked Docs */}
               {displayColumns.map((col) => (
-                <div key={col.id} className="px-2">
-                  {col.header}
+                <div key={col.id} className="px-2 min-w-0">
+                  <div className="truncate">{col.header}</div>
                 </div>
               ))}
               <div className="px-2"></div> {/* Button: Delete */}
@@ -632,7 +632,7 @@ const DocAttributesGrid: React.FC<Props> = ({
               <div className="px-2"></div>
 
               {displayColumns.map((col) => (
-                <div key={`filter-${col.id}`} className="px-2">
+                <div key={`filter-${col.id}`} className="px-2 min-w-0">
                   <Input
                     value={filters[col.id] || ""}
                     onChange={(e) =>
@@ -641,7 +641,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         [col.id]: e.target.value,
                       }))
                     }
-                    className="h-6 text-[10px] px-1"
+                    className="h-6 w-full min-w-0 text-[10px] px-1"
                   />
                 </div>
               ))}
