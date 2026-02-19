@@ -1,10 +1,17 @@
 "use client";
 
 import React from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { type IdmDocPreview } from "@/api/idm";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -523,8 +530,8 @@ const DocAttributesGrid: React.FC<Props> = ({
       )}
 
       <TooltipProvider>
-        <div className="h-full w-full overflow-auto">
-          <div className="w-full min-w-max pr-4">
+        <ScrollArea className="h-full w-full">
+          <div className="pr-4">
             {/* Header */}
             <div
               className="grid gap-1 border-b py-2 text-xs font-medium text-muted-foreground"
@@ -829,7 +836,7 @@ const DocAttributesGrid: React.FC<Props> = ({
               })}
             </div>
           </div>
-        </div>
+        </ScrollArea>
       </TooltipProvider>
 
       {/* Confirm Delete Dialog */}
