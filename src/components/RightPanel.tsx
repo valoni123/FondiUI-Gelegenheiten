@@ -74,12 +74,40 @@ const RightPanel: React.FC<RightPanelProps> = ({
           searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
         )
       );
+
+      // DEBUG: log raw results per entity
+      console.log("[RightPanel] reloadPreviews() results:", {
+        selectedOpportunityId,
+        entityNames,
+        results: results.map((r, i) => {
+          const entityName = entityNames[i];
+          if (r.status === "fulfilled") {
+            return {
+              entityName,
+              status: "fulfilled" as const,
+              count: Array.isArray(r.value) ? r.value.length : 0,
+              sample: Array.isArray(r.value) ? r.value[0] : undefined,
+            };
+          }
+          return {
+            entityName,
+            status: "rejected" as const,
+            reason: r.reason instanceof Error ? r.reason.message : String(r.reason),
+          };
+        }),
+      });
+
       const merged: IdmDocPreview[] = [];
       results.forEach((r) => {
         if (r.status === "fulfilled" && Array.isArray(r.value)) {
           merged.push(...r.value);
         }
       });
+      console.log("[RightPanel] reloadPreviews() merged docPreviews:", {
+        count: merged.length,
+        sample: merged[0],
+      });
+
       setDocPreviews(merged);
     } finally {
       setIsPreviewsLoading(false);
@@ -101,6 +129,29 @@ const RightPanel: React.FC<RightPanelProps> = ({
             searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
           )
         );
+
+        // DEBUG: log raw results per entity
+        console.log("[RightPanel] loadPreviews() results:", {
+          selectedOpportunityId,
+          entityNames,
+          results: results.map((r, i) => {
+            const entityName = entityNames[i];
+            if (r.status === "fulfilled") {
+              return {
+                entityName,
+                status: "fulfilled" as const,
+                count: Array.isArray(r.value) ? r.value.length : 0,
+                sample: Array.isArray(r.value) ? r.value[0] : undefined,
+              };
+            }
+            return {
+              entityName,
+              status: "rejected" as const,
+              reason: r.reason instanceof Error ? r.reason.message : String(r.reason),
+            };
+          }),
+        });
+
         if (cancelled) return;
         const merged: IdmDocPreview[] = [];
         results.forEach((r) => {
@@ -108,13 +159,21 @@ const RightPanel: React.FC<RightPanelProps> = ({
             merged.push(...r.value);
           }
         });
+
+        console.log("[RightPanel] loadPreviews() merged docPreviews:", {
+          count: merged.length,
+          sample: merged[0],
+        });
+
         setDocPreviews(merged);
       } finally {
         if (!cancelled) setIsPreviewsLoading(false);
       }
     };
     loadPreviews();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
 
   // DEBUG: Log component mount/unmount
