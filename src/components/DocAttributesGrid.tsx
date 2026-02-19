@@ -698,6 +698,22 @@ const DocAttributesGrid: React.FC<Props> = ({
                 const entityName = doc.entityName || "";
                 const defs = attrDefsByEntity[entityName] || {};
 
+                // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
+                const statusCol = displayColumns.find(
+                  (c) => c.kind === "attr" && c.id === "status"
+                ) as Extract<DisplayColumn, { kind: "attr" }> | undefined;
+
+                const statusAttrName = statusCol
+                  ? resolveAttrName(rowEdited, rowInitial, defs, statusCol)
+                  : "Status";
+                const statusDef = defs[statusAttrName];
+                const initialStatusValue = (rowInitial[statusAttrName] ?? "").toString();
+                const initialStatusLabel = statusDef?.valueset?.length
+                  ? statusDef.valueset.find((vs) => vs.name === initialStatusValue)?.desc || initialStatusValue
+                  : initialStatusValue;
+
+                const isLockedByStatus = initialStatusLabel === "Freigegeben";
+
                 const isHighlighted = highlightedSet.has(getDocKey(doc));
 
                 const hasChanges = editableColumns.some((c) => {
@@ -730,7 +746,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         checked={selectedRows.has(idx)}
                         onCheckedChange={() => toggleRowSelected(idx)}
                         className="h-4 w-4"
-                        disabled={!doc.pid}
+                        disabled={!doc.pid || isLockedByStatus}
                         aria-label="Dokument auswählen"
                       />
                     </div>
@@ -795,9 +811,9 @@ const DocAttributesGrid: React.FC<Props> = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        disabled={!doc.pid}
+                        disabled={!doc.pid || isLockedByStatus}
                         onClick={() => setConfirmReplaceRow(idx)}
-                        title="Dokument ersetzen"
+                        title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
                         aria-label="Dokument ersetzen"
                       >
                         <ArrowLeftRight className="h-3 w-3" />
@@ -856,6 +872,8 @@ const DocAttributesGrid: React.FC<Props> = ({
                       const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
                       const isStatusCol = col.id === "status";
+                      const isEditDisabled = isLockedByStatus && !isStatusCol;
+
                       const statusLabel = isStatusCol
                         ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
                             ?.desc ??
@@ -880,11 +898,14 @@ const DocAttributesGrid: React.FC<Props> = ({
                                   return { ...prev, [idx]: row };
                                 })
                               }
+                              disabled={isEditDisabled}
                             >
                               <SelectTrigger
+                                disabled={isEditDisabled}
                                 className={cn(
                                   "h-6 w-full min-w-0 text-[10px] px-1",
                                   statusClass,
+                                  isEditDisabled && "opacity-60",
                                   hasError &&
                                     !hasSuccess &&
                                     "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -908,8 +929,10 @@ const DocAttributesGrid: React.FC<Props> = ({
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
+                                  disabled={isEditDisabled}
                                   className={cn(
                                     "h-6 w-full min-w-0 justify-start text-left text-[10px] px-1",
+                                    isEditDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
                                       "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -934,19 +957,21 @@ const DocAttributesGrid: React.FC<Props> = ({
                                       ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
                                       : undefined
                                   }
-                                  onSelect={(date) =>
+                                  onSelect={(date) => {
+                                    if (isEditDisabled) return;
                                     setEdited((prev) => {
                                       const row = { ...(prev[idx] ?? {}) };
                                       row[attrName] = date ? format(date, "yyyy-MM-dd") : "";
                                       return { ...prev, [idx]: row };
-                                    })
-                                  }
+                                    });
+                                  }}
                                 />
                               </PopoverContent>
                             </Popover>
                           ) : (
                             <Input
                               value={rowEdited[attrName] ?? ""}
+                              disabled={isEditDisabled}
                               onChange={(e) =>
                                 setEdited((prev) => {
                                   const row = { ...(prev[idx] ?? {}) };
@@ -956,6 +981,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                               }
                               className={cn(
                                 "h-6 w-full min-w-0 text-[10px] px-1",
+                                isEditDisabled && "opacity-60",
                                 hasError &&
                                   !hasSuccess &&
                                   "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -975,9 +1001,9 @@ const DocAttributesGrid: React.FC<Props> = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6 text-destructive"
-                        disabled={!doc.pid}
+                        disabled={!doc.pid || isLockedByStatus}
                         onClick={() => setConfirmDeleteRow(idx)}
-                        title="Dokument löschen"
+                        title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
                         aria-label="Dokument löschen"
                       >
                         <Trash2 className="h-3 w-3" />
