@@ -683,7 +683,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         [col.id]: e.target.value,
                       }))
                     }
-                    className="h-6 w-full min-w-0 text-[10px] px-1"
+                    className="h-6 w-full min-w-0 text-xs px-1"
                   />
                 </div>
               ))}
@@ -859,8 +859,14 @@ const DocAttributesGrid: React.FC<Props> = ({
                       if (col.kind === "meta") {
                         const value = col.getValue(doc);
                         return (
-                          <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
-                            <div className="truncate text-[10px] text-foreground">{value || ""}</div>
+                          <div
+                            key={`${idx}-${col.id}`}
+                            className={cn(
+                              "px-2 py-2 min-w-0 flex items-center",
+                              isHighlighted && rowHighlightClass
+                            )}
+                          >
+                            <div className="truncate text-xs text-foreground">{value || ""}</div>
                           </div>
                         );
                       }
@@ -903,7 +909,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                               <SelectTrigger
                                 disabled={isEditDisabled}
                                 className={cn(
-                                  "h-6 w-full min-w-0 text-[10px] px-1",
+                                  "h-6 w-full min-w-0 text-xs px-1",
                                   statusClass,
                                   isEditDisabled && "opacity-60",
                                   hasError &&
@@ -931,7 +937,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                                   variant="outline"
                                   disabled={isEditDisabled}
                                   className={cn(
-                                    "h-6 w-full min-w-0 justify-start text-left text-[10px] px-1",
+                                    "h-6 w-full min-w-0 justify-start text-left text-xs px-1",
                                     isEditDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
@@ -980,7 +986,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                                 })
                               }
                               className={cn(
-                                "h-6 w-full min-w-0 text-[10px] px-1",
+                                "h-6 w-full min-w-0 text-xs px-1",
                                 isEditDisabled && "opacity-60",
                                 hasError &&
                                   !hasSuccess &&
