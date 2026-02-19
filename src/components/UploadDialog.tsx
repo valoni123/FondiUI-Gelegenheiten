@@ -128,7 +128,8 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     rowKey: string,
     entityName: string,
     fileName?: string,
-    opportunityIdHint?: string
+    opportunityIdHint?: string,
+    applyFromValues?: Record<string, string>
   ) => {
     // IMPORTANT: do NOT reset values here.
     // Users may change the document type after filling fields and we want to preserve matching values.
@@ -178,10 +179,24 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 
           const mergedValues: Record<string, string> = { ...baseValues };
           const prevValues = r.values || {};
+
+          // 1) keep existing values when possible
           for (const name of Object.keys(mergedValues)) {
             const pv = prevValues[name];
             if (pv != null && String(pv).trim().length > 0) {
               mergedValues[name] = String(pv);
+            }
+          }
+
+          // 2) optionally apply values from another row (e.g. apply-to-all), but only into empty fields
+          if (applyFromValues) {
+            for (const name of Object.keys(mergedValues)) {
+              const current = (mergedValues[name] ?? "").toString().trim();
+              if (current.length > 0) continue;
+              const av = applyFromValues[name];
+              if (av != null && String(av).trim().length > 0) {
+                mergedValues[name] = String(av);
+              }
             }
           }
 
@@ -382,30 +397,33 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     }
   };
 
-  // Apply first row's attributes (values) to all rows (WITHOUT copying the document type)
+  // Apply first row's attributes (values) to all rows.
+  // The document type is copied ONLY if the target row has no document type yet.
   const applyAttributesToAll = async () => {
     const source = rows[0];
     if (!source?.entityName || source.attrs.length === 0) return;
 
     const otherRows = rows.slice(1);
 
-    // Copy only values that exist on the target row (based on its loaded attrs)
+    // 1) Apply values to rows that already have attributes loaded (do not override non-empty fields)
     setRows((prev) =>
       prev.map((r, idx) => {
         if (idx === 0) return r;
-        if (r.attrs.length === 0) return r; // can't apply if the target didn't choose a document type yet
+        if (r.attrs.length === 0) return r;
 
         const nextValues: Record<string, string> = { ...(r.values || {}) };
         r.attrs.forEach((a) => {
-          const v = source.values[a.name];
-          if (v != null && String(v).trim().length > 0) {
-            nextValues[a.name] = String(v);
-          }
+          const src = source.values[a.name];
+          if (src == null || String(src).trim().length === 0) return;
+
+          const cur = (nextValues[a.name] ?? "").toString().trim();
+          if (cur.length > 0) return;
+
+          nextValues[a.name] = String(src);
         });
 
         return {
           ...r,
-          // keep r.entityName!
           values: nextValues,
           loadingAttrs: false,
           duplicateExists: false,
@@ -413,37 +431,19 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       })
     );
 
-    // Re-run duplicate check per row with its OWN document type
+    // 2) For rows without a document type yet: copy the type and load attributes, while applying values
     const opportunityId =
       source.values["Gelegenheit"] || defaultOpportunityNumber || "";
 
-    if (opportunityId) {
-      otherRows.forEach(async (r) => {
-        if (!r.entityName) return;
-        try {
-          const result = await existsIdmItemByEntityFilenameOpportunity(
-            authToken,
-            cloudEnvironment,
-            r.entityName,
-            r.file.name,
-            opportunityId,
-            "de-DE"
-          );
-          setRows((prev) =>
-            prev.map((rr) =>
-              rr.key === r.key ? { ...rr, duplicateExists: result.exists } : rr
-            )
-          );
-        } catch {
-          // leave duplicateExists as false on error
-        }
-      });
-    }
+    otherRows.forEach((r) => {
+      if (r.entityName) return; // already has a document type
+      loadAttrsForEntity(r.key, source.entityName!, r.file.name, opportunityId, source.values);
+    });
 
     toast({
       title: "Attribute übernommen",
       description:
-        "Werte aus der ersten Zeile wurden (ohne Dokumententyp) auf alle Dokumente angewendet.",
+        "Werte aus der ersten Zeile wurden auf alle Dokumente angewendet. Der Dokumententyp wurde nur übernommen, wenn er noch leer war.",
     });
   };
 
