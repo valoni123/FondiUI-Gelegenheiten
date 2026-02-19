@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
+
 import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
@@ -351,11 +351,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
   };
 
   return (
-    <div className="flex h-full flex-col p-4">
-      {/* Header row with title and back button aligned horizontally */}
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
-        <div className="flex items-center gap-2">
+    <div className="flex h-full flex-col p-4 overflow-y-auto">
+      {/* Header row with centered selection */}
+      <div className="mb-3 flex items-center">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
+        </div>
+
+        <div className="flex-none text-sm font-medium text-muted-foreground">
+          Auswahl: {selectedOpportunityId}
+        </div>
+
+        <div className="flex-1 flex items-center justify-end gap-2">
           <BackToOverviewButton onBack={onClose} />
           <Button
             variant="outline"
@@ -375,12 +382,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       </div>
 
       <Card className="flex-grow flex flex-col">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base text-muted-foreground">
-            Auswahl: {selectedOpportunityId}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col">
+        <CardContent className="p-6 flex flex-1 flex-col">
           {/* OBEN: Upload */}
           <div className="flex-shrink-0">
             <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumente hochladen</div>
@@ -430,62 +432,60 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           <Separator className="my-4" />
 
-          {/* UNTEN: Dokumentenvorschau */}
-          <div className="min-h-0 flex-shrink-0">
+          {/* UNTEN: Dokumentenvorschau (no fixed-height scroll; let outer page scroll) */}
+          <div className="flex-shrink-0">
             <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenvorschau</div>
-            <ScrollArea className="h-64 rounded-md border">
-              <div className="p-3">
-                {isPreviewsLoading ? (
-                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Vorschauen werden geladen…
-                  </div>
-                ) : docPreviews.length === 0 ? (
-                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                    Keine Vorschauen gefunden.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {docPreviews.map((doc, idx) => (
-                      <div
-                        key={`${doc.smallUrl}-${idx}`}
-                        className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
-                        onClick={() => openFullPreview(doc)}
-                        title={doc.filename || "Vorschau öffnen"}
-                      >
-                        {doc.smallUrl ? (
-                          <img
-                            src={doc.smallUrl}
-                            alt={doc.filename || `Vorschau ${idx + 1}`}
-                            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center gap-2">
-                            <FileWarning className="h-10 w-10 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {doc.filename || doc.entityName || "Dokument"}
+            <div className="rounded-md border p-3">
+              {isPreviewsLoading ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Vorschauen werden geladen…
+                </div>
+              ) : docPreviews.length === 0 ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  Keine Vorschauen gefunden.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {docPreviews.map((doc, idx) => (
+                    <div
+                      key={`${doc.smallUrl}-${idx}`}
+                      className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
+                      onClick={() => openFullPreview(doc)}
+                      title={doc.filename || "Vorschau öffnen"}
+                    >
+                      {doc.smallUrl ? (
+                        <img
+                          src={doc.smallUrl}
+                          alt={doc.filename || `Vorschau ${idx + 1}`}
+                          className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <FileWarning className="h-10 w-10 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openFullPreview(doc);
-                          }}
-                          title="Details anzeigen"
-                        >
-                          <ChevronLeft className="h-3 w-3 rotate-180" />
-                        </Button>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {doc.filename || doc.entityName || "Dokument"}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openFullPreview(doc);
+                        }}
+                        title="Details anzeigen"
+                      >
+                        <ChevronLeft className="h-3 w-3 rotate-180" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
