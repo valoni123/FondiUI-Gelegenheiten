@@ -28,6 +28,11 @@ import { existsIdmItemByEntityFilenameOpportunity } from "@/api/idm";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse } from "date-fns";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 type UploadDialogProps = {
   open: boolean;
@@ -72,6 +77,19 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
   const [bulkSaving, setBulkSaving] = React.useState(false);
+
+  const duplicateRows = React.useMemo(() => {
+    return rows.filter((r) => r.duplicateExists && r.entityName);
+  }, [rows]);
+
+  const getEntityLabel = React.useCallback(
+    (entityName: string) => {
+      const opt = entityOptions?.find((o) => o.name === entityName);
+      const desc = (opt?.desc || opt?.name || entityName).toString();
+      return desc.replace(/^\*/, "").trim();
+    },
+    [entityOptions]
+  );
 
   // Clear rows when dialog is closed
   React.useEffect(() => {
@@ -399,6 +417,23 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
+        {duplicateRows.length > 0 && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertTitle>Dokument bereits vorhanden</AlertTitle>
+            <AlertDescription>
+              Es existiert bereits ein Dokument mit gleichem Dateinamen und gleichem Dokumententyp:
+              <ul className="mt-2 list-disc pl-5">
+                {duplicateRows.map((r) => (
+                  <li key={`dup-${r.key}`}>
+                    <span className="font-medium">{r.file.name}</span>
+                    {r.entityName ? ` (${getEntityLabel(r.entityName)})` : ""}
+                  </li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Action row: left 'apply to all' and right 'upload all' */}
         {(rows.length > 1 || rows.length > 0) && (
           <div className="flex items-center justify-between mb-2">
@@ -501,11 +536,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                           })()}
                         </SelectContent>
                       </Select>
-                      {row.duplicateExists && (
-                        <div className="mt-1 text-xs text-red-600">
-                          Info: Dokument mit diesem Dateinamen wurde bereits hochgeladen
-                        </div>
-                      )}
+                      {/* moved duplicate message above the table */}
                     </div>
 
                     {/* Filename */}
