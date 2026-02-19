@@ -43,12 +43,23 @@ type Props = {
   onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
+  title?: string;
   onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
   authToken: string;
   cloudEnvironment: CloudEnvironment;
 };
 
-const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow, onReplaceDoc, hideSaveAllButton, onDeleteDoc, authToken, cloudEnvironment }) => {
+const DocAttributesGrid: React.FC<Props> = ({
+  docs,
+  onOpenFullPreview,
+  onSaveRow,
+  onReplaceDoc,
+  hideSaveAllButton,
+  title,
+  onDeleteDoc,
+  authToken,
+  cloudEnvironment,
+}) => {
   const columns = React.useMemo<string[]>(() => {
     const names = new Set<string>();
     for (const d of docs) {
@@ -325,34 +336,45 @@ const DocAttributesGrid: React.FC<Props> = ({ docs, onOpenFullPreview, onSaveRow
 
   return (
     <div className="h-full w-full">
-      {!hideSaveAllButton && ( // Conditional rendering based on new prop
-        <div className="flex justify-end items-center gap-2 mb-2 pr-4">
-          {/* Batch delete appears only when more than one row is selected */}
-          {selectedRows.size > 1 && (
-            <Button
-              variant="destructive"
-              size="sm"
-              className="h-8"
-              onClick={handleBatchDelete}
-              title="Ausgewählte Dokumente löschen"
-            >
-              <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
-            </Button>
+      {(title || !hideSaveAllButton) && (
+        <div className="mb-2 flex items-center justify-between gap-3 pr-4">
+          {title ? (
+            <div className="text-sm font-medium text-muted-foreground">{title}</div>
+          ) : (
+            <div />
           )}
-          <Button
-            variant="default"
-            size="sm"
-            className={cn(
-              "h-8",
-              enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
-            )}
-            disabled={!enableSaveAllButton}
-            onClick={handleSaveAllChanges}
-          >
-            <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
-          </Button>
+
+          {!hideSaveAllButton && (
+            <div className="flex items-center gap-2">
+              {/* Batch delete appears only when more than one row is selected */}
+              {selectedRows.size > 1 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-8"
+                  onClick={handleBatchDelete}
+                  title="Ausgewählte Dokumente löschen"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
+                </Button>
+              )}
+              <Button
+                variant="default"
+                size="sm"
+                className={cn(
+                  "h-8",
+                  enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
+                )}
+                disabled={!enableSaveAllButton}
+                onClick={handleSaveAllChanges}
+              >
+                <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+              </Button>
+            </div>
+          )}
         </div>
       )}
+
       <TooltipProvider>
         <ScrollArea className="h-full w-full">
           <div className="pr-4">

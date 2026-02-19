@@ -418,8 +418,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           {/* MITTE: Dokumentenliste */}
           <div className="min-h-0 flex-1">
-            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenliste</div>
             <DocAttributesGrid
+              title="Dokumentenliste"
               docs={docPreviews}
               onOpenFullPreview={openFullPreview}
               onSaveRow={handleSaveRow}
