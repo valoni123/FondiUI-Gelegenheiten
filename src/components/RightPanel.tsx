@@ -53,20 +53,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
   const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
 
-  const [isFullPreviewDialogOpen, setIsFullPreviewDialogOpen] = React.useState(false);
-  const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null);
-  const [isFullPreviewLoading, setIsFullPreviewLoading] = React.useState(false);
-  // ADD: track current index in docPreviews
-  const [fullPreviewIndex, setFullPreviewIndex] = React.useState<number | null>(null);
+  const getDocKey = React.useCallback((doc: IdmDocPreview) => {
+    if (doc.pid) return `pid:${doc.pid}`;
+    // fallback when pid is missing
+    return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.smallUrl ?? ""}`;
+  }, []);
 
-  const [isReplaceDialogOpen, setIsReplaceDialogOpen] = React.useState(false); // New state for replace dialog
-  const [isReplacing, setIsReplacing] = React.useState(false); // New state for replacement loading
-  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = React.useState(false); // Confirm delete in preview
-  const [isLinkDialogOpen, setIsLinkDialogOpen] = React.useState(false); // New state for link dialog
+  const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
 
   // ADD: helper to reload previews for the current opportunity
-  const reloadPreviews = React.useCallback(async () => {
+  const reloadPreviews = React.useCallback(async (opts?: { highlightNewFromKeys?: string[] }) => {
     if (!selectedOpportunityId || !authToken || !entityNames?.length) return;
+
+    // By default, any action/reload clears the one-time highlight.
+    if (!opts?.highlightNewFromKeys) {
+      setHighlightedDocKeys([]);
+    }
+
     setIsPreviewsLoading(true);
     try {
       const results = await Promise.allSettled(
@@ -103,6 +106,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
           merged.push(...r.value);
         }
       });
+
+      if (opts?.highlightNewFromKeys) {
+        const prev = new Set(opts.highlightNewFromKeys);
+        const newKeys = merged.map(getDocKey).filter((k) => !prev.has(k));
+        setHighlightedDocKeys(newKeys);
+      }
+
       console.log("[RightPanel] reloadPreviews() merged docPreviews:", {
         count: merged.length,
         sample: merged[0],
@@ -112,7 +122,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     } finally {
       setIsPreviewsLoading(false);
     }
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, getDocKey]);
 
   // keep existing useEffect for initial load
   React.useEffect(() => {
@@ -122,6 +132,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
         setDocPreviews([]);
         return;
       }
+
+      // Switching opportunity / initial load: clear highlight
+      setHighlightedDocKeys([]);
+
       setIsPreviewsLoading(true);
       try {
         const results = await Promise.allSettled(
@@ -194,6 +208,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, [selectedOpportunityId, selectedOpportunityProject, authToken, cloudEnvironment, entityNames]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
+    // Any user action can clear the one-time highlight
+    setHighlightedDocKeys([]);
     setFullPreviewData(doc);
     setIsFullPreviewDialogOpen(true);
     // compute index in current docPreviews
@@ -466,7 +482,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
               onCompleted={async () => {
                 // Clear files and refresh previews
                 setFiles([]);
-                await reloadPreviews();
+                // One-time highlight for newly uploaded docs
+                const prevKeys = docPreviews.map(getDocKey);
+                await reloadPreviews({ highlightNewFromKeys: prevKeys });
               }}
               defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
               defaultProjectName={selectedOpportunityProject} // NEW: prefill "Projekt"
@@ -480,6 +498,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             <DocAttributesGrid
               title="Dokumentenliste"
               docs={docPreviews}
+              highlightedDocKeys={highlightedDocKeys}
               onOpenFullPreview={openFullPreview}
               onSaveRow={handleSaveRow}
               onReplaceDoc={handleReplaceDoc}

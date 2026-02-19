@@ -38,8 +38,9 @@ import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 
 type Props = {
   docs: IdmDocPreview[];
+  highlightedDocKeys?: string[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
-  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>; 
+  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean; // New prop
   title?: string;
@@ -50,6 +51,7 @@ type Props = {
 
 const DocAttributesGrid: React.FC<Props> = ({
   docs,
+  highlightedDocKeys,
   onOpenFullPreview,
   onSaveRow,
   onReplaceDoc,
@@ -59,6 +61,20 @@ const DocAttributesGrid: React.FC<Props> = ({
   authToken,
   cloudEnvironment,
 }) => {
+  const highlightedSet = React.useMemo(
+    () => new Set(highlightedDocKeys ?? []),
+    [highlightedDocKeys]
+  );
+
+  const getDocKey = React.useCallback((doc: IdmDocPreview) => {
+    if (doc.pid) return `pid:${doc.pid}`;
+    return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.smallUrl ?? ""}`;
+  }, []);
+
+  const rowHighlightClass = "bg-red-50 border-y border-red-400";
+  const rowHighlightLeft = "border-l border-red-400 rounded-l-sm";
+  const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
+
   type DisplayColumn =
     | {
         kind: "attr";
@@ -682,6 +698,8 @@ const DocAttributesGrid: React.FC<Props> = ({
                 const entityName = doc.entityName || "";
                 const defs = attrDefsByEntity[entityName] || {};
 
+                const isHighlighted = highlightedSet.has(getDocKey(doc));
+
                 const hasChanges = editableColumns.some((c) => {
                   const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
                   return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
@@ -690,7 +708,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                 return (
                   <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
                     {/* Detail Button */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -707,7 +725,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Select Checkbox */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
                       <Checkbox
                         checked={selectedRows.has(idx)}
                         onCheckedChange={() => toggleRowSelected(idx)}
@@ -718,7 +736,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Save Button */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -772,7 +790,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Replace Button */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -787,7 +805,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     </div>
 
                     {/* Linked Documents Button */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
                       {doc.pid ? (
                         <LinkedDocumentsDialog
                           authToken={authToken}
@@ -825,7 +843,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                       if (col.kind === "meta") {
                         const value = col.getValue(doc);
                         return (
-                          <div key={`${idx}-${col.id}`} className="px-2 py-2 min-w-0">
+                          <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
                             <div className="truncate text-[10px] text-foreground">{value || ""}</div>
                           </div>
                         );
@@ -851,7 +869,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                           : "";
 
                       return (
-                        <div key={`${idx}-${col.id}`} className="px-2 py-2 min-w-0">
+                        <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
                           {def?.valueset && def.valueset.length > 0 ? (
                             <Select
                               value={(rowEdited[attrName] ?? "") || undefined}
@@ -952,7 +970,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                     })}
 
                     {/* Delete Button */}
-                    <div className="px-2 py-2 flex items-center">
+                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightRight)}>
                       <Button
                         variant="ghost"
                         size="icon"
