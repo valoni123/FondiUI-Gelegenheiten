@@ -24,6 +24,7 @@ import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
 import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import BackToOverviewButton from "./BackToOverviewButton";
+import { Separator } from "@/components/ui/separator";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -379,87 +380,43 @@ const RightPanel: React.FC<RightPanelProps> = ({
             Auswahl: {selectedOpportunityId}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col gap-4">
-          <div className="min-h-0">
-            {isPreviewsLoading ? (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Vorschauen werden geladen…
-              </div>
-            ) : docPreviews.length === 0 ? (
-              <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                Keine Vorschauen gefunden.
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {docPreviews.map((doc, idx) => (
-                  <div
-                    key={`${doc.smallUrl}-${idx}`}
-                    className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
-                    onClick={() => openFullPreview(doc)}
-                    title={doc.filename || "Vorschau öffnen"}
-                  >
-                    {doc.smallUrl ? (
-                      <img
-                        src={doc.smallUrl}
-                        alt={doc.filename || `Vorschau ${idx + 1}`}
-                        className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
-                      />
-                    ) : (
-                      <div className="flex flex-col items-center gap-2">
-                        <FileWarning className="h-10 w-10 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
-                      </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {doc.filename || doc.entityName || "Dokument"}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openFullPreview(doc);
-                      }}
-                      title="Details anzeigen"
-                    >
-                      <ChevronLeft className="h-3 w-3 rotate-180" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+        <CardContent className="flex flex-1 flex-col">
+          {/* OBEN: Upload */}
+          <div className="flex-shrink-0">
+            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumente hochladen</div>
+            <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
+
+            {/* Upload Dialog for new files */}
+            <UploadDialog
+              open={isUploadDialogOpen}
+              onOpenChange={(open) => {
+                setIsUploadDialogOpen(open);
+                if (!open) {
+                  // Clear pending files when dialog closes so reopening starts fresh
+                  setFiles([]);
+                }
+              }}
+              files={files}
+              entityNames={entityNames}
+              // NEW: pass name+desc display options
+              entityOptions={entityOptions}
+              authToken={authToken}
+              cloudEnvironment={cloudEnvironment}
+              onCompleted={async () => {
+                // Clear files and refresh previews
+                setFiles([]);
+                await reloadPreviews();
+              }}
+              defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
+              defaultProjectName={selectedOpportunityProject} // NEW: prefill "Projekt"
+            />
           </div>
 
-          <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
+          <Separator className="my-4" />
 
-          {/* Upload Dialog for new files */}
-          <UploadDialog
-            open={isUploadDialogOpen}
-            onOpenChange={(open) => {
-              setIsUploadDialogOpen(open);
-              if (!open) {
-                // Clear pending files when dialog closes so reopening starts fresh
-                setFiles([]);
-              }
-            }}
-            files={files}
-            entityNames={entityNames}
-            // NEW: pass name+desc display options
-            entityOptions={entityOptions}
-            authToken={authToken}
-            cloudEnvironment={cloudEnvironment}
-            onCompleted={async () => {
-              // Clear files and refresh previews
-              setFiles([]);
-              await reloadPreviews();
-            }}
-            defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
-            defaultProjectName={selectedOpportunityProject} // NEW: prefill "Projekt"
-          />
-
+          {/* MITTE: Dokumentenliste */}
           <div className="min-h-0 flex-1">
+            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenliste</div>
             <DocAttributesGrid
               docs={docPreviews}
               onOpenFullPreview={openFullPreview}
@@ -469,6 +426,66 @@ const RightPanel: React.FC<RightPanelProps> = ({
               authToken={authToken}
               cloudEnvironment={cloudEnvironment}
             />
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* UNTEN: Dokumentenvorschau */}
+          <div className="min-h-0 flex-shrink-0">
+            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenvorschau</div>
+            <ScrollArea className="h-64 rounded-md border">
+              <div className="p-3">
+                {isPreviewsLoading ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Vorschauen werden geladen…
+                  </div>
+                ) : docPreviews.length === 0 ? (
+                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                    Keine Vorschauen gefunden.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {docPreviews.map((doc, idx) => (
+                      <div
+                        key={`${doc.smallUrl}-${idx}`}
+                        className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
+                        onClick={() => openFullPreview(doc)}
+                        title={doc.filename || "Vorschau öffnen"}
+                      >
+                        {doc.smallUrl ? (
+                          <img
+                            src={doc.smallUrl}
+                            alt={doc.filename || `Vorschau ${idx + 1}`}
+                            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            <FileWarning className="h-10 w-10 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {doc.filename || doc.entityName || "Dokument"}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFullPreview(doc);
+                          }}
+                          title="Details anzeigen"
+                        >
+                          <ChevronLeft className="h-3 w-3 rotate-180" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         </CardContent>
       </Card>
