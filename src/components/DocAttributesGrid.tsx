@@ -719,6 +719,19 @@ const DocAttributesGrid: React.FC<Props> = ({
                       const def = defs[attrName];
                       const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
+                      const isStatusCol = col.id === "status";
+                      const statusLabel = isStatusCol
+                        ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
+                            ?.desc ??
+                            (rowEdited[attrName] ?? ""))
+                        : "";
+                      const statusClass =
+                        isStatusCol && (rowEdited[attrName] ?? "")
+                          ? statusLabel === "Freigegeben"
+                            ? "bg-green-600 text-white border-green-600 hover:bg-green-600"
+                            : "bg-red-600 text-white border-red-600 hover:bg-red-600"
+                          : "";
+
                       return (
                         <div key={`${idx}-${col.id}`} className="px-2">
                           {def?.valueset && def.valueset.length > 0 ? (
@@ -735,6 +748,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                               <SelectTrigger
                                 className={cn(
                                   "h-6 text-[10px] px-1",
+                                  statusClass,
                                   hasError &&
                                     !hasSuccess &&
                                     "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
