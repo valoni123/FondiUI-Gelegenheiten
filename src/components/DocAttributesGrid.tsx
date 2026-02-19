@@ -312,6 +312,19 @@ const DocAttributesGrid: React.FC<Props> = ({
     setConfirmBatchDelete(false);
   };
 
+  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Doc (flex) | Attributes (flex) | Delete (30)
+  // Use minmax(..., fr) so the grid always expands to use the full available width,
+  // while still keeping sensible minimum widths (and allowing horizontal scroll if needed).
+  const gridTemplate = React.useMemo(() => {
+    const fixed = ["30px", "30px", "30px", "30px", "30px"]; // icon/button columns
+    const docCol = "minmax(160px, 2fr)";
+    const attrCols = columns.length ? columns.map(() => "minmax(100px, 1fr)") : [];
+    const tail = "30px"; // delete
+
+    return [...fixed, docCol, ...attrCols, tail].join(" ");
+  }, [columns]);
+
+  // IMPORTANT: don't return early before hooks (React Rules of Hooks)
   if (!docs.length) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -319,20 +332,6 @@ const DocAttributesGrid: React.FC<Props> = ({
       </div>
     );
   }
-
-  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Doc (flex) | Attributes (flex) | Delete (30)
-  // Use minmax(..., fr) so the grid always expands to use the full available width,
-  // while still keeping sensible minimum widths (and allowing horizontal scroll if needed).
-  const gridTemplate = React.useMemo(() => {
-    const fixed = ["30px", "30px", "30px", "30px", "30px"]; // icon/button columns
-    const docCol = "minmax(160px, 2fr)";
-    const attrCols = columns.length
-      ? columns.map(() => "minmax(100px, 1fr)")
-      : [];
-    const tail = "30px"; // delete
-
-    return [...fixed, docCol, ...attrCols, tail].join(" ");
-  }, [columns]);
 
   return (
     <div className="h-full w-full">
