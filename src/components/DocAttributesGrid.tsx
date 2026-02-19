@@ -639,7 +639,6 @@ const DocAttributesGrid: React.FC<Props> = ({
                         [col.id]: e.target.value,
                       }))
                     }
-                    placeholder={`Filter…`}
                     className="h-6 text-[10px] px-1"
                   />
                 </div>
