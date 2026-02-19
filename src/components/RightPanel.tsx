@@ -25,6 +25,7 @@ import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import Li
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import BackToOverviewButton from "./BackToOverviewButton";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -72,6 +73,16 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, []);
 
   const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
+
+  const highlightedDocKeySet = React.useMemo(
+    () => new Set(highlightedDocKeys),
+    [highlightedDocKeys]
+  );
+
+  const isDocHighlighted = React.useCallback(
+    (doc: IdmDocPreview) => highlightedDocKeySet.has(getDocKey(doc)),
+    [highlightedDocKeySet, getDocKey]
+  );
 
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async (opts?: { highlightNewFromKeys?: string[] }) => {
@@ -540,7 +551,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
                   {docPreviews.map((doc, idx) => (
                     <div
                       key={`${doc.smallUrl}-${idx}`}
-                      className="group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer"
+                      className={cn(
+                        "group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer",
+                        isDocHighlighted(doc) && "border-red-400 ring-1 ring-red-400"
+                      )}
                       onClick={() => openFullPreview(doc)}
                       title={doc.filename || "Vorschau öffnen"}
                     >

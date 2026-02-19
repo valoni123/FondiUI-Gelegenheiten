@@ -646,7 +646,7 @@ const DocAttributesGrid: React.FC<Props> = ({
         <div className="w-full overflow-x-auto">
           <div className="pr-4">
             <div
-              className="grid w-max min-w-full gap-1"
+              className="grid w-max min-w-full"
               style={{ gridTemplateColumns: gridTemplate }}
             >
               {/* Header */}
