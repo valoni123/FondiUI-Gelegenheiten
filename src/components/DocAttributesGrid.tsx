@@ -471,6 +471,7 @@ const DocAttributesGrid: React.FC<Props> = ({
   const handleSaveAllChanges = async () => {
     const successfulSaves: number[] = [];
     const successfulUpdates: { rowIdx: number; cols: string[] }[] = [];
+    let hadFailures = false;
 
     for (let idx = 0; idx < docs.length; idx++) {
       const doc = docs[idx];
@@ -491,19 +492,27 @@ const DocAttributesGrid: React.FC<Props> = ({
         .filter((u) => u.changed)
         .map((u) => ({ name: u.attrName, value: u.value }));
 
-      if (updates.length && doc.pid) {
+      if (updates.length) {
+        if (!doc.pid) {
+          hadFailures = true;
+          flashError(idx, updates.map((u) => u.name));
+          continue;
+        }
+
         try {
           const res = await onSaveRow(doc, updates);
           if (res.ok) {
             successfulSaves.push(idx);
             successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
           } else {
+            hadFailures = true;
             const colsToFlash = res.errorAttributes?.length
               ? res.errorAttributes
               : updates.map((u) => u.name);
             flashError(idx, colsToFlash);
           }
         } catch {
+          hadFailures = true;
           flashError(idx, updates.map((u) => u.name));
         }
       }
@@ -529,7 +538,35 @@ const DocAttributesGrid: React.FC<Props> = ({
         return next;
       });
     }
+
+    return { ok: !hadFailures };
   };
+
+  // Unsaved-changes guard (used when user tries other actions while "Alle Änderungen speichern" is active)
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = React.useState(false);
+  const [unsavedSaving, setUnsavedSaving] = React.useState(false);
+  const [unsavedSaveFailed, setUnsavedSaveFailed] = React.useState(false);
+  const pendingActionRef = React.useRef<null | (() => void)>(null);
+
+  const runWithUnsavedGuard = React.useCallback(
+    (action: () => void) => {
+      // In detail view we intentionally don't guard (there is no "Save All" button)
+      if (hideSaveAllButton) {
+        action();
+        return;
+      }
+
+      if (!enableSaveAllButton) {
+        action();
+        return;
+      }
+
+      pendingActionRef.current = action;
+      setUnsavedSaveFailed(false);
+      setUnsavedDialogOpen(true);
+    },
+    [enableSaveAllButton, hideSaveAllButton]
+  );
 
   // Replace flow state
   const [confirmReplaceRow, setConfirmReplaceRow] = React.useState<number | null>(null);
@@ -730,9 +767,11 @@ const DocAttributesGrid: React.FC<Props> = ({
                         size="icon"
                         className="h-6 w-6"
                         onClick={() =>
-                          onOpenFullPreview(doc, (updatedDoc) => {
-                            console.log("Doc updated from DetailDialog:", updatedDoc);
-                          })
+                          runWithUnsavedGuard(() =>
+                            onOpenFullPreview(doc, (updatedDoc) => {
+                              console.log("Doc updated from DetailDialog:", updatedDoc);
+                            })
+                          )
                         }
                         title="Details anzeigen"
                       >
@@ -812,7 +851,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         size="icon"
                         className="h-6 w-6"
                         disabled={!doc.pid || isLockedByStatus}
-                        onClick={() => setConfirmReplaceRow(idx)}
+                        onClick={() => runWithUnsavedGuard(() => setConfirmReplaceRow(idx))}
                         title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
                         aria-label="Dokument ersetzen"
                       >
@@ -832,7 +871,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                               variant="ghost"
                               size="icon"
                               className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                              onClick={() => setOpen(true)}
+                              onClick={() => runWithUnsavedGuard(() => setOpen(true))}
                               title="Verlinkte Dokumente anzeigen"
                               aria-label="Verlinkte Dokumente anzeigen"
                             >
@@ -1008,7 +1047,7 @@ const DocAttributesGrid: React.FC<Props> = ({
                         size="icon"
                         className="h-6 w-6 text-destructive"
                         disabled={!doc.pid || isLockedByStatus}
-                        onClick={() => setConfirmDeleteRow(idx)}
+                        onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
                         title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
                         aria-label="Dokument löschen"
                       >
@@ -1063,13 +1102,11 @@ const DocAttributesGrid: React.FC<Props> = ({
       {/* Confirm Batch Delete Dialog */}
       <Dialog
         open={confirmBatchDelete}
-        onOpenChange={(open) => {
-          if (!open) setConfirmBatchDelete(false);
-        }}
+        onOpenChange={(open) => setConfirmBatchDelete(open)}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Sollen wirklich alle ausgewählten Dokumente gelöscht werden?</DialogTitle>
+            <DialogTitle>Sollen die ausgewählten Dokumente wirklich gelöscht werden?</DialogTitle>
             <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
@@ -1078,9 +1115,74 @@ const DocAttributesGrid: React.FC<Props> = ({
             </Button>
             <Button
               variant="destructive"
-              onClick={executeBatchDelete}
+              onClick={async () => {
+                await executeBatchDelete();
+              }}
             >
               ja
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved Changes Dialog */}
+      <Dialog
+        open={unsavedDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setUnsavedDialogOpen(false);
+            pendingActionRef.current = null;
+            setUnsavedSaveFailed(false);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nicht gespeicherte Änderungen</DialogTitle>
+            <DialogDescription>
+              Es gibt Änderungen, die noch nicht gespeichert wurden. Bitte speichern Sie zuerst, um fortzufahren.
+            </DialogDescription>
+          </DialogHeader>
+
+          {unsavedSaveFailed && (
+            <div className="text-sm text-destructive">
+              Speichern nicht vollständig möglich. Bitte prüfen Sie die markierten Felder.
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              disabled={unsavedSaving}
+              onClick={() => {
+                setUnsavedDialogOpen(false);
+                pendingActionRef.current = null;
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              disabled={unsavedSaving}
+              onClick={async () => {
+                setUnsavedSaving(true);
+                try {
+                  const res = await handleSaveAllChanges();
+                  if (!res.ok) {
+                    setUnsavedSaveFailed(true);
+                    return;
+                  }
+
+                  const action = pendingActionRef.current;
+                  setUnsavedDialogOpen(false);
+                  pendingActionRef.current = null;
+                  setUnsavedSaveFailed(false);
+                  action?.();
+                } finally {
+                  setUnsavedSaving(false);
+                }
+              }}
+            >
+              {unsavedSaving ? "Speichern…" : "Speichern & fortfahren"}
             </Button>
           </div>
         </DialogContent>
