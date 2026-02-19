@@ -374,6 +374,13 @@ const DocAttributesGrid: React.FC<Props> = ({
     return Math.min(220, Math.max(96, px));
   }, [attrDefsByEntity]);
 
+  const belegdatumColumnWidthPx = React.useMemo(() => {
+    // Keep Belegdatum as tight as needed: header text (and a typical dd.MM.yyyy value) should fit.
+    const maxLen = Math.max("Belegdatum".length, "29.01.2026".length);
+    const px = Math.round(maxLen * 7 + 28);
+    return Math.min(160, Math.max(84, px));
+  }, []);
+
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
   const [errorHighlights, setErrorHighlights] = React.useState<Record<number, string[]>>({});
 
@@ -560,13 +567,13 @@ const DocAttributesGrid: React.FC<Props> = ({
       if (c.id === "titel") return "minmax(180px, 2fr)";
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
       if (c.id === "status") return `${statusColumnWidthPx}px`;
-      if (c.id === "belegdatum") return "120px";
+      if (c.id === "belegdatum") return `${belegdatumColumnWidthPx}px`;
       return "minmax(120px, 1fr)";
     });
 
     const tail = "30px"; // delete
     return [...fixed, ...dataCols, tail].join(" ");
-  }, [displayColumns, statusColumnWidthPx]);
+  }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx]);
 
   // IMPORTANT: don't return early before hooks (React Rules of Hooks)
   if (!docs.length) {
