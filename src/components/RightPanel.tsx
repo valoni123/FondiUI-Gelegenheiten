@@ -419,17 +419,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {/* MITTE: Dokumentenliste */}
           <div className="min-h-0 flex-1">
             <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenliste</div>
-            <div className="-mx-6">
-              <DocAttributesGrid
-                docs={docPreviews}
-                onOpenFullPreview={openFullPreview}
-                onSaveRow={handleSaveRow}
-                onReplaceDoc={handleReplaceDoc}
-                onDeleteDoc={handleDeleteDoc}
-                authToken={authToken}
-                cloudEnvironment={cloudEnvironment}
-              />
-            </div>
+            <DocAttributesGrid
+              docs={docPreviews}
+              onOpenFullPreview={openFullPreview}
+              onSaveRow={handleSaveRow}
+              onReplaceDoc={handleReplaceDoc}
+              onDeleteDoc={handleDeleteDoc}
+              authToken={authToken}
+              cloudEnvironment={cloudEnvironment}
+            />
           </div>
 
           <Separator className="my-4" />

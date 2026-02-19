@@ -79,13 +79,6 @@ export type IdmDocPreview = {
   attributes?: { name: string; value: string }[];
   pid?: string;
   resourceUrl?: string; // URL der eigentlichen Datei (erstes res mit name == "")
-  // Metadata fields (if present in IDM JSON search response)
-  createdBy?: string;
-  createdByName?: string;
-  createdTS?: string;
-  lastModifiedBy?: string;
-  lastModifiedByName?: string;
-  lastModifiedTS?: string;
 };
 
 export type IdmAttribute = {
@@ -308,7 +301,7 @@ export const searchIdmItemsByEntityJson = async (
   language: string = "de-DE"
 ): Promise<IdmDocPreview[]> => {
   const base = buildIdmBase(environment);
-  const query = `/${entityName}[@Gelegenheit = \"${opportunityId}\"]`;
+  const query = `/${entityName}[@Gelegenheit = "${opportunityId}"]`;
   const url =
     `${base}/api/items/search?` +
     `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
@@ -373,12 +366,6 @@ export const searchIdmItemsByEntityJson = async (
         attributes,
         pid: pidRaw ? String(pidRaw) : undefined,
         resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
-        createdBy: item?.createdBy ? String(item.createdBy) : undefined,
-        createdByName: item?.createdByName ? String(item.createdByName) : undefined,
-        createdTS: item?.createdTS ? String(item.createdTS) : undefined,
-        lastModifiedBy: item?.lastModifiedBy ? String(item.lastModifiedBy) : undefined,
-        lastModifiedByName: item?.lastModifiedByName ? String(item.lastModifiedByName) : undefined,
-        lastModifiedTS: item?.lastModifiedTS ? String(item.lastModifiedTS) : undefined,
       });
     }
   }
@@ -652,7 +639,7 @@ export const searchIdmItemsByAttributesJson = async (
   const base = buildIdmBase(environment);
 
   const valid = (filters || []).filter((f) => f?.name && typeof f.value === "string" && f.value.length > 0);
-  const clause = valid.map((f) => `@${f.name} = \"${f.value}\"`).join(" AND ");
+  const clause = valid.map((f) => `@${f.name} = "${f.value}"`).join(" AND ");
   const bracket = clause.length ? `[${clause}]` : "";
   const query = `/${entityName}${bracket}`;
 
@@ -721,12 +708,6 @@ export const searchIdmItemsByAttributesJson = async (
         pid: item?.pid ? String(item.pid) : undefined,
         // WICHTIG: URL der echten Datei
         resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
-        createdBy: item?.createdBy ? String(item.createdBy) : undefined,
-        createdByName: item?.createdByName ? String(item.createdByName) : undefined,
-        createdTS: item?.createdTS ? String(item.createdTS) : undefined,
-        lastModifiedBy: item?.lastModifiedBy ? String(item.lastModifiedBy) : undefined,
-        lastModifiedByName: item?.lastModifiedByName ? String(item.lastModifiedByName) : undefined,
-        lastModifiedTS: item?.lastModifiedTS ? String(item.lastModifiedTS) : undefined,
       });
     }
   }
