@@ -843,8 +843,8 @@ export const getIdmItemByPid = async (
   const json = await res.json();
   const item = (json as any)?.item ?? json;
   const filename =
-    item?.filename ??
-    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
+    item?.filename ?? 
+    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ?? 
     undefined;
   const entityName = item?.entityName ?? undefined;
   const drillbackurl = item?.drillbackurl ?? undefined;
@@ -1072,10 +1072,14 @@ export const unlinkIdmItemDocumentBidirectional = async (
   removePid: string,
   language: string = "de-DE"
 ): Promise<void> => {
-  // Remove link from main (A)
+  // Entferne Link von Hauptdokument (A -> B)
   await unlinkIdmItemDocument(token, environment, mainPid, removePid, language);
-  // Remove backlink from target (B)
-  await unlinkIdmItemDocument(token, environment, removePid, mainPid, language);
+
+  // Rückverlinkung nur entfernen, wenn sie existiert (B -> A)
+  const existingTarget = await getExistingLinkedPids(token, environment, removePid, language);
+  if ((existingTarget || []).includes(mainPid)) {
+    await unlinkIdmItemDocument(token, environment, removePid, mainPid, language);
+  }
 };
 
 // NEW: Remove multiple links bidirectionally (A-×-[B...])
@@ -1088,11 +1092,14 @@ export const unlinkIdmItemDocumentsBidirectional = async (
 ): Promise<void> => {
   if (!removePids?.length) return;
 
-  // Remove from main (A)
+  // Entferne alle Links vom Hauptdokument (A -> [B...])
   await unlinkIdmItemDocuments(token, environment, mainPid, removePids, language);
 
-  // Remove backlinks from each target (B)
+  // Rückverlinkungen nur dort entfernen, wo sie existieren (B -> A)
   for (const pid of removePids) {
-    await unlinkIdmItemDocument(token, environment, pid, mainPid, language);
+    const existingTarget = await getExistingLinkedPids(token, environment, pid, language);
+    if ((existingTarget || []).includes(mainPid)) {
+      await unlinkIdmItemDocument(token, environment, pid, mainPid, language);
+    }
   }
 };
