@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
-import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument, unlinkIdmItemDocuments } from "@/api/idm";
+import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 import { unlinkIdmItemDocumentBidirectional, unlinkIdmItemDocumentsBidirectional } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -68,7 +68,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
         return;
       }
       const details = await Promise.all(
-        pids.map(async (pid) => {
+        pids.map(async (pid: string) => {
           try {
             const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
             return {
@@ -192,7 +192,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                         <div className="min-w-0 flex items-start gap-3">
                           <Checkbox
                             checked={selected.has(it.pid)}
-                            onCheckedChange={(v) => toggleSelect(it.pid, !!v)}
+                            onCheckedChange={(v: boolean) => toggleSelect(it.pid, !!v)}
                             className="mt-1"
                             aria-label="Auswählen"
                           />
@@ -275,7 +275,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
       {/* Confirm unlink dialog */}
       <AlertDialog
         open={!!pendingDelete}
-        onOpenChange={(o) => {
+        onOpenChange={(o: boolean) => {
           if (!o && !deleting) setPendingDelete(null);
         }}
       >
@@ -334,7 +334,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
       {/* Confirm bulk unlink dialog */}
       <AlertDialog
         open={pendingBulk}
-        onOpenChange={(o) => {
+        onOpenChange={(o: boolean) => {
           if (!o && !deleting) setPendingBulk(false);
         }}
       >

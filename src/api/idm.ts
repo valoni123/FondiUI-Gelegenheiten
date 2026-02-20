@@ -843,8 +843,8 @@ export const getIdmItemByPid = async (
   const json = await res.json();
   const item = (json as any)?.item ?? json;
   const filename =
-    item?.filename ?? 
-    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ?? 
+    item?.filename ??
+    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
     undefined;
   const entityName = item?.entityName ?? undefined;
   const drillbackurl = item?.drillbackurl ?? undefined;
@@ -860,7 +860,25 @@ export const getIdmItemByPid = async (
   return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl };
 };
 
-// NEW: Unlink a specific linked PID from the main item while keeping all other colls intact
+/**
+ * INTERNAL: Updates ONLY the 'Dokument_Verlinkung' collection for a PID.
+ * This is intentionally narrow because some entity types have other collections that we must not PUT back.
+ */
+const setIdmItemLinkedPids = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  linkedPids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  const info = await getIdmItemByPid(token, environment, pid, language);
+  const entityName = String(info?.entityName ?? "");
+  if (!entityName) {
+    throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when updating links.`);
+  }
+  await linkIdmItemDocuments(token, environment, pid, entityName, linkedPids, language);
+};
+
 export const unlinkIdmItemDocument = async (
   token: string,
   environment: CloudEnvironment,
@@ -868,81 +886,16 @@ export const unlinkIdmItemDocument = async (
   removePid: string,
   language: string = "de-DE"
 ): Promise<void> => {
-  const base = buildIdmBase(environment);
+  const existing = await getExistingLinkedPids(token, environment, mainPid, language);
+  if (!existing.length) return;
 
-  // Fetch the full item (including its existing colls)
-  const getUrl = `${base}/api/items/${encodeURIComponent(mainPid)}?%24language=${encodeURIComponent(language)}`;
-  const getRes = await fetch(getUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json;charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!getRes.ok) {
-    const errText = await getRes.text();
-    throw new Error(`[IDM] load main item failed: ${getRes.status} ${getRes.statusText} - ${errText}`);
-  }
-  const json = await getRes.json();
-  const item = (json as any)?.item ?? json;
-  const entityName: string = String(item?.entityName ?? "");
+  const remaining = existing.filter((p) => String(p) !== String(removePid));
+  // Nothing to do
+  if (remaining.length === existing.length) return;
 
-  // Normalize groups
-  const collsContainer = item?.colls ?? {};
-  const groupsRaw = (collsContainer?.coll ?? collsContainer) as any;
-  const groups: any[] = Array.isArray(groupsRaw) ? groupsRaw : groupsRaw ? [groupsRaw] : [];
-
-  // Build updated groups with the requested link removed from "Dokument_Verlinkung"
-  const updatedGroups = groups.map((g) => {
-    const name = g?.name ?? g?.["name"];
-    let entriesRaw = (g?.coll ?? g?.item ?? []) as any;
-    const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
-
-    if (name === "Dokument_Verlinkung") {
-      const filtered = entries.filter((entry) => {
-        const attrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
-        const attrs: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
-        const valueAttr = attrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
-        const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
-        return String(value) !== String(removePid);
-      });
-      return { name: "Dokument_Verlinkung", coll: filtered };
-    }
-    return g;
-  });
-
-  // PUT back the item with updated colls (preserving all other groups)
-  const putUrl =
-    `${base}/api/items/${encodeURIComponent(mainPid)}?` +
-    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
-
-  const body = {
-    item: {
-      colls: updatedGroups,
-      entityName,
-      pid: mainPid,
-    },
-  };
-
-  const putRes = await fetch(putUrl, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json;charset=utf-8",
-      "Content-Type": "application/json;charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!putRes.ok) {
-    const errorText = await putRes.text();
-    throw new Error(
-      `[IDM] unlink failed for '${removePid}' on main '${mainPid}': ${putRes.status} ${putRes.statusText} - ${errorText}`
-    );
-  }
+  await setIdmItemLinkedPids(token, environment, mainPid, remaining, language);
 };
 
-// NEW: Unlink multiple linked PIDs while keeping all other colls intact
 export const unlinkIdmItemDocuments = async (
   token: string,
   environment: CloudEnvironment,
@@ -950,82 +903,16 @@ export const unlinkIdmItemDocuments = async (
   removePids: string[],
   language: string = "de-DE"
 ): Promise<void> => {
-  if (!removePids?.length) return;
+  const toRemove = new Set((removePids || []).map(String));
+  if (toRemove.size === 0) return;
 
-  const base = buildIdmBase(environment);
+  const existing = await getExistingLinkedPids(token, environment, mainPid, language);
+  if (!existing.length) return;
 
-  // Load current item with its colls
-  const getUrl = `${base}/api/items/${encodeURIComponent(mainPid)}?%24language=${encodeURIComponent(language)}`;
-  const getRes = await fetch(getUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json;charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  if (!getRes.ok) {
-    const errText = await getRes.text();
-    throw new Error(`[IDM] load main item failed: ${getRes.status} ${getRes.statusText} - ${errText}`);
-  }
-  const json = await getRes.json();
-  const item = (json as any)?.item ?? json;
-  const entityName: string = String(item?.entityName ?? "");
+  const remaining = existing.filter((p) => !toRemove.has(String(p)));
+  if (remaining.length === existing.length) return;
 
-  // Normalize groups
-  const collsContainer = item?.colls ?? {};
-  const groupsRaw = (collsContainer?.coll ?? collsContainer) as any;
-  const groups: any[] = Array.isArray(groupsRaw) ? groupsRaw : groupsRaw ? [groupsRaw] : [];
-
-  const toRemove = new Set(removePids.map(String));
-
-  // Filter out any entries in "Dokument_Verlinkung" whose Value is in toRemove
-  const updatedGroups = groups.map((g) => {
-    const name = g?.name ?? g?.["name"];
-    let entriesRaw = (g?.coll ?? g?.item ?? []) as any;
-    const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
-
-    if (name === "Dokument_Verlinkung") {
-      const filtered = entries.filter((entry) => {
-        const attrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
-        const attrs: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
-        const valueAttr = attrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
-        const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
-        return !toRemove.has(String(value));
-      });
-      return { name: "Dokument_Verlinkung", coll: filtered };
-    }
-    return g;
-  });
-
-  // PUT back with updated colls
-  const putUrl =
-    `${base}/api/items/${encodeURIComponent(mainPid)}?` +
-    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
-
-  const body = {
-    item: {
-      colls: updatedGroups,
-      entityName,
-      pid: mainPid,
-    },
-  };
-
-  const putRes = await fetch(putUrl, {
-    method: "PUT",
-    headers: {
-      Accept: "application/json;charset=utf-8",
-      "Content-Type": "application/json;charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!putRes.ok) {
-    const errorText = await putRes.text();
-    throw new Error(
-      `[IDM] bulk unlink failed for PIDs [${removePids.join(", ")}] on main '${mainPid}': ${putRes.status} ${putRes.statusText} - ${errorText}`
-    );
-  }
+  await setIdmItemLinkedPids(token, environment, mainPid, remaining, language);
 };
 
 // NEW: Create bidirectional links (A<->B). Ensures both sides contain each other's PID in 'Dokument_Verlinkung'.
@@ -1082,7 +969,6 @@ export const unlinkIdmItemDocumentBidirectional = async (
   }
 };
 
-// NEW: Remove multiple links bidirectionally (A-×-[B...])
 export const unlinkIdmItemDocumentsBidirectional = async (
   token: string,
   environment: CloudEnvironment,
