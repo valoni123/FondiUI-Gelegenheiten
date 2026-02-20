@@ -1072,9 +1072,9 @@ export const unlinkIdmItemDocumentBidirectional = async (
   removePid: string,
   language: string = "de-DE"
 ): Promise<void> => {
-  // Entferne Link von Hauptdokument -> Ziel
+  // Remove link from main (A)
   await unlinkIdmItemDocument(token, environment, mainPid, removePid, language);
-  // Entferne Gegenlink vom Ziel -> Hauptdokument
+  // Remove backlink from target (B)
   await unlinkIdmItemDocument(token, environment, removePid, mainPid, language);
 };
 
@@ -1088,10 +1088,10 @@ export const unlinkIdmItemDocumentsBidirectional = async (
 ): Promise<void> => {
   if (!removePids?.length) return;
 
-  // Entferne alle Links vom Hauptdokument
+  // Remove from main (A)
   await unlinkIdmItemDocuments(token, environment, mainPid, removePids, language);
 
-  // Entferne die Gegenlinks bei jedem Ziel
+  // Remove backlinks from each target (B)
   for (const pid of removePids) {
     await unlinkIdmItemDocument(token, environment, pid, mainPid, language);
   }

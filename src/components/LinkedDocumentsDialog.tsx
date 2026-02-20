@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
-import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocumentBidirectional, unlinkIdmItemDocumentsBidirectional } from "@/api/idm";
+import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument, unlinkIdmItemDocuments } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -296,7 +296,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                 }
                 try {
                   setDeleting(true);
-                  await unlinkIdmItemDocumentBidirectional(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
+                  await unlinkIdmItemDocument(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
                   toast({
                     title: (
                       <span className="inline-flex items-center gap-2">
@@ -353,7 +353,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                 const toRemove = Array.from(selected);
                 try {
                   setDeleting(true);
-                  await unlinkIdmItemDocumentsBidirectional(authToken, cloudEnvironment, mainPid, toRemove);
+                  await unlinkIdmItemDocuments(authToken, cloudEnvironment, mainPid, toRemove);
                   toast({
                     title: (
                       <span className="inline-flex items-center gap-2">
