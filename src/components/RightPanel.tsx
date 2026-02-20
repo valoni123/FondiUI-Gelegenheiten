@@ -538,7 +538,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             />
           </div>
 
-          <Separator className="my-4" />
+          <Separator className="mb-4" />
 
           {/* MITTE: Dokumentenliste */}
           <div className="flex-shrink-0">
@@ -556,7 +556,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             />
           </div>
 
-          <Separator className="my-4" />
+          <Separator className="mb-4" />
 
           {/* UNTEN: Dokumentenvorschau (no fixed-height scroll; let outer page scroll) */}
           <div className="flex-shrink-0">
