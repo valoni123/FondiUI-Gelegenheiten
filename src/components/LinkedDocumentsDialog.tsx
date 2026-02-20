@@ -12,6 +12,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
 import { getExistingLinkedPids, getIdmItemByPid, unlinkIdmItemDocument, unlinkIdmItemDocuments } from "@/api/idm";
+import { unlinkIdmItemDocumentBidirectional, unlinkIdmItemDocumentsBidirectional } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
@@ -49,7 +50,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [linkedItems, setLinkedItems] = React.useState<LinkedItem[]>([]);
   const [previewOpen, setPreviewOpen] = React.useState(false);
-  const [previewData, setPreviewData] = React.useState<{ url?: string; title?: string }>({});
+  const [previewData, setPreviewData] = React.useState<{ url?: string; title?: string }>({}); 
   const [pendingDelete, setPendingDelete] = React.useState<LinkedItem | null>(null);
   const [deleting, setDeleting] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -296,7 +297,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                 }
                 try {
                   setDeleting(true);
-                  await unlinkIdmItemDocument(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
+                  await unlinkIdmItemDocumentBidirectional(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
                   toast({
                     title: (
                       <span className="inline-flex items-center gap-2">
@@ -353,7 +354,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                 const toRemove = Array.from(selected);
                 try {
                   setDeleting(true);
-                  await unlinkIdmItemDocuments(authToken, cloudEnvironment, mainPid, toRemove);
+                  await unlinkIdmItemDocumentsBidirectional(authToken, cloudEnvironment, mainPid, toRemove);
                   toast({
                     title: (
                       <span className="inline-flex items-center gap-2">
