@@ -154,7 +154,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                   ? "Verlinkungen werden geladen…"
                   : linkedItems.length > 0
                   ? `Gefundene Verlinkungen: ${linkedItems.length}`
-                  : "Keine verlinkten Dokumente gefunden."
+                  : ""
                 : "Kein Hauptdokument (PID) vorhanden."}
             </DialogDescription>
           </DialogHeader>
