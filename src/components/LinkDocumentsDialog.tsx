@@ -20,7 +20,7 @@ import AttributeValueField from "@/components/AttributeValueField";
 import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview } from "@/api/idm";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
-import { linkIdmItemDocuments, getExistingLinkedPids } from "@/api/idm";
+import { linkIdmItemDocumentsBidirectional } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -178,13 +178,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     setLinking(true);
     try {
       const newlySelected = Array.from(selectedPids);
-      const existing = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
-      const combined = Array.from(new Set([...(existing || []), ...newlySelected]));
       const entity = mainEntityName || selected?.name || "";
-      await linkIdmItemDocuments(authToken, cloudEnvironment, mainPid, entity, combined, "de-DE");
+      await linkIdmItemDocumentsBidirectional(authToken, cloudEnvironment, mainPid, entity, newlySelected, "de-DE");
       toast({
         title: "Verlinkung erfolgreich",
-        description: `${newlySelected.length} Dokument(e) mit PID „${mainPid}” verlinkt.`,
+        description: `${newlySelected.length} Dokument(e) mit PID „${mainPid}” beidseitig verlinkt.`,
         variant: "success",
       });
       onOpenChange(false);

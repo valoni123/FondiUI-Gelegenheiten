@@ -339,9 +339,9 @@ export const searchIdmItemsByEntityJson = async (
 
     // Extract attributes robustly
     const attrsRaw =
-      item?.attrs?.attr ??
-      item?.attrs ??
-      item?.attr ??
+      item?.attrs?.attr ?? 
+      item?.attrs ?? 
+      item?.attr ?? 
       [];
     const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
     const attributes =
@@ -1025,5 +1025,74 @@ export const unlinkIdmItemDocuments = async (
     throw new Error(
       `[IDM] bulk unlink failed for PIDs [${removePids.join(", ")}] on main '${mainPid}': ${putRes.status} ${putRes.statusText} - ${errorText}`
     );
+  }
+};
+
+// NEW: Create bidirectional links (A<->B). Ensures both sides contain each other's PID in 'Dokument_Verlinkung'.
+export const linkIdmItemDocumentsBidirectional = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  mainEntityName: string,
+  linkedPids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  // Normalize and remove self-links
+  const cleanTargets = Array.from(new Set((linkedPids || []).map(String))).filter((p) => p && p !== mainPid);
+
+  // Update main item (A) to include all target PIDs (B...)
+  const existingMain = await getExistingLinkedPids(token, environment, mainPid, language);
+  const combinedMain = Array.from(new Set([...(existingMain || []), ...cleanTargets]));
+  await linkIdmItemDocuments(token, environment, mainPid, mainEntityName, combinedMain, language);
+
+  // For each target PID (B), include back-link to main (A)
+  for (const pid of cleanTargets) {
+    const existingTarget = await getExistingLinkedPids(token, environment, pid, language);
+    const needsBacklink = !(existingTarget || []).includes(mainPid);
+    const combinedTarget = needsBacklink
+      ? Array.from(new Set([...(existingTarget || []), mainPid]))
+      : existingTarget || [];
+
+    // Find correct entityName for target item
+    const targetInfo = await getIdmItemByPid(token, environment, pid, language);
+    const targetEntityName = String(targetInfo?.entityName || "");
+    if (!targetEntityName) {
+      throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when creating backlink to '${mainPid}'.`);
+    }
+
+    await linkIdmItemDocuments(token, environment, pid, targetEntityName, combinedTarget, language);
+  }
+};
+
+// NEW: Remove a single link bidirectionally (A-×-B removes A->B and B->A)
+export const unlinkIdmItemDocumentBidirectional = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  removePid: string,
+  language: string = "de-DE"
+): Promise<void> => {
+  // Remove link from main (A)
+  await unlinkIdmItemDocument(token, environment, mainPid, removePid, language);
+  // Remove backlink from target (B)
+  await unlinkIdmItemDocument(token, environment, removePid, mainPid, language);
+};
+
+// NEW: Remove multiple links bidirectionally (A-×-[B...])
+export const unlinkIdmItemDocumentsBidirectional = async (
+  token: string,
+  environment: CloudEnvironment,
+  mainPid: string,
+  removePids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  if (!removePids?.length) return;
+
+  // Remove from main (A)
+  await unlinkIdmItemDocuments(token, environment, mainPid, removePids, language);
+
+  // Remove backlinks from each target (B)
+  for (const pid of removePids) {
+    await unlinkIdmItemDocument(token, environment, pid, mainPid, language);
   }
 };
