@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type IdmDocPreview } from "@/api/idm";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -46,6 +46,7 @@ type Props = {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityOptions?: { name: string; desc: string }[];
+  isLoading?: boolean;
 };
 
 export type DocAttributesGridHandle = {
@@ -65,6 +66,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   authToken,
   cloudEnvironment,
   entityOptions,
+  isLoading,
 }, ref) => {
   const highlightedSet = React.useMemo(() => new Set(highlightedDocKeys ?? []), [highlightedDocKeys]);
 
@@ -758,276 +760,336 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               <div className="col-span-full h-px bg-border" />
 
               {/* Rows */}
-              {filteredDocs.map(({ doc, idx }, rowIndex) => {
-                const rowEdited = edited[idx] ?? {};
-                const rowInitial = initial[idx] ?? {};
-                const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
-                const defs = attrDefsByEntity[effectiveEntityName] || {};
+              {isLoading ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Dokumente werden geladen…
+                </div>
+              ) : docs.length === 0 ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  Keine Dokumente gefunden.
+                </div>
+              ) : (
+                <>
+                  {filteredDocs.map(({ doc, idx }, rowIndex) => {
+                    const rowEdited = edited[idx] ?? {};
+                    const rowInitial = initial[idx] ?? {};
+                    const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
+                    const defs = attrDefsByEntity[effectiveEntityName] || {};
 
-                // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
-                const statusCol = displayColumns.find(
-                  (c) => c.kind === "attr" && c.id === "status"
-                ) as Extract<DisplayColumn, { kind: "attr" }> | undefined;
+                    // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
+                    const statusCol = displayColumns.find(
+                      (c) => c.kind === "attr" && c.id === "status"
+                    ) as Extract<DisplayColumn, { kind: "attr" }> | undefined;
 
-                const statusAttrName = statusCol
-                  ? resolveAttrName(rowEdited, rowInitial, defs, statusCol)
-                  : "Status";
-                const statusDef = defs[statusAttrName];
-                const initialStatusValue = (rowInitial[statusAttrName] ?? "").toString();
-                const initialStatusLabel = statusDef?.valueset?.length
-                  ? statusDef.valueset.find((vs) => vs.name === initialStatusValue)?.desc || initialStatusValue
-                  : initialStatusValue;
+                    const statusAttrName = statusCol
+                      ? resolveAttrName(rowEdited, rowInitial, defs, statusCol)
+                      : "Status";
+                    const statusDef = defs[statusAttrName];
+                    const initialStatusValue = (rowInitial[statusAttrName] ?? "").toString();
+                    const initialStatusLabel = statusDef?.valueset?.length
+                      ? statusDef.valueset.find((vs) => vs.name === initialStatusValue)?.desc || initialStatusValue
+                      : initialStatusValue;
 
-                const isLockedByStatus = initialStatusLabel === "Freigegeben";
+                    const isLockedByStatus = initialStatusLabel === "Freigegeben";
 
-                const isHighlighted = highlightedSet.has(getDocKey(doc));
+                    const isHighlighted = highlightedSet.has(getDocKey(doc));
 
-                const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+                    const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
 
-                const hasChanges =
-                  typeChanged ||
-                  editableColumns.some((c) => {
-                    const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
-                    return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
-                  });
+                    const hasChanges =
+                      typeChanged ||
+                      editableColumns.some((c) => {
+                        const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                        return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
+                      });
 
-                return (
-                  <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
-                    {/* Detail Button */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() =>
-                          runWithUnsavedGuard(() =>
-                            onOpenFullPreview(doc, (updatedDoc) => {
-                              console.log("Doc updated from DetailDialog:", updatedDoc);
-                            })
-                          )
-                        }
-                        title="Details anzeigen"
-                      >
-                        <ChevronRight className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Select Checkbox */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
-                      <Checkbox
-                        checked={selectedRows.has(idx)}
-                        onCheckedChange={() => toggleRowSelected(idx)}
-                        className="h-4 w-4"
-                        disabled={!doc.pid || isLockedByStatus}
-                        aria-label="Dokument auswählen"
-                      />
-                    </div>
-
-                    {/* Save Button */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn("h-6 w-6", hasChanges && "bg-orange-500 hover:bg-orange-600 text-white")}
-                        disabled={!hasChanges || !doc.pid}
-                        onClick={async () => {
-                          const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
-
-                          const updates = editableColumns
-                            .map((c) => {
-                              const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
-                              return {
-                                name: attrName,
-                                value: rowEdited[attrName] ?? "",
-                                changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
-                              };
-                            })
-                            .filter((u) => u.changed)
-                            .map((u) => ({ name: u.name, value: u.value }));
-
-                          if (updates.length || typeChanged) {
-                            const res = await onSaveRow(doc, updates, { entityName: newEntityName });
-                            if (res.ok) {
-                              setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
-                              // Keep the selected doc type in the UI until reloadPreviews updates docs
-                              if (!typeChanged) {
-                                setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
-                              }
-                              setSyncWithInitial((prev) => {
-                                const next = new Set(prev);
-                                next.add(idx);
-                                return next;
-                              });
-                              flashSuccess(idx, updates.map((u) => u.name));
-                            } else {
-                              const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
-                              flashError(idx, colsToFlash);
+                    return (
+                      <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
+                        {/* Detail Button */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() =>
+                              runWithUnsavedGuard(() =>
+                                onOpenFullPreview(doc, (updatedDoc) => {
+                                  console.log("Doc updated from DetailDialog:", updatedDoc);
+                                })
+                              )
                             }
-                          }
-                        }}
-                        title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
-                      >
-                        <Save className="h-3 w-3" />
-                      </Button>
-                    </div>
+                            title="Details anzeigen"
+                          >
+                            <ChevronRight className="h-3 w-3" />
+                          </Button>
+                        </div>
 
-                    {/* Replace Button */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        disabled={!doc.pid || isLockedByStatus}
-                        onClick={() => runWithUnsavedGuard(() => setConfirmReplaceRow(idx))}
-                        title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
-                        aria-label="Dokument ersetzen"
-                      >
-                        <ArrowLeftRight className="h-3 w-3" />
-                      </Button>
-                    </div>
+                        {/* Select Checkbox */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                          <Checkbox
+                            checked={selectedRows.has(idx)}
+                            onCheckedChange={() => toggleRowSelected(idx)}
+                            className="h-4 w-4"
+                            disabled={!doc.pid || isLockedByStatus}
+                            aria-label="Dokument auswählen"
+                          />
+                        </div>
 
-                    {/* Linked Documents Button */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
-                      {doc.pid ? (
-                        <LinkedDocumentsDialog
-                          authToken={authToken}
-                          cloudEnvironment={cloudEnvironment}
-                          mainPid={doc.pid}
-                          trigger={({ setOpen }) => (
+                        {/* Save Button */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn("h-6 w-6", hasChanges && "bg-orange-500 hover:bg-orange-600 text-white")}
+                            disabled={!hasChanges || !doc.pid}
+                            onClick={async () => {
+                              const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
+
+                              const updates = editableColumns
+                                .map((c) => {
+                                  const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                                  return {
+                                    name: attrName,
+                                    value: rowEdited[attrName] ?? "",
+                                    changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+                                  };
+                                })
+                                .filter((u) => u.changed)
+                                .map((u) => ({ name: u.name, value: u.value }));
+
+                              if (updates.length || typeChanged) {
+                                const res = await onSaveRow(doc, updates, { entityName: newEntityName });
+                                if (res.ok) {
+                                  setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                                  // Keep the selected doc type in the UI until reloadPreviews updates docs
+                                  if (!typeChanged) {
+                                    setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
+                                  }
+                                  setSyncWithInitial((prev) => {
+                                    const next = new Set(prev);
+                                    next.add(idx);
+                                    return next;
+                                  });
+                                  flashSuccess(idx, updates.map((u) => u.name));
+                                } else {
+                                  const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
+                                  flashError(idx, colsToFlash);
+                                }
+                              }
+                            }}
+                            title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
+                          >
+                            <Save className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        {/* Replace Button */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={!doc.pid || isLockedByStatus}
+                            onClick={() => runWithUnsavedGuard(() => setConfirmReplaceRow(idx))}
+                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
+                            aria-label="Dokument ersetzen"
+                          >
+                            <ArrowLeftRight className="h-3 w-3" />
+                          </Button>
+                        </div>
+
+                        {/* Linked Documents Button */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                          {doc.pid ? (
+                            <LinkedDocumentsDialog
+                              authToken={authToken}
+                              cloudEnvironment={cloudEnvironment}
+                              mainPid={doc.pid}
+                              trigger={({ setOpen }) => (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 text-violet-600 hover:text-violet-700"
+                                  onClick={() => runWithUnsavedGuard(() => setOpen(true))}
+                                  title="Verlinkte Dokumente anzeigen"
+                                  aria-label="Verlinkte Dokumente anzeigen"
+                                >
+                                  <LinkIcon className="h-3 w-3" />
+                                </Button>
+                              )}
+                            />
+                          ) : (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                              onClick={() => runWithUnsavedGuard(() => setOpen(true))}
-                              title="Verlinkte Dokumente anzeigen"
+                              className="h-6 w-6 opacity-50 cursor-not-allowed"
+                              disabled
+                              title="PID fehlt – keine Verlinkungen"
                               aria-label="Verlinkte Dokumente anzeigen"
                             >
                               <LinkIcon className="h-3 w-3" />
                             </Button>
                           )}
-                        />
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-50 cursor-not-allowed"
-                          disabled
-                          title="PID fehlt – keine Verlinkungen"
-                          aria-label="Verlinkte Dokumente anzeigen"
-                        >
-                          <LinkIcon className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
+                        </div>
 
-                    {/* Data columns */}
-                    {displayColumns.map((col) => {
-                      if (col.kind === "meta") {
-                        if (col.id === "dokumenttyp" && entitySelectOptions.length > 0) {
-                          const value = editedDocTypes[idx] ?? doc.entityName ?? "";
+                        {/* Data columns */}
+                        {displayColumns.map((col) => {
+                          if (col.kind === "meta") {
+                            if (col.id === "dokumenttyp" && entitySelectOptions.length > 0) {
+                              const value = editedDocTypes[idx] ?? doc.entityName ?? "";
+                              return (
+                                <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
+                                  <Select
+                                    value={value || undefined}
+                                    onValueChange={(val: string) => setEditedDocTypes((prev) => ({ ...prev, [idx]: val }))}
+                                    disabled={!doc.pid || isLockedByStatus}
+                                  >
+                                    <SelectTrigger
+                                      disabled={!doc.pid || isLockedByStatus}
+                                      className={cn("h-6 w-full min-w-0 text-xs px-1", isLockedByStatus && "opacity-60")}
+                                    >
+                                      <SelectValue placeholder="Wählen…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {entitySelectOptions.map((opt) => (
+                                        <SelectItem key={opt.name} value={opt.name}>
+                                          {opt.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              );
+                            }
+
+                            const value = col.getValue(doc);
+                            return (
+                              <div
+                                key={`${idx}-${col.id}`}
+                                className={cn("px-2 py-2 min-w-0 flex items-center", isHighlighted && rowHighlightClass)}
+                              >
+                                <div className="truncate text-xs text-foreground">{value || ""}</div>
+                              </div>
+                            );
+                          }
+
+                          const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
+                          const hasError = (errorHighlights[idx] ?? []).includes(attrName);
+                          const hasSuccess = (successHighlights[idx] ?? []).includes(attrName);
+                          const def = defs[attrName];
+                          const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
+
+                          const isStatusCol = col.id === "status";
+                          const isEditDisabled = isLockedByStatus && !isStatusCol;
+
+                          const statusLabel = isStatusCol
+                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
+                                ?.desc ??
+                                (rowEdited[attrName] ?? ""))
+                            : "";
+                          const statusClass =
+                            isStatusCol && (rowEdited[attrName] ?? "")
+                              ? statusLabel === "Freigegeben"
+                                ? "bg-green-600 text-white border-green-600 hover:bg-green-600"
+                                : "bg-red-600 text-white border-red-600 hover:bg-red-600"
+                              : "";
+
                           return (
                             <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
-                              <Select
-                                value={value || undefined}
-                                onValueChange={(val: string) => setEditedDocTypes((prev) => ({ ...prev, [idx]: val }))}
-                                disabled={!doc.pid || isLockedByStatus}
-                              >
-                                <SelectTrigger
-                                  disabled={!doc.pid || isLockedByStatus}
-                                  className={cn("h-6 w-full min-w-0 text-xs px-1", isLockedByStatus && "opacity-60")}
-                                >
-                                  <SelectValue placeholder="Wählen…" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {entitySelectOptions.map((opt) => (
-                                    <SelectItem key={opt.name} value={opt.name}>
-                                      {opt.label}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          );
-                        }
-
-                        const value = col.getValue(doc);
-                        return (
-                          <div
-                            key={`${idx}-${col.id}`}
-                            className={cn("px-2 py-2 min-w-0 flex items-center", isHighlighted && rowHighlightClass)}
-                          >
-                            <div className="truncate text-xs text-foreground">{value || ""}</div>
-                          </div>
-                        );
-                      }
-
-                      const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
-                      const hasError = (errorHighlights[idx] ?? []).includes(attrName);
-                      const hasSuccess = (successHighlights[idx] ?? []).includes(attrName);
-                      const def = defs[attrName];
-                      const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
-
-                      const isStatusCol = col.id === "status";
-                      const isEditDisabled = isLockedByStatus && !isStatusCol;
-
-                      const statusLabel = isStatusCol
-                        ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
-                            ?.desc ??
-                            (rowEdited[attrName] ?? ""))
-                        : "";
-                      const statusClass =
-                        isStatusCol && (rowEdited[attrName] ?? "")
-                          ? statusLabel === "Freigegeben"
-                            ? "bg-green-600 text-white border-green-600 hover:bg-green-600"
-                            : "bg-red-600 text-white border-red-600 hover:bg-red-600"
-                          : "";
-
-                      return (
-                        <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
-                          {def?.valueset && def.valueset.length > 0 ? (
-                            <Select
-                              value={(rowEdited[attrName] ?? "") || undefined}
-                              onValueChange={(val) =>
-                                setEdited((prev) => {
-                                  const row = { ...(prev[idx] ?? {}) };
-                                  row[attrName] = val;
-                                  return { ...prev, [idx]: row };
-                                })
-                              }
-                              disabled={isEditDisabled}
-                            >
-                              <SelectTrigger
-                                disabled={isEditDisabled}
-                                className={cn(
-                                  "h-6 w-full min-w-0 text-xs px-1",
-                                  statusClass,
-                                  isEditDisabled && "opacity-60",
-                                  hasError &&
-                                    !hasSuccess &&
-                                    "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                  hasSuccess &&
-                                    !hasError &&
-                                    "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                )}
-                              >
-                                <SelectValue placeholder="Wählen…" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {def.valueset.map((vs) => (
-                                  <SelectItem key={vs.name} value={vs.name}>
-                                    {vs.desc || vs.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          ) : isDate ? (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
+                              {def?.valueset && def.valueset.length > 0 ? (
+                                <Select
+                                  value={(rowEdited[attrName] ?? "") || undefined}
+                                  onValueChange={(val) =>
+                                    setEdited((prev) => {
+                                      const row = { ...(prev[idx] ?? {}) };
+                                      row[attrName] = val;
+                                      return { ...prev, [idx]: row };
+                                    })
+                                  }
                                   disabled={isEditDisabled}
+                                >
+                                  <SelectTrigger
+                                    disabled={isEditDisabled}
+                                    className={cn(
+                                      "h-6 w-full min-w-0 text-xs px-1",
+                                      statusClass,
+                                      isEditDisabled && "opacity-60",
+                                      hasError &&
+                                        !hasSuccess &&
+                                        "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                      hasSuccess &&
+                                        !hasError &&
+                                        "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                    )}
+                                  >
+                                    <SelectValue placeholder="Wählen…" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {def.valueset.map((vs) => (
+                                      <SelectItem key={vs.name} value={vs.name}>
+                                        {vs.desc || vs.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : isDate ? (
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      disabled={isEditDisabled}
+                                      className={cn(
+                                        "h-6 w-full min-w-0 justify-start text-left text-xs px-1",
+                                        isEditDisabled && "opacity-60",
+                                        hasError &&
+                                          !hasSuccess &&
+                                          "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                        hasSuccess &&
+                                          !hasError &&
+                                          "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                      )}
+                                    >
+                                      {rowEdited[attrName]
+                                        ? format(
+                                            parse(rowEdited[attrName], "yyyy-MM-dd", new Date()),
+                                            "dd.MM.yyyy"
+                                          )
+                                        : "Datum wählen"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={
+                                        rowEdited[attrName]
+                                          ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
+                                          : undefined
+                                      }
+                                      onSelect={(date) => {
+                                        if (isEditDisabled) return;
+                                        setEdited((prev) => {
+                                          const row = { ...(prev[idx] ?? {}) };
+                                          row[attrName] = date ? format(date, "yyyy-MM-dd") : "";
+                                          return { ...prev, [idx]: row };
+                                        });
+                                      }}
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              ) : (
+                                <Input
+                                  value={rowEdited[attrName] ?? ""}
+                                  disabled={isEditDisabled}
+                                  onChange={(e) =>
+                                    setEdited((prev) => {
+                                      const row = { ...(prev[idx] ?? {}) };
+                                      row[attrName] = e.target.value;
+                                      return { ...prev, [idx]: row };
+                                    })
+                                  }
                                   className={cn(
-                                    "h-6 w-full min-w-0 justify-start text-left text-xs px-1",
+                                    "h-6 w-full min-w-0 text-xs px-1",
                                     isEditDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
@@ -1036,82 +1098,35 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                       !hasError &&
                                       "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                   )}
-                                >
-                                  {rowEdited[attrName]
-                                    ? format(
-                                        parse(rowEdited[attrName], "yyyy-MM-dd", new Date()),
-                                        "dd.MM.yyyy"
-                                      )
-                                    : "Datum wählen"}
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="p-0" align="start">
-                                <Calendar
-                                  mode="single"
-                                  selected={
-                                    rowEdited[attrName]
-                                      ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
-                                      : undefined
-                                  }
-                                  onSelect={(date) => {
-                                    if (isEditDisabled) return;
-                                    setEdited((prev) => {
-                                      const row = { ...(prev[idx] ?? {}) };
-                                      row[attrName] = date ? format(date, "yyyy-MM-dd") : "";
-                                      return { ...prev, [idx]: row };
-                                    });
-                                  }}
                                 />
-                              </PopoverContent>
-                            </Popover>
-                          ) : (
-                            <Input
-                              value={rowEdited[attrName] ?? ""}
-                              disabled={isEditDisabled}
-                              onChange={(e) =>
-                                setEdited((prev) => {
-                                  const row = { ...(prev[idx] ?? {}) };
-                                  row[attrName] = e.target.value;
-                                  return { ...prev, [idx]: row };
-                                })
-                              }
-                              className={cn(
-                                "h-6 w-full min-w-0 text-xs px-1",
-                                isEditDisabled && "opacity-60",
-                                hasError &&
-                                  !hasSuccess &&
-                                  "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                hasSuccess &&
-                                  !hasError &&
-                                  "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                               )}
-                            />
-                          )}
+                            </div>
+                          );
+                        })}
+
+                        {/* Delete Button */}
+                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightRight)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive"
+                            disabled={!doc.pid || isLockedByStatus}
+                            onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
+                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
+                            aria-label="Dokument löschen"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         </div>
-                      );
-                    })}
 
-                    {/* Delete Button */}
-                    <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightRight)}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        disabled={!doc.pid || isLockedByStatus}
-                        onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
-                        title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
-                        aria-label="Dokument löschen"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {rowIndex < filteredDocs.length - 1 && (
-                      <div className="col-span-full h-px bg-border/60" />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+                        {rowIndex < filteredDocs.length - 1 && (
+                          <div className="col-span-full h-px bg-border/60" />
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </>
+              )}
             </div>
           </div>
         </div>

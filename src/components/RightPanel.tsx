@@ -565,6 +565,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
               authToken={authToken}
               cloudEnvironment={cloudEnvironment}
               entityOptions={entityOptions}
+              // ADD: loader flag
+              isLoading={isPreviewsLoading}
             />
           </div>
 
@@ -781,6 +783,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 authToken={authToken}
                 cloudEnvironment={cloudEnvironment}
                 entityOptions={entityOptions}
+                // For single-doc detail grid, usually not loading; omit or set false
+                isLoading={false}
               />
             </div>
           )}
