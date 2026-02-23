@@ -659,15 +659,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     return [...fixed, ...dataCols, tail].join(" ");
   }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx]);
 
-  // IMPORTANT: don't return early before hooks (React Rules of Hooks)
-  if (!docs.length) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        Keine Dokumente gefunden.
-      </div>
-    );
-  }
-
   return (
     <div className="w-full">
       {(title || !hideSaveAllButton) && (
@@ -713,10 +704,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         {/* Use native horizontal scrolling so the scrollbar becomes visible when the table is wider than the viewport */}
         <div className="w-full overflow-x-auto">
           <div>
-            <div
-              className="grid w-max min-w-full"
-              style={{ gridTemplateColumns: gridTemplate }}
-            >
+            <div className="grid w-max min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
               {/* Header */}
               <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
               <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
@@ -761,12 +749,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
               {/* Rows */}
               {isLoading ? (
-                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Dokumente werden geladen…
                 </div>
               ) : docs.length === 0 ? (
-                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground">
                   Keine Dokumente gefunden.
                 </div>
               ) : (

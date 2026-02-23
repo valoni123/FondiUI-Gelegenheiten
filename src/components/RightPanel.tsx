@@ -56,7 +56,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
 
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
-  const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(false);
+  // CHANGED: Start in loading state to avoid initial "Keine Dokumente gefunden" flicker on first mount.
+  const [isPreviewsLoading, setIsPreviewsLoading] = React.useState<boolean>(true);
 
   // Full preview state
   const [fullPreviewData, setFullPreviewData] = React.useState<IdmDocPreview | null>(null);
@@ -177,15 +178,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
   React.useEffect(() => {
     let cancelled = false;
     const loadPreviews = async () => {
+      // Set loading immediately for each opportunity change.
+      setIsPreviewsLoading(true);
+
       if (!selectedOpportunityId || !authToken || !entityNames?.length) {
         setDocPreviews([]);
+        setIsPreviewsLoading(false);
         return;
       }
 
       // Switching opportunity / initial load: clear highlight
       setHighlightedDocKeys([]);
 
-      setIsPreviewsLoading(true);
       try {
         const results = await Promise.allSettled(
           entityNames.map((name) =>
