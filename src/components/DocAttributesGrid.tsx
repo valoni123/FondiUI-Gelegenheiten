@@ -3,14 +3,8 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { type IdmDocPreview } from "@/api/idm";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,13 +34,18 @@ type Props = {
   docs: IdmDocPreview[];
   highlightedDocKeys?: string[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
-  onSaveRow: (doc: IdmDocPreview, updates: { name: string; value: string }[]) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
+  onSaveRow: (
+    doc: IdmDocPreview,
+    updates: { name: string; value: string }[],
+    options?: { entityName?: string }
+  ) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
-  hideSaveAllButton?: boolean; // New prop
+  hideSaveAllButton?: boolean;
   title?: string;
   onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
   authToken: string;
   cloudEnvironment: CloudEnvironment;
+  entityOptions?: { name: string; desc: string }[];
 };
 
 export type DocAttributesGridHandle = {
@@ -65,11 +64,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   onDeleteDoc,
   authToken,
   cloudEnvironment,
+  entityOptions,
 }, ref) => {
-  const highlightedSet = React.useMemo(
-    () => new Set(highlightedDocKeys ?? []),
-    [highlightedDocKeys]
-  );
+  const highlightedSet = React.useMemo(() => new Set(highlightedDocKeys ?? []), [highlightedDocKeys]);
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
@@ -80,14 +77,32 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const rowHighlightLeft = "border-l border-red-400 rounded-l-sm";
   const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
 
+  // Document type (entityName) edit state MUST be declared before effects using it
+  const initialDocTypes = React.useMemo<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    docs.forEach((d, idx) => {
+      map[idx] = String(d.entityName ?? "");
+    });
+    return map;
+  }, [docs]);
+
+  const [editedDocTypes, setEditedDocTypes] = React.useState<Record<number, string>>(initialDocTypes);
+  React.useEffect(() => setEditedDocTypes(initialDocTypes), [initialDocTypes]);
+
+  const entitySelectOptions = React.useMemo(() => {
+    if (!entityOptions?.length) return [];
+    return entityOptions
+      .filter((o) => (o.desc || "").trim().startsWith("*"))
+      .map((o) => ({ name: o.name, label: (o.desc || o.name).replace(/^\*/, "").trim() }))
+      .sort((a, b) => a.label.localeCompare(b.label, "de"));
+  }, [entityOptions]);
+
   type DisplayColumn =
     | {
         kind: "attr";
         id: string;
         header: string;
-        // attribute names to try (first match wins; fallback to first)
         attrNames: string[];
-        // optional: treat as date
         forceDate?: boolean;
       }
     | {
@@ -97,17 +112,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         getValue: (doc: IdmDocPreview) => string;
       };
 
-  const getAttrValue = React.useCallback(
-    (doc: IdmDocPreview, attrNames: string[]) => {
-      const attrs = doc.attributes ?? [];
-      for (const n of attrNames) {
-        const found = attrs.find((a) => a?.name === n);
-        if (found?.value != null && String(found.value).length > 0) return String(found.value);
-      }
-      return "";
-    },
-    []
-  );
+  const getAttrValue = React.useCallback((doc: IdmDocPreview, attrNames: string[]) => {
+    const attrs = doc.attributes ?? [];
+    for (const n of attrNames) {
+      const found = attrs.find((a) => a?.name === n);
+      if (found?.value != null && String(found.value).length > 0) return String(found.value);
+    }
+    return "";
+  }, []);
 
   // Fixed column order (always rendered, even if values are missing)
   const displayColumns = React.useMemo<DisplayColumn[]>(
@@ -140,12 +152,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         attrNames: ["Belegdatum"],
         forceDate: true,
       },
-      {
-        kind: "attr",
-        id: "belegnr",
-        header: "Belegnr.",
-        attrNames: ["Belegnummer"],
-      },
+      { kind: "attr", id: "belegnr", header: "Belegnr.", attrNames: ["Belegnummer"] },
       {
         kind: "meta",
         id: "createdBy",
@@ -203,13 +210,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             "updated",
           ]),
       },
-      {
-        kind: "attr",
-        id: "ort",
-        header: "Ort",
-        // some entities use "Werk" for location
-        attrNames: ["Ort", "Werk"],
-      },
+      { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
     ],
     [getAttrValue]
   );
@@ -269,11 +270,15 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   }, [initial, syncWithInitial]);
 
   // Cache of attribute definitions by entity: { [entityName]: { [attrName]: { valueset?, type? } } }
-  const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>>({});
+  const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<
+    Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>
+  >({});
 
-  // Load attribute definitions for each entity present in docs (only missing ones)
+  // Load attribute definitions for each entity present in docs OR currently edited document types
   React.useEffect(() => {
-    const entityNames = Array.from(new Set((docs.map((d) => d.entityName).filter(Boolean) as string[])));
+    const fromDocs = docs.map((d) => d.entityName).filter(Boolean) as string[];
+    const fromEdits = Object.values(editedDocTypes).filter(Boolean) as string[];
+    const entityNames = Array.from(new Set([...fromDocs, ...fromEdits]));
     const missing = entityNames.filter((name) => !attrDefsByEntity[name]);
     if (!missing.length) return;
     (async () => {
@@ -293,7 +298,16 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       );
       setAttrDefsByEntity((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
     })();
-  }, [docs, authToken, cloudEnvironment, attrDefsByEntity]);
+  }, [docs, editedDocTypes, authToken, cloudEnvironment, attrDefsByEntity]);
+
+  const getEntityLabel = React.useCallback(
+    (entityName: string) => {
+      const opt = entityOptions?.find((o) => o.name === entityName);
+      const desc = (opt?.desc || opt?.name || entityName).toString();
+      return desc.replace(/^\*/, "").trim();
+    },
+    [entityOptions]
+  );
 
   const resolveAttrName = React.useCallback(
     (
@@ -452,24 +466,25 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     }, 1800);
   }, []);
 
-  // Calculate how many rows have changes (only editable columns)
   const changedRowCount = React.useMemo(() => {
     let count = 0;
     docs.forEach((doc, idx) => {
       const rowEdited = edited[idx] ?? {};
       const rowInitial = initial[idx] ?? {};
-      const entityName = doc.entityName || "";
-      const defs = attrDefsByEntity[entityName] || {};
+      const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
+      const defs = attrDefsByEntity[effectiveEntityName] || {};
 
-      const rowHasChanges = editableColumns.some((c) => {
+      const rowHasAttrChanges = editableColumns.some((c) => {
         const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
         return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
       });
 
-      if (rowHasChanges) count++;
+      const rowHasTypeChange = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+
+      if (rowHasAttrChanges || rowHasTypeChange) count++;
     });
     return count;
-  }, [docs, edited, initial, editableColumns, attrDefsByEntity, resolveAttrName]);
+  }, [docs, edited, initial, editableColumns, attrDefsByEntity, resolveAttrName, editedDocTypes, initialDocTypes]);
 
   const enableSaveAllButton = changedRowCount > 0; // Enable if any row has changes
 
@@ -482,8 +497,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       const doc = docs[idx];
       const rowEdited = edited[idx] ?? {};
       const rowInitial = initial[idx] ?? {};
-      const entityName = doc.entityName || "";
-      const defs = attrDefsByEntity[entityName] || {};
+      const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
+      const defs = attrDefsByEntity[effectiveEntityName] || {};
+
+      const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+      const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
 
       const updates = editableColumns
         .map((c) => {
@@ -497,7 +515,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         .filter((u) => u.changed)
         .map((u) => ({ name: u.attrName, value: u.value }));
 
-      if (updates.length) {
+      if (updates.length || typeChanged) {
         if (!doc.pid) {
           hadFailures = true;
           flashError(idx, updates.map((u) => u.name));
@@ -505,15 +523,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         }
 
         try {
-          const res = await onSaveRow(doc, updates);
+          const res = await onSaveRow(doc, updates, { entityName: newEntityName });
           if (res.ok) {
             successfulSaves.push(idx);
             successfulUpdates.push({ rowIdx: idx, cols: updates.map((u) => u.name) });
           } else {
             hadFailures = true;
-            const colsToFlash = res.errorAttributes?.length
-              ? res.errorAttributes
-              : updates.map((u) => u.name);
+            const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
             flashError(idx, colsToFlash);
           }
         } catch {
@@ -523,12 +539,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       }
     }
 
-    // Flash success for all successful updates
-    successfulUpdates.forEach(({ rowIdx, cols }) => {
-      flashSuccess(rowIdx, cols);
-    });
+    successfulUpdates.forEach(({ rowIdx, cols }) => flashSuccess(rowIdx, cols));
 
-    // Nur erfolgreich gespeicherte Zeilen zurücksetzen und für spätere initial-Updates markieren
     setEdited((prev) => {
       const newEdited = { ...prev };
       successfulSaves.forEach((idx) => {
@@ -536,7 +548,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       });
       return newEdited;
     });
+
     if (successfulSaves.length) {
+      // After reloadPreviews, docs will carry the new entityName.
+      // So we just wait for initialDocTypes to update via docs, and keep editedDocTypes in sync.
       setSyncWithInitial((prev) => {
         const next = new Set(prev);
         successfulSaves.forEach((idx) => next.add(idx));
@@ -746,8 +761,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               {filteredDocs.map(({ doc, idx }, rowIndex) => {
                 const rowEdited = edited[idx] ?? {};
                 const rowInitial = initial[idx] ?? {};
-                const entityName = doc.entityName || "";
-                const defs = attrDefsByEntity[entityName] || {};
+                const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
+                const defs = attrDefsByEntity[effectiveEntityName] || {};
 
                 // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
                 const statusCol = displayColumns.find(
@@ -767,10 +782,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                 const isHighlighted = highlightedSet.has(getDocKey(doc));
 
-                const hasChanges = editableColumns.some((c) => {
-                  const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
-                  return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
-                });
+                const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+
+                const hasChanges =
+                  typeChanged ||
+                  editableColumns.some((c) => {
+                    const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                    return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
+                  });
 
                 return (
                   <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
@@ -809,29 +828,31 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={cn(
-                          "h-6 w-6",
-                          hasChanges && "bg-orange-500 hover:bg-orange-600 text-white"
-                        )}
+                        className={cn("h-6 w-6", hasChanges && "bg-orange-500 hover:bg-orange-600 text-white")}
                         disabled={!hasChanges || !doc.pid}
                         onClick={async () => {
+                          const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
+
                           const updates = editableColumns
                             .map((c) => {
                               const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
                               return {
                                 name: attrName,
                                 value: rowEdited[attrName] ?? "",
-                                changed:
-                                  (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+                                changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
                               };
                             })
                             .filter((u) => u.changed)
                             .map((u) => ({ name: u.name, value: u.value }));
 
-                          if (updates.length) {
-                            const res = await onSaveRow(doc, updates);
+                          if (updates.length || typeChanged) {
+                            const res = await onSaveRow(doc, updates, { entityName: newEntityName });
                             if (res.ok) {
                               setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                              // Keep the selected doc type in the UI until reloadPreviews updates docs
+                              if (!typeChanged) {
+                                setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
+                              }
                               setSyncWithInitial((prev) => {
                                 const next = new Set(prev);
                                 next.add(idx);
@@ -839,20 +860,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               });
                               flashSuccess(idx, updates.map((u) => u.name));
                             } else {
-                              const colsToFlash = res.errorAttributes?.length
-                                ? res.errorAttributes
-                                : updates.map((u) => u.name);
+                              const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
                               flashError(idx, colsToFlash);
                             }
                           }
                         }}
-                        title={
-                          doc.pid
-                            ? hasChanges
-                              ? "Änderungen speichern"
-                              : "Keine Änderungen"
-                            : "PID fehlt – Speichern nicht möglich"
-                        }
+                        title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
                       >
                         <Save className="h-3 w-3" />
                       </Button>
@@ -910,14 +923,38 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                     {/* Data columns */}
                     {displayColumns.map((col) => {
                       if (col.kind === "meta") {
+                        if (col.id === "dokumenttyp" && entitySelectOptions.length > 0) {
+                          const value = editedDocTypes[idx] ?? doc.entityName ?? "";
+                          return (
+                            <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
+                              <Select
+                                value={value || undefined}
+                                onValueChange={(val: string) => setEditedDocTypes((prev) => ({ ...prev, [idx]: val }))}
+                                disabled={!doc.pid || isLockedByStatus}
+                              >
+                                <SelectTrigger
+                                  disabled={!doc.pid || isLockedByStatus}
+                                  className={cn("h-6 w-full min-w-0 text-xs px-1", isLockedByStatus && "opacity-60")}
+                                >
+                                  <SelectValue placeholder="Wählen…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {entitySelectOptions.map((opt) => (
+                                    <SelectItem key={opt.name} value={opt.name}>
+                                      {opt.label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        }
+
                         const value = col.getValue(doc);
                         return (
                           <div
                             key={`${idx}-${col.id}`}
-                            className={cn(
-                              "px-2 py-2 min-w-0 flex items-center",
-                              isHighlighted && rowHighlightClass
-                            )}
+                            className={cn("px-2 py-2 min-w-0 flex items-center", isHighlighted && rowHighlightClass)}
                           >
                             <div className="truncate text-xs text-foreground">{value || ""}</div>
                           </div>

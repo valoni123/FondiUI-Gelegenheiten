@@ -7,7 +7,12 @@ import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRig
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
-import { searchIdmItemsByEntityJson, type IdmDocPreview, updateIdmItemAttributes } from "@/api/idm";
+import {
+  searchIdmItemsByEntityJson,
+  type IdmDocPreview,
+  updateIdmItemAttributes,
+  changeIdmItemDocumentType,
+} from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import {
@@ -316,46 +321,52 @@ const RightPanel: React.FC<RightPanelProps> = ({
   // ADD: Save handler
   const handleSaveRow = async (
     doc: IdmDocPreview,
-    updates: { name: string; value: string }[]
+    updates: { name: string; value: string }[],
+    options?: { entityName?: string }
   ) => {
     if (!doc.pid) return { ok: false, errorAttributes: [] };
+
+    const newEntityName = options?.entityName?.trim();
+
     try {
-      await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
-      toast({ 
+      if (newEntityName && newEntityName.length > 0 && newEntityName !== (doc.entityName ?? "")) {
+        await changeIdmItemDocumentType(authToken, cloudEnvironment, doc.pid, newEntityName, updates, "de-DE");
+      } else {
+        await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
+      }
+
+      toast({
         title: (
           <span className="inline-flex items-center gap-2">
             <Check className="h-4 w-4" />
             Änderungen gespeichert
           </span>
-        ), 
-        variant: "success" 
+        ),
+        variant: "success",
       });
-      // reload previews so updated values appear immediately
       await reloadPreviews();
       return { ok: true };
     } catch (err: any) {
-      // Extrahiere message und detail aus XML-Fehlerantwort
       const xml = err.message || "";
       const messageMatch = xml.match(/<message>(.*?)<\/message>/i);
       const detailMatch = xml.match(/<detail>(.*?)<\/detail>/i);
       const userMsg = messageMatch?.[1] || "Fehler beim Speichern";
       const userDetail = detailMatch?.[1] || "";
 
-      // Versuche, den fehlerhaften Attributnamen aus <detail> zu extrahieren (z. B. "Attribute name: Werk, ...")
       const detailText = userDetail || "";
       const attrNameMatch = detailText.match(/Attribute name:\s*([^,]+)/i);
       const failedAttr = attrNameMatch?.[1]?.trim();
       const failedAttrs = failedAttr ? [failedAttr] : undefined;
 
-      toast({ 
+      toast({
         title: (
           <span className="inline-flex items-center gap-2">
             <X className="h-4 w-4 text-white" />
             {userMsg}
           </span>
-        ), 
+        ),
         description: userDetail,
-        variant: "destructive" 
+        variant: "destructive",
       });
       return { ok: false, errorAttributes: failedAttrs };
     }
@@ -553,6 +564,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               onDeleteDoc={handleDeleteDoc}
               authToken={authToken}
               cloudEnvironment={cloudEnvironment}
+              entityOptions={entityOptions}
             />
           </div>
 
@@ -768,6 +780,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 onDeleteDoc={handleDeleteDoc}
                 authToken={authToken}
                 cloudEnvironment={cloudEnvironment}
+                entityOptions={entityOptions}
               />
             </div>
           )}

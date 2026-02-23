@@ -410,6 +410,63 @@ export const updateIdmItemAttributes = async (
   }
 };
 
+/**
+ * Change the document type (entityName) of an existing IDM item.
+ *
+ * Important: Some IDM document types don't support all attributes. Therefore we filter the given attributes
+ * by the target entity schema before sending the PUT.
+ */
+export const changeIdmItemDocumentType = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  newEntityName: string,
+  attrs: { name: string; value: string }[] = [],
+  language: string = "de-DE"
+): Promise<void> => {
+  const base = buildIdmBase(environment);
+
+  const schemaAttrs = await getIdmEntityAttributes(token, environment, newEntityName, language);
+  const allowed = new Set(schemaAttrs.map((a) => a.name));
+  const filtered = (attrs || []).filter((a) => a?.name && allowed.has(a.name));
+
+  const url =
+    `${base}/api/items/${encodeURIComponent(pid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const body: any = {
+    item: {
+      pid,
+      entityName: newEntityName,
+    },
+  };
+
+  // Only include attrs if there is at least one valid attribute.
+  // Sending an empty attr array can lead to "Attribute name: null" errors in some IDM setups.
+  if (filtered.length > 0) {
+    body.item.attrs = {
+      attr: filtered.map((a) => ({ name: a.name, value: a.value })),
+    };
+  }
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/xml;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(
+      `[IDM] change document type failed for PID '${pid}' -> '${newEntityName}': ${res.status} ${res.statusText} - ${errorText}`
+    );
+  }
+};
+
 // NEW: Replace IDM item resource (upload new file as base64)
 export const replaceIdmItemResource = async (
   token: string,
