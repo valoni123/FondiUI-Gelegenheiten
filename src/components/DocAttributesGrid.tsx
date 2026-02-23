@@ -79,6 +79,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const rowHighlightLeft = "border-l border-red-400 rounded-l-sm";
   const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
 
+  // Excel-like look: square inputs and full gridlines
+  const headerCellClass = "px-2 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30";
+  const gridCellClass = "px-2 py-1 min-w-0 border-r border-b border-border bg-background";
+  const iconCellClass = "px-2 py-1 flex items-center border-r border-b border-border bg-background";
+  const filterCellClass = "px-2 py-1 border-r border-b border-border bg-background";
+
   // Document type (entityName) edit state MUST be declared before effects using it
   const initialDocTypes = React.useMemo<Record<number, string>>(() => {
     const map: Record<number, string> = {};
@@ -701,36 +707,30 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       )}
 
       <TooltipProvider>
-        {/* Use native horizontal scrolling so the scrollbar becomes visible when the table is wider than the viewport */}
         <div className="w-full overflow-x-auto">
           <div>
             <div className="grid w-max min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
               {/* Header */}
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
+              <div className={headerCellClass}></div>
+              <div className={headerCellClass}></div>
+              <div className={headerCellClass}></div>
+              <div className={headerCellClass}></div>
+              <div className={headerCellClass}></div>
               {displayColumns.map((col) => (
-                <div
-                  key={col.id}
-                  className="px-2 py-2 text-xs font-medium text-muted-foreground min-w-0"
-                >
+                <div key={col.id} className={cn(headerCellClass, "min-w-0")}>
                   <div className="truncate">{col.header}</div>
                 </div>
               ))}
-              <div className="px-2 py-2 text-xs font-medium text-muted-foreground"></div>
-
-              <div className="col-span-full h-px bg-border" />
+              <div className={headerCellClass}></div>
 
               {/* Filters */}
-              <div className="px-2 py-2"></div>
-              <div className="px-2 py-2"></div>
-              <div className="px-2 py-2"></div>
-              <div className="px-2 py-2"></div>
-              <div className="px-2 py-2"></div>
+              <div className={filterCellClass}></div>
+              <div className={filterCellClass}></div>
+              <div className={filterCellClass}></div>
+              <div className={filterCellClass}></div>
+              <div className={filterCellClass}></div>
               {displayColumns.map((col) => (
-                <div key={`filter-${col.id}`} className="px-2 py-2 min-w-0">
+                <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0")}>
                   <Input
                     value={filters[col.id] || ""}
                     onChange={(e) =>
@@ -739,22 +739,20 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         [col.id]: e.target.value,
                       }))
                     }
-                    className="h-6 w-full min-w-0 text-xs px-1"
+                    className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
                   />
                 </div>
               ))}
-              <div className="px-2 py-2"></div>
-
-              <div className="col-span-full h-px bg-border" />
+              <div className={filterCellClass}></div>
 
               {/* Rows */}
               {isLoading ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground">
+                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Dokumente werden geladen…
                 </div>
               ) : docs.length === 0 ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground">
+                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
                   Keine Dokumente gefunden.
                 </div>
               ) : (
@@ -795,7 +793,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                     return (
                       <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
                         {/* Detail Button */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
+                        <div
+                          className={cn(
+                            iconCellClass,
+                            isHighlighted && rowHighlightClass,
+                            isHighlighted && rowHighlightLeft
+                          )}
+                        >
                           <Button
                             variant="ghost"
                             size="icon"
@@ -814,7 +818,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         </div>
 
                         {/* Select Checkbox */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           <Checkbox
                             checked={selectedRows.has(idx)}
                             onCheckedChange={() => toggleRowSelected(idx)}
@@ -825,7 +829,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         </div>
 
                         {/* Save Button */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -873,7 +877,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         </div>
 
                         {/* Replace Button */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -888,7 +892,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         </div>
 
                         {/* Linked Documents Button */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass)}>
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           {doc.pid ? (
                             <LinkedDocumentsDialog
                               authToken={authToken}
@@ -927,7 +931,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             if (col.id === "dokumenttyp" && entitySelectOptions.length > 0) {
                               const value = editedDocTypes[idx] ?? doc.entityName ?? "";
                               return (
-                                <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
+                                <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
                                   <Select
                                     value={value || undefined}
                                     onValueChange={(val: string) => setEditedDocTypes((prev) => ({ ...prev, [idx]: val }))}
@@ -935,7 +939,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   >
                                     <SelectTrigger
                                       disabled={!doc.pid || isLockedByStatus}
-                                      className={cn("h-6 w-full min-w-0 text-xs px-1", isLockedByStatus && "opacity-60")}
+                                      className={cn("h-6 w-full min-w-0 text-xs px-1 rounded-none", isLockedByStatus && "opacity-60")}
                                     >
                                       <SelectValue placeholder="Wählen…" />
                                     </SelectTrigger>
@@ -953,10 +957,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                             const value = col.getValue(doc);
                             return (
-                              <div
-                                key={`${idx}-${col.id}`}
-                                className={cn("px-2 py-2 min-w-0 flex items-center", isHighlighted && rowHighlightClass)}
-                              >
+                              <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
                                 <div className="truncate text-xs text-foreground">{value || ""}</div>
                               </div>
                             );
@@ -984,7 +985,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               : "";
 
                           return (
-                            <div key={`${idx}-${col.id}`} className={cn("px-2 py-2 min-w-0", isHighlighted && rowHighlightClass)}>
+                            <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
                               {def?.valueset && def.valueset.length > 0 ? (
                                 <Select
                                   value={(rowEdited[attrName] ?? "") || undefined}
@@ -1000,7 +1001,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   <SelectTrigger
                                     disabled={isEditDisabled}
                                     className={cn(
-                                      "h-6 w-full min-w-0 text-xs px-1",
+                                      "h-6 w-full min-w-0 text-xs px-1 rounded-none",
                                       statusClass,
                                       isEditDisabled && "opacity-60",
                                       hasError &&
@@ -1028,7 +1029,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                       variant="outline"
                                       disabled={isEditDisabled}
                                       className={cn(
-                                        "h-6 w-full min-w-0 justify-start text-left text-xs px-1",
+                                        "h-6 w-full min-w-0 justify-start text-left text-xs px-1 rounded-none",
                                         isEditDisabled && "opacity-60",
                                         hasError &&
                                           !hasSuccess &&
@@ -1077,7 +1078,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     })
                                   }
                                   className={cn(
-                                    "h-6 w-full min-w-0 text-xs px-1",
+                                    "h-6 w-full min-w-0 text-xs px-1 rounded-none",
                                     isEditDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
@@ -1093,7 +1094,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         })}
 
                         {/* Delete Button */}
-                        <div className={cn("px-2 py-2 flex items-center", isHighlighted && rowHighlightClass, isHighlighted && rowHighlightRight)}>
+                        <div
+                          className={cn(
+                            iconCellClass,
+                            isHighlighted && rowHighlightClass,
+                            isHighlighted && rowHighlightRight
+                          )}
+                        >
                           <Button
                             variant="ghost"
                             size="icon"
