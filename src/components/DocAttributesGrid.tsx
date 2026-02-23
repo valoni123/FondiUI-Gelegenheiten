@@ -418,10 +418,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   }, [attrDefsByEntity]);
 
   const belegdatumColumnWidthPx = React.useMemo(() => {
-    // Keep Belegdatum as tight as needed: header text (and a typical dd.MM.yyyy value) should fit.
-    const maxLen = Math.max("Belegdatum".length, "29.01.2026".length);
-    const px = Math.round(maxLen * 7 + 28);
-    return Math.min(160, Math.max(84, px));
+    // Include placeholder "Datum wählen" so it doesn't overflow when no date is set
+    const candidates = ["Belegdatum", "29.01.2026", "Datum wählen"];
+    const maxLen = candidates.reduce((m, s) => Math.max(m, s.length), 0);
+    const px = Math.round(maxLen * 7 + 36);
+    // Ensure a comfortable minimum width
+    return Math.min(180, Math.max(120, px));
   }, []);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
