@@ -357,6 +357,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 cloudEnvironment={cloudEnvironment}
                 selectedOpportunityId={selectedOpportunityId}
                 onSelectOpportunity={handleSelectOpportunity}
+                isLoading={isLoadingOpportunities}
               />
             </ResizablePanel>
           )}

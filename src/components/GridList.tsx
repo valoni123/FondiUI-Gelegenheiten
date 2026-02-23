@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp, Search } from "lucide-react";
+import { ArrowRight, ArrowDownUp, Search, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -32,8 +32,9 @@ interface GridListProps {
   authToken: string;
   companyNumber: string;
   cloudEnvironment: CloudEnvironment;
-  selectedOpportunityId: string | null; // New prop for selected item
-  onSelectOpportunity: (opportunityId: string | null) => void; // New prop for selection handler
+  selectedOpportunityId: string | null;
+  onSelectOpportunity: (opportunityId: string | null) => void;
+  isLoading?: boolean;
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -44,8 +45,9 @@ const GridList: React.FC<GridListProps> = ({
   authToken,
   companyNumber,
   cloudEnvironment,
-  selectedOpportunityId, // Destructure new prop
-  onSelectOpportunity, // Destructure new prop
+  selectedOpportunityId,
+  onSelectOpportunity,
+  isLoading,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -123,73 +125,93 @@ const GridList: React.FC<GridListProps> = ({
     setCurrentEditingItemId(null);
   };
 
+  // Excel-like classes
+  const headerCellClass = "px-2 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 min-h-8 align-middle";
+  const filterCellInputClass = "h-8 text-xs px-2 rounded-none";
+  const dataCellClass = "px-2 py-1 border-r border-b border-border min-h-8 align-middle";
+  const iconCellClass = "px-2 py-1 border-r border-b border-border min-h-8 align-middle";
+
   return (
     <React.Fragment>
       <div className="space-y-4">
         <Table>
           <TableHeader>
-            <TableRow>
-              {[
-                <TableHead key="_open" className="w-[40px] text-center px-1 py-1">
-                  <span className="sr-only">Open</span>
-                </TableHead>,
-                ...visibleKeys.map((key) => (
-                  <TableHead
-                    key={key}
-                    className={cn(
-                      "px-1 py-1",
-                      "min-w-[60px]",
-                      key === "id" && "min-w-[100px]",
-                      key === "Project" && "min-w-[100px]",
-                      key === "description" && "min-w-[150px]"
-                    )}
-                  >
-                    <div className="flex flex-col space-y-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleSort(key)}
-                        className="flex items-center justify-start px-1 font-bold"
-                      >
-                        {getColumnLabel(key)}
-                        {sortConfig?.key === key && (
-                          <ArrowDownUp
-                            className={cn(
-                              "h-3 w-3",
-                              sortConfig.direction === "desc" ? "rotate-180" : ""
-                            )}
-                          />
-                        )}
-                      </Button>
-                      <Input
-                        value={filters[key] || ""}
-                        onChange={(e) => handleFilterChange(key, e.target.value)}
-                        className="h-7 text-xs"
-                      />
-                    </div>
-                  </TableHead>
-                )),
-              ]}
+            <TableRow className="border-b border-border">
+              <TableHead key="_open" className={cn("w-[40px] text-center", headerCellClass)}>
+                <span className="sr-only">Open</span>
+              </TableHead>
+              {visibleKeys.map((key) => (
+                <TableHead
+                  key={key}
+                  className={cn(
+                    headerCellClass,
+                    "min-w-[60px]",
+                    key === "id" && "min-w-[120px]",
+                    key === "Project" && "min-w-[120px]",
+                    key === "description" && "min-w-[180px]"
+                  )}
+                >
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort(key)}
+                      className="flex items-center justify-start px-1 font-bold h-6"
+                    >
+                      {getColumnLabel(key)}
+                      {sortConfig?.key === key && (
+                        <ArrowDownUp
+                          className={cn(
+                            "h-3 w-3",
+                            sortConfig.direction === "desc" ? "rotate-180" : ""
+                          )}
+                        />
+                      )}
+                    </Button>
+                    <Input
+                      value={filters[key] || ""}
+                      onChange={(e) => handleFilterChange(key, e.target.value)}
+                      className={filterCellInputClass}
+                    />
+                  </div>
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
+
           <TableBody>
-            {filteredAndSortedItems.map((item) => (
-              <TableRow
-                key={item.id}
-                className={cn(
-                  "hover:bg-muted cursor-pointer",
-                  selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
-                )}
-                onClick={() => {
-                  if (selectedOpportunityId === item.id) {
-                    onSelectOpportunity(null);
-                  } else {
-                    onSelectOpportunity(item.id);
-                  }
-                }}
-              >
-                {[
-                  <TableCell key={`${item.id}-open`} className="text-center px-1 py-1">
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                  <div className="flex items-center justify-center text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Gelegenheiten werden geladen…
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : filteredAndSortedItems.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                  <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredAndSortedItems.map((item) => (
+                <TableRow
+                  key={item.id}
+                  className={cn(
+                    "hover:bg-muted cursor-pointer border-b border-border",
+                    selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
+                  )}
+                  onClick={() => {
+                    if (selectedOpportunityId === item.id) {
+                      onSelectOpportunity(null);
+                    } else {
+                      onSelectOpportunity(item.id);
+                    }
+                  }}
+                >
+                  <TableCell key={`${item.id}-open`} className={cn("text-center", iconCellClass)}>
                     <Button
                       variant="default"
                       size="icon"
@@ -207,16 +229,17 @@ const GridList: React.FC<GridListProps> = ({
                     >
                       <ArrowRight className="h-4 w-4" />
                     </Button>
-                  </TableCell>,
-                  ...visibleKeys.map((key) => (
-                    <TableCell key={`${item.id}-${key}`} className="px-1 py-1">
+                  </TableCell>
+
+                  {visibleKeys.map((key) => (
+                    <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
                       {key === "Status" && opportunityStatusOptions.length > 0 ? (
                         <Select
-                          value={String(item[key])}
+                          value={String(item[key] ?? "")}
                           onValueChange={(value) => onUpdateItem(item.id, key, value)}
                         >
-                          <SelectTrigger className="w-full h-7 text-xs">
-                            <SelectValue placeholder="Select Status" />
+                          <SelectTrigger className="w-full h-7 text-xs px-1 rounded-none">
+                            <SelectValue placeholder="Status wählen" />
                           </SelectTrigger>
                           <SelectContent>
                             {opportunityStatusOptions.map((option) => (
@@ -233,13 +256,13 @@ const GridList: React.FC<GridListProps> = ({
                             fieldKey={key}
                             initialValue={item[key] || ""}
                             onUpdateItem={onUpdateItem}
-                            className="pr-10 w-full"
+                            className="pr-10 w-full rounded-none h-7 text-xs"
                             disabled={false}
                             hasSearchButton={true}
                             onSearchButtonClick={handleOpenBpSelectDialog}
                           />
                           {item.SoldtoBusinessPartnerName && (
-                            <p className="text-sm text-muted-foreground whitespace-nowrap">
+                            <p className="text-xs text-muted-foreground whitespace-nowrap">
                               {item.SoldtoBusinessPartnerName}
                             </p>
                           )}
@@ -251,7 +274,7 @@ const GridList: React.FC<GridListProps> = ({
                           initialValue={item[key] || ""}
                           onUpdateItem={onUpdateItem}
                           type={typeof item[key] === "number" ? "number" : "text"}
-                          className="w-full"
+                          className="w-full rounded-none h-7 text-xs px-1"
                           disabled={
                             key === "id" ||
                             key === "Opportunity" ||
@@ -264,15 +287,12 @@ const GridList: React.FC<GridListProps> = ({
                         />
                       )}
                     </TableCell>
-                  )),
-                ]}
-              </TableRow>
-            ))}
+                  ))}
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
-        {filteredAndSortedItems.length === 0 && (
-          <p className="text-center text-muted-foreground py-4">No items found.</p>
-        )}
 
         <BusinessPartnerSelectDialog
           isOpen={isBpSelectDialogOpen}
@@ -283,7 +303,7 @@ const GridList: React.FC<GridListProps> = ({
           cloudEnvironment={cloudEnvironment}
         />
 
-        <p className="text-sm text-muted-foreground text-center py-4">
+        <p className="text-sm text-muted-foreground text-center py-2">
           {`${filteredAndSortedItems.length} Gelegenheiten angezeigt`}
         </p>
       </div>
