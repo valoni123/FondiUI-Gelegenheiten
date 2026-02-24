@@ -249,6 +249,19 @@ const GridList: React.FC<GridListProps> = ({
                             ))}
                           </SelectContent>
                         </Select>
+                      ) : (key === "id" || key === "Project" || key === "description") ? (
+                        <button
+                          className="w-full text-left h-7 text-xs px-1 rounded-none truncate"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedOpportunityId !== item.id) {
+                              onSelectOpportunity(item.id);
+                            }
+                          }}
+                          title="Details anzeigen"
+                        >
+                          {String(item[key] ?? "")}
+                        </button>
                       ) : key === "SoldtoBusinessPartner" ? (
                         <div className="flex items-center gap-2">
                           <EditableCellInput
