@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowDownUp, Search, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import {
@@ -49,9 +49,6 @@ const GridList: React.FC<GridListProps> = ({
   onSelectOpportunity,
   isLoading,
 }) => {
-  // keep prop for backwards compatibility (not used in the current right-panel navigation)
-  void onViewDetails;
-
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
@@ -128,28 +125,18 @@ const GridList: React.FC<GridListProps> = ({
     setCurrentEditingItemId(null);
   };
 
-  // Excel-like classes (stronger gridlines + clearer headers)
-  const headerCellClass =
-    "px-1 py-1 text-xs font-semibold text-foreground border-r border-b-2 border-border/80 bg-muted/80 min-h-8 align-middle";
-  const filterCellInputClass = "h-8 text-xs px-1 rounded-none bg-transparent";
-  const dataCellClass = "px-1 py-1 border-r border-b border-border/80 min-h-8 align-middle";
-  const iconCellClass = "px-1 py-1 border-r border-b border-border/80 min-h-8 align-middle";
-
-  const getCellBg = (rowIndex: number, colIndex: number) => {
-    const rowOdd = rowIndex % 2 === 1;
-    const colOdd = colIndex % 2 === 1;
-    if (rowOdd && colOdd) return "bg-muted/25";
-    if (colOdd) return "bg-muted/15";
-    if (rowOdd) return "bg-muted/5";
-    return "bg-background";
-  };
+  // Excel-like classes
+  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 min-h-8 align-middle";
+  const filterCellInputClass = "h-8 text-xs px-1 rounded-none";
+  const dataCellClass = "px-1 py-1 border-r border-b border-border min-h-8 align-middle";
+  const iconCellClass = "px-1 py-1 border-r border-b border-border min-h-8 align-middle";
 
   return (
     <React.Fragment>
       <div className="space-y-4">
-        <Table className="border border-border/80 border-separate border-spacing-0">
+        <Table>
           <TableHeader>
-            <TableRow className="border-b border-border/80">
+            <TableRow className="border-b border-border">
               <TableHead key="_open" className={cn("w-[40px] text-center", headerCellClass)}>
                 <span className="sr-only">Open</span>
               </TableHead>
@@ -183,10 +170,8 @@ const GridList: React.FC<GridListProps> = ({
                     </Button>
                     <Input
                       value={filters[key] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        handleFilterChange(key, e.target.value)
-                      }
-                      className={cn(filterCellInputClass, "border-border/70 bg-background")}
+                      onChange={(e) => handleFilterChange(key, e.target.value)}
+                      className={filterCellInputClass}
                     />
                   </div>
                 </TableHead>
@@ -211,12 +196,11 @@ const GridList: React.FC<GridListProps> = ({
                 </TableCell>
               </TableRow>
             ) : (
-              filteredAndSortedItems.map((item, rowIdx) => (
+              filteredAndSortedItems.map((item) => (
                 <TableRow
                   key={item.id}
                   className={cn(
-                    "cursor-pointer",
-                    "hover:bg-muted/20",
+                    "hover:bg-muted cursor-pointer border-b border-border",
                     selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
                   )}
                   onClick={() => {
@@ -227,15 +211,12 @@ const GridList: React.FC<GridListProps> = ({
                     }
                   }}
                 >
-                  <TableCell
-                    key={`${item.id}-open`}
-                    className={cn("text-center", iconCellClass, getCellBg(rowIdx, 0))}
-                  >
+                  <TableCell key={`${item.id}-open`} className={cn("text-center", iconCellClass)}>
                     <Button
                       variant="default"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={(e: React.MouseEvent) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         if (selectedOpportunityId === item.id) {
                           onSelectOpportunity(null);
@@ -250,23 +231,14 @@ const GridList: React.FC<GridListProps> = ({
                     </Button>
                   </TableCell>
 
-                  {visibleKeys.map((key, colIdx) => (
-                    <TableCell
-                      key={`${item.id}-${key}`}
-                      className={cn(dataCellClass, getCellBg(rowIdx, colIdx + 1))}
-                    >
+                  {visibleKeys.map((key) => (
+                    <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
                       {key === "Status" && opportunityStatusOptions.length > 0 ? (
                         <Select
                           value={String(item[key] ?? "")}
-                          onValueChange={(value: string) => onUpdateItem(item.id, key, value)}
+                          onValueChange={(value) => onUpdateItem(item.id, key, value)}
                         >
-                          <SelectTrigger
-                            className={cn(
-                              "w-full h-7 text-xs px-1 rounded-none",
-                              "border-border/70",
-                              "bg-transparent"
-                            )}
-                          >
+                          <SelectTrigger className="w-full h-7 text-xs px-1 rounded-none">
                             <SelectValue placeholder="Status wählen" />
                           </SelectTrigger>
                           <SelectContent>
@@ -279,14 +251,8 @@ const GridList: React.FC<GridListProps> = ({
                         </Select>
                       ) : (key === "id" || key === "Project" || key === "description") ? (
                         <button
-                          className={cn(
-                            "w-full text-left h-7 text-xs px-1 rounded-none truncate",
-                            // Clearly non-editable, but still clickable (like in the reference)
-                            "bg-muted/50 text-foreground border border-border/70",
-                            "shadow-inner",
-                            "hover:bg-muted/60"
-                          )}
-                          onClick={(e: React.MouseEvent) => {
+                          className="w-full text-left h-7 text-xs px-1 rounded-none truncate"
+                          onClick={(e) => {
                             e.stopPropagation();
                             if (selectedOpportunityId !== item.id) {
                               onSelectOpportunity(item.id);
@@ -303,7 +269,7 @@ const GridList: React.FC<GridListProps> = ({
                             fieldKey={key}
                             initialValue={item[key] || ""}
                             onUpdateItem={onUpdateItem}
-                            className="pr-10 w-full rounded-none h-7 text-xs border-border/70 bg-transparent"
+                            className="pr-10 w-full rounded-none h-7 text-xs"
                             disabled={false}
                             hasSearchButton={true}
                             onSearchButtonClick={handleOpenBpSelectDialog}
@@ -321,7 +287,7 @@ const GridList: React.FC<GridListProps> = ({
                           initialValue={item[key] || ""}
                           onUpdateItem={onUpdateItem}
                           type={typeof item[key] === "number" ? "number" : "text"}
-                          className="w-full rounded-none h-7 text-xs px-1 border-border/70 bg-transparent"
+                          className="w-full rounded-none h-7 text-xs px-1"
                           disabled={
                             key === "id" ||
                             key === "Opportunity" ||

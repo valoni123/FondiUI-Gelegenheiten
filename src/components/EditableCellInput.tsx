@@ -64,13 +64,7 @@ const EditableCellInput: React.FC<EditableCellInputProps> = ({
         onKeyDown={handleKeyDown}
         type={type}
         disabled={disabled}
-        className={cn(
-          // Make disabled fields more obviously disabled, but keep layout consistent
-          "disabled:opacity-100 disabled:bg-muted/60 disabled:text-muted-foreground disabled:border-border/70",
-          className,
-          (hasSearchButton || displaySuffix) && "pr-10",
-          "text-xs"
-        )}
+        className={cn(className, (hasSearchButton || displaySuffix) && "pr-10", "text-xs")}
       />
       {displaySuffix && <span className="absolute right-2 text-sm text-muted-foreground">{displaySuffix}</span>}
       {hasSearchButton && (
