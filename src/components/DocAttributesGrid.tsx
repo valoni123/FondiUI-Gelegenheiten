@@ -470,8 +470,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       });
 
       const rowHasTypeChange = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+      // NEW: consider note changes for save-all button
+      const noteChanged = (rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "");
 
-      if (rowHasAttrChanges || rowHasTypeChange) count++;
+      if (rowHasAttrChanges || rowHasTypeChange || noteChanged) count++;
     });
     return count;
   }, [docs, edited, initial, editableColumns, attrDefsByEntity, resolveAttrName, editedDocTypes, initialDocTypes]);
@@ -504,6 +506,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         })
         .filter((u) => u.changed)
         .map((u) => ({ name: u.attrName, value: u.value }));
+
+      // NEW: include note changes in save-all
+      if ((rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "")) {
+        updates.push({ name: "Anmerkung", value: rowEdited["Anmerkung"] ?? "" });
+      }
 
       if (updates.length || typeChanged) {
         if (!doc.pid) {
@@ -775,8 +782,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                     const isHighlighted = highlightedSet.has(getDocKey(doc));
                     const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+                    // NEW: note changes will also trigger hasChanges
+                    const noteChanged = (rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "");
                     const hasChanges =
                       typeChanged ||
+                      noteChanged ||
                       editableColumns.some((c) => {
                         const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
                         return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
@@ -841,6 +851,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 })
                                 .filter((u) => u.changed)
                                 .map((u) => ({ name: u.name, value: u.value }));
+
+                              // NEW: include note changes
+                              if ((rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "")) {
+                                updates.push({ name: "Anmerkung", value: rowEdited["Anmerkung"] ?? "" });
+                              }
 
                               if (updates.length || newEntityName) {
                                 const res = await onSaveRow(doc, updates, { entityName: newEntityName });
