@@ -306,6 +306,14 @@ export const searchIdmItemsByEntityJson = async (
     `${base}/api/items/search?` +
     `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
+  // DEBUG: helps to see the exact $query and the full request URL used by the document list
+  console.log("[IDM] searchIdmItemsByEntityJson request:", {
+    entityName,
+    opportunityId,
+    query,
+    url,
+  });
+
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -324,6 +332,34 @@ export const searchIdmItemsByEntityJson = async (
   // Robustly extract items array: items.item[] or item[]
   const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
   const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  // DEBUG: dump what fields the API actually returns so we can map created/modified fields correctly
+  if (items.length > 0) {
+    const first = items[0];
+    const firstKeys = first && typeof first === "object" ? Object.keys(first) : [];
+
+    const attrsRaw = first?.attrs?.attr ?? first?.attrs ?? first?.attr ?? [];
+    const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const attrNames = attrsList
+      .map((a) => String(a?.name ?? a?.n ?? a?.key ?? "").trim())
+      .filter(Boolean);
+
+    const resrs = first?.resrs ?? {};
+    const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
+    const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
+    const resNames = resList
+      .map((r) => String(r?.name ?? r?.["name"] ?? "").trim())
+      .filter((v, i, arr) => arr.indexOf(v) === i);
+
+    console.log("[IDM] items/search first item field overview:", {
+      entityName,
+      opportunityId,
+      topLevelKeys: firstKeys,
+      attrNames,
+      resourceNames: resNames,
+      firstItemSample: first,
+    });
+  }
 
   const previews: IdmDocPreview[] = [];
   for (const item of items) {
