@@ -259,7 +259,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
   // Cache of attribute definitions by entity: { [entityName]: { [attrName]: { valueset?, type? } } }
   const [attrDefsByEntity, setAttrDefsByEntity] = React.useState<
-    Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }>>
+    Record<string, Record<string, { valueset?: { name: string; desc: string }[]; type?: string }> >
   >({});
 
   // Load attribute definitions for each entity present in docs OR currently edited document types
@@ -641,8 +641,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
   // Columns: (NEW) Note Editor (30) | Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
   const gridTemplate = React.useMemo(() => {
-    // ADD one more fixed column at the beginning for the note editor icon
-    const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // note | detail | select | save | replace | linked
+    // CHANGED ORDER: detail | select | save | replace | linked | note
+    const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // detail | select | save | replace | linked | note
     const dataCols = displayColumns.map((c) => {
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
@@ -784,26 +784,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                     return (
                       <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
-                        {/* NEW: Note Editor Button */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => openNoteEditor(idx)}
-                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Anmerkung bearbeiten"}
-                            aria-label="Anmerkung bearbeiten"
-                          >
-                            <FileText className="h-3 w-3" />
-                          </Button>
-                        </div>
-
-                        {/* Detail Button */}
+                        {/* Detail Button (now first icon cell) */}
                         <div
                           className={cn(
                             iconCellClass,
-                            isHighlighted && rowHighlightClass
+                            isHighlighted && rowHighlightClass,
+                            isHighlighted && rowHighlightLeft
                           )}
                         >
                           <Button
@@ -930,6 +916,21 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           )}
                         </div>
 
+                        {/* MOVED: Note Editor Button (now after Linked Docs) */}
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={!doc.pid || isLockedByStatus}
+                            onClick={() => openNoteEditor(idx)}
+                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Anmerkung bearbeiten"}
+                            aria-label="Anmerkung bearbeiten"
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        </div>
+
                         {/* Data columns */}
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
@@ -979,7 +980,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                           const statusLabel = isStatusCol
                             ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
-                                ?.desc ??
+                                ?.desc ?? 
                                 (rowEdited[attrName] ?? ""))
                             : "";
                           const statusClass =
