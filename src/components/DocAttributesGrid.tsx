@@ -930,21 +930,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           )}
                         </div>
 
-                        {/* RE-ADDED: Note Editor Button placed directly next to the linked-documents icon */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => openNoteEditor(idx)}
-                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Anmerkung bearbeiten"}
-                            aria-label="Anmerkung bearbeiten"
-                          >
-                            <FileText className="h-3 w-3" />
-                          </Button>
-                        </div>
-
                         {/* Data columns */}
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
