@@ -6,7 +6,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type IdmDocPreview } from "@/api/idm";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Loader2 } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Loader2, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -628,11 +629,20 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     setConfirmBatchDelete(false);
   };
 
-  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
-  // Use minmax(..., fr) so the grid always expands to use the full available width.
-  const gridTemplate = React.useMemo(() => {
-    const fixed = ["30px", "30px", "30px", "30px", "30px"]; // icon/button columns
+  // NOTE EDITOR state
+  const [noteEditorRow, setNoteEditorRow] = React.useState<number | null>(null);
+  const [noteEditorValue, setNoteEditorValue] = React.useState<string>("");
 
+  const openNoteEditor = (idx: number) => {
+    const current = edited[idx]?.["Anmerkung"] ?? initial[idx]?.["Anmerkung"] ?? "";
+    setNoteEditorRow(idx);
+    setNoteEditorValue(String(current));
+  };
+
+  // Columns: (NEW) Note Editor (30) | Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
+  const gridTemplate = React.useMemo(() => {
+    // ADD one more fixed column at the beginning for the note editor icon
+    const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // note | detail | select | save | replace | linked
     const dataCols = displayColumns.map((c) => {
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
@@ -641,7 +651,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       if (c.id === "belegdatum") return `${belegdatumColumnWidthPx}px`;
       return "minmax(120px, 1fr)";
     });
-
     const tail = "30px"; // delete
     return [...fixed, ...dataCols, tail].join(" ");
   }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx]);
@@ -692,6 +701,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           <div>
             <div className="grid w-max min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
               {/* Header */}
+              {/* ADD one more empty header cell for the note editor column */}
+              <div className={headerCellClass}></div>
               <div className={headerCellClass}></div>
               <div className={headerCellClass}></div>
               <div className={headerCellClass}></div>
@@ -705,6 +716,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               <div className={headerCellClass}></div>
 
               {/* Filters */}
+              {/* ADD one more empty filter cell for the note editor column */}
+              <div className={filterCellClass}></div>
               <div className={filterCellClass}></div>
               <div className={filterCellClass}></div>
               <div className={filterCellClass}></div>
@@ -761,9 +774,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                     const isLockedByStatus = initialStatusLabel === "Freigegeben";
 
                     const isHighlighted = highlightedSet.has(getDocKey(doc));
-
                     const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
-
                     const hasChanges =
                       typeChanged ||
                       editableColumns.some((c) => {
@@ -773,12 +784,26 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                     return (
                       <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
+                        {/* NEW: Note Editor Button */}
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass, isHighlighted && rowHighlightLeft)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={!doc.pid || isLockedByStatus}
+                            onClick={() => openNoteEditor(idx)}
+                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Anmerkung bearbeiten"}
+                            aria-label="Anmerkung bearbeiten"
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                        </div>
+
                         {/* Detail Button */}
                         <div
                           className={cn(
                             iconCellClass,
-                            isHighlighted && rowHighlightClass,
-                            isHighlighted && rowHighlightLeft
+                            isHighlighted && rowHighlightClass
                           )}
                         >
                           <Button
@@ -831,11 +856,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 .filter((u) => u.changed)
                                 .map((u) => ({ name: u.name, value: u.value }));
 
-                              if (updates.length || typeChanged) {
+                              if (updates.length || newEntityName) {
                                 const res = await onSaveRow(doc, updates, { entityName: newEntityName });
                                 if (res.ok) {
                                   setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
-                                  // Keep the selected doc type in the UI until reloadPreviews updates docs
                                   if (!typeChanged) {
                                     setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
                                   }
@@ -1107,6 +1131,58 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           </div>
         </div>
       </TooltipProvider>
+
+      {/* NOTE EDITOR DIALOG */}
+      <Dialog
+        open={noteEditorRow !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setNoteEditorRow(null);
+            setNoteEditorValue("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Anmerkung bearbeiten</DialogTitle>
+            <DialogDescription>
+              Bearbeiten Sie den Text der Anmerkung. Speichern erfolgt wie gewohnt über die Zeilen‑Schaltfläche oder "Alle Änderungen speichern".
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={noteEditorValue}
+            onChange={(e) => setNoteEditorValue(e.target.value)}
+            className="min-h-[200px] rounded-none"
+            placeholder="Anmerkung eingeben…"
+          />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setNoteEditorRow(null);
+                setNoteEditorValue("");
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={() => {
+                if (noteEditorRow == null) return;
+                const idx = noteEditorRow;
+                setEdited((prev) => {
+                  const row = { ...(prev[idx] ?? {}) };
+                  row["Anmerkung"] = noteEditorValue;
+                  return { ...prev, [idx]: row };
+                });
+                setNoteEditorRow(null);
+                setNoteEditorValue("");
+              }}
+            >
+              Übernehmen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Delete Dialog */}
       <Dialog
