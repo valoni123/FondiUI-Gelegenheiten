@@ -949,29 +949,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         {/* Data columns */}
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
-                            if (col.id === "dokumenttyp" && entitySelectOptions.length > 0) {
-                              const value = editedDocTypes[idx] ?? doc.entityName ?? "";
+                            if (col.id === "dokumenttyp") {
+                              const value = col.getValue(doc);
                               return (
-                                <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
-                                  <Select
-                                    value={value || undefined}
-                                    onValueChange={(val: string) => setEditedDocTypes((prev) => ({ ...prev, [idx]: val }))}
-                                    disabled={!doc.pid || isLockedByStatus}
-                                  >
-                                    <SelectTrigger
-                                      disabled={!doc.pid || isLockedByStatus}
-                                      className={cn("h-6 w-full min-w-0 text-xs px-1 rounded-none", isLockedByStatus && "opacity-60")}
-                                    >
-                                      <SelectValue placeholder="Wählen…" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {entitySelectOptions.map((opt) => (
-                                        <SelectItem key={opt.name} value={opt.name}>
-                                          {opt.label}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
+                                  <div className="truncate text-xs text-foreground">{value || ""}</div>
                                 </div>
                               );
                             }
