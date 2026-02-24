@@ -61,7 +61,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       console.log(`[Opportunities] Reload erfolgreich (silent=${silent}) – ${fetchedOpportunities.length} Einträge geladen`);
       setOpportunities(fetchedOpportunities);
       if (!silent) {
-        toast.success("Opportunities loaded successfully!", { id: loadingToastId });
+        toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
       }
     } catch (error) {
       console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
@@ -282,7 +282,7 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-        <p>Loading authentication and initial data...</p>
+        <p>Authentifizierung und Initialdaten werden geladen …</p>
       </div>
     );
   }
