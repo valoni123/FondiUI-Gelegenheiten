@@ -171,7 +171,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "createdAt",
         header: "erstellt am",
-        getValue: (doc) => String(doc.createdTS ?? ""),
+        // Format ISO to 'dd.MM.yyyy, HH:mm:ss'
+        getValue: (doc) => {
+          const v = doc.createdTS;
+          if (!v) return "";
+          const d = new Date(v);
+          return isNaN(d.getTime()) ? String(v) : format(d, "dd.MM.yyyy, HH:mm:ss");
+        },
       },
       {
         kind: "meta",
@@ -183,7 +189,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "changedAt",
         header: "geändert am",
-        getValue: (doc) => String(doc.lastChangedTS ?? ""),
+        // Format ISO to 'dd.MM.yyyy, HH:mm:ss'
+        getValue: (doc) => {
+          const v = doc.lastChangedTS;
+          if (!v) return "";
+          const d = new Date(v);
+          return isNaN(d.getTime()) ? String(v) : format(d, "dd.MM.yyyy, HH:mm:ss");
+        },
       },
       { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
     ],
