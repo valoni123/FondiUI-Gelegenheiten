@@ -78,7 +78,12 @@ export type IdmDocPreview = {
   entityName?: string;
   attributes?: { name: string; value: string }[];
   pid?: string;
-  resourceUrl?: string; // URL der eigentlichen Datei (erstes res mit name == "")
+  resourceUrl?: string;
+  // NEW: system fields for created/modified info
+  createdByName?: string;
+  createdTS?: string; // ISO string, e.g. 2026-02-20T08:45:29.052Z
+  lastChangedByName?: string;
+  lastChangedTS?: string; // ISO string
 };
 
 export type IdmAttribute = {
@@ -389,6 +394,16 @@ export const searchIdmItemsByEntityJson = async (
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
+    // NEW: top-level created/changed fields (keep case-insensitive fallbacks for robustness)
+    const createdByName: string | undefined =
+      item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
+    const createdTS: string | undefined =
+      item?.createdTS ?? item?.CreatedTS ?? item?.createdAt ?? item?.CreatedAt;
+    const lastChangedByName: string | undefined =
+      item?.lastChangedByName ?? item?.LastChangedByName ?? item?.modifiedBy ?? item?.ModifiedBy;
+    const lastChangedTS: string | undefined =
+      item?.lastChangedTS ?? item?.LastChangedTS ?? item?.modifiedAt ?? item?.ModifiedAt;
+
     const chosen = small || preview;
     const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid; // capture PID
     if (chosen?.url) {
@@ -402,6 +417,11 @@ export const searchIdmItemsByEntityJson = async (
         attributes,
         pid: pidRaw ? String(pidRaw) : undefined,
         resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
+        // NEW: attach system fields
+        createdByName: createdByName ? String(createdByName) : undefined,
+        createdTS: createdTS ? String(createdTS) : undefined,
+        lastChangedByName: lastChangedByName ? String(lastChangedByName) : undefined,
+        lastChangedTS: lastChangedTS ? String(lastChangedTS) : undefined,
       });
     }
   }

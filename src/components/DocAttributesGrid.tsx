@@ -165,62 +165,29 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "createdBy",
         header: "erstellt von",
-        getValue: (doc) =>
-          getAttrValue(doc, [
-            "erstellt von",
-            "Erstellt von",
-            "Ersteller",
-            "CreatedBy",
-            "createdBy",
-            "creator",
-          ]),
+        getValue: (doc) => String(doc.createdByName ?? ""),
       },
       {
         kind: "meta",
         id: "createdAt",
         header: "erstellt am",
-        getValue: (doc) =>
-          getAttrValue(doc, [
-            "erstellt am",
-            "Erstellt am",
-            "Erstellzeit",
-            "CreatedAt",
-            "createdAt",
-            "created",
-          ]),
+        getValue: (doc) => String(doc.createdTS ?? ""),
       },
       {
         kind: "meta",
         id: "changedBy",
         header: "geändert von",
-        getValue: (doc) =>
-          getAttrValue(doc, [
-            "geändert von",
-            "Geändert von",
-            "Geaendert von",
-            "ModifiedBy",
-            "modifiedBy",
-            "modifier",
-          ]),
+        getValue: (doc) => String(doc.lastChangedByName ?? ""),
       },
       {
         kind: "meta",
         id: "changedAt",
         header: "geändert am",
-        getValue: (doc) =>
-          getAttrValue(doc, [
-            "geändert am",
-            "Geändert am",
-            "Geaendert am",
-            "ModifiedAt",
-            "modifiedAt",
-            "modified",
-            "updated",
-          ]),
+        getValue: (doc) => String(doc.lastChangedTS ?? ""),
       },
       { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
     ],
-    [getAttrValue]
+    []
   );
 
   // Keep a set of possible attribute names for diff/save logic
