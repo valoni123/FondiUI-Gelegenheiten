@@ -493,7 +493,17 @@ const RightPanel: React.FC<RightPanelProps> = ({
         </div>
 
         <div className="flex-none text-sm font-medium text-muted-foreground">
-          Auswahl: {selectedOpportunityId}
+          <span className="inline-flex items-center gap-2">
+            <span>Auswahl: {selectedOpportunityId}</span>
+            {selectedOpportunityProject && selectedOpportunityProject.trim().length > 0 && (
+              <>
+                <span className="text-muted-foreground/60">·</span>
+                <span className="max-w-[320px] truncate" title={selectedOpportunityProject}>
+                  Projekt: {selectedOpportunityProject}
+                </span>
+              </>
+            )}
+          </span>
         </div>
 
         <div className="flex-1 flex items-center justify-end gap-2">
@@ -569,6 +579,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               authToken={authToken}
               cloudEnvironment={cloudEnvironment}
               entityOptions={entityOptions}
+              hideProjectColumn={true}
               // ADD: loader flag
               isLoading={isPreviewsLoading}
             />
@@ -787,6 +798,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 authToken={authToken}
                 cloudEnvironment={cloudEnvironment}
                 entityOptions={entityOptions}
+                hideProjectColumn={true}
                 // For single-doc detail grid, usually not loading; omit or set false
                 isLoading={false}
               />

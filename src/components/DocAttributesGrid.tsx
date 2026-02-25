@@ -42,6 +42,8 @@ type Props = {
   ) => Promise<{ ok: boolean; errorAttributes?: string[] }>;
   onReplaceDoc: (doc: IdmDocPreview, file: File) => Promise<boolean>;
   hideSaveAllButton?: boolean;
+  /** Hide the "Projekt" column from the grid UI (data remains unchanged). */
+  hideProjectColumn?: boolean;
   title?: string;
   onDeleteDoc: (doc: IdmDocPreview) => Promise<boolean>;
   authToken: string;
@@ -62,6 +64,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   onSaveRow,
   onReplaceDoc,
   hideSaveAllButton,
+  hideProjectColumn,
   title,
   onDeleteDoc,
   authToken,
@@ -131,7 +134,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   }, []);
 
   // Fixed column order (always rendered, even if values are missing)
-  const displayColumns = React.useMemo<DisplayColumn[]>(
+  const baseDisplayColumns = React.useMemo<DisplayColumn[]>(
     () => [
       { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
       {
@@ -201,6 +204,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
     ],
     []
+  );
+
+  // Fixed column order (always rendered, even if values are missing)
+  const displayColumns = React.useMemo<DisplayColumn[]>(
+    () => (hideProjectColumn ? baseDisplayColumns.filter((c) => c.id !== "projekt") : baseDisplayColumns),
+    [baseDisplayColumns, hideProjectColumn]
   );
 
   // Keep a set of possible attribute names for diff/save logic
