@@ -911,6 +911,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
             >
               Abbrechen
             </Button>
+
+            <Button
+              variant="destructive"
+              disabled={backUnsavedSaving}
+              onClick={() => {
+                // Discard local edits in both grids and continue navigation.
+                docListGridRef.current?.discardAllChanges?.();
+                detailGridRef.current?.discardAllChanges?.();
+                setBackUnsavedDialogOpen(false);
+                setBackUnsavedSaveFailed(false);
+                setHighlightedDocKeys([]);
+                onClose();
+              }}
+            >
+              Ohne Speichern fortfahren
+            </Button>
+
             <Button
               disabled={backUnsavedSaving}
               onClick={async () => {

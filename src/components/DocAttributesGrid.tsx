@@ -55,6 +55,7 @@ type Props = {
 export type DocAttributesGridHandle = {
   saveAllChanges: () => Promise<{ ok: boolean }>;
   hasUnsavedChanges: () => boolean;
+  discardAllChanges: () => void;
 };
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
@@ -573,8 +574,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     () => ({
       saveAllChanges: handleSaveAllChanges,
       hasUnsavedChanges: () => enableSaveAllButton,
+      discardAllChanges: () => {
+        setEdited(initial);
+        setEditedDocTypes(initialDocTypes);
+        setSyncWithInitial(new Set());
+      },
     }),
-    [enableSaveAllButton]
+    [enableSaveAllButton, handleSaveAllChanges, initial, initialDocTypes]
   );
 
   // Unsaved-changes guard (used when user tries other actions while "Alle Änderungen speichern" is active)
