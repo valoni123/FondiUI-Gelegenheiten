@@ -912,7 +912,8 @@ export const linkIdmItemDocuments = async (
   mainPid: string,
   mainEntityName: string,
   linkedPids: string[],
-  language: string = "de-DE"
+  language: string = "de-DE",
+  options?: { aclName?: string }
 ): Promise<void> => {
   const base = buildIdmBase(environment);
   const url =
@@ -933,7 +934,7 @@ export const linkIdmItemDocuments = async (
     },
   }));
 
-  const body = {
+  const body: any = {
     item: {
       colls: [
         {
@@ -945,6 +946,10 @@ export const linkIdmItemDocuments = async (
       pid: mainPid,
     },
   };
+
+  if (options?.aclName) {
+    body.item.acl = { name: options.aclName };
+  }
 
   const res = await fetch(url, {
     method: "PUT",
@@ -967,7 +972,7 @@ export const getIdmItemByPid = async (
   environment: CloudEnvironment,
   pid: string,
   language: string = "de-DE"
-): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string }> => {
+): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string; aclName?: string }> => {
   const base = buildIdmBase(environment);
   const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
 
@@ -993,6 +998,8 @@ export const getIdmItemByPid = async (
   const entityName = item?.entityName ?? undefined;
   const drillbackurl = item?.drillbackurl ?? undefined;
 
+  const aclName: string | undefined = item?.acl?.name != null ? String(item.acl.name) : undefined;
+
   // Extract main resource and preview URLs
   const resNodeRaw = item?.resrs?.res;
   const resList: any[] = Array.isArray(resNodeRaw) ? resNodeRaw : resNodeRaw ? [resNodeRaw] : [];
@@ -1001,7 +1008,7 @@ export const getIdmItemByPid = async (
   const resourceUrl = mainRes?.url ? String(mainRes.url) : undefined;
   const previewUrl = previewRes?.url ? String(previewRes.url) : undefined;
 
-  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl };
+  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName };
 };
 
 /**
@@ -1020,7 +1027,9 @@ const setIdmItemLinkedPids = async (
   if (!entityName) {
     throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when updating links.`);
   }
-  await linkIdmItemDocuments(token, environment, pid, entityName, linkedPids, language);
+  await linkIdmItemDocuments(token, environment, pid, entityName, linkedPids, language, {
+    aclName: info?.aclName,
+  });
 };
 
 export const unlinkIdmItemDocument = async (
@@ -1074,7 +1083,13 @@ export const linkIdmItemDocumentsBidirectional = async (
   // Update main item (A) to include all target PIDs (B...)
   const existingMain = await getExistingLinkedPids(token, environment, mainPid, language);
   const combinedMain = Array.from(new Set([...(existingMain || []), ...cleanTargets]));
-  await linkIdmItemDocuments(token, environment, mainPid, mainEntityName, combinedMain, language);
+
+  // Fetch current ACL for main item so we can re-send it with the PUT
+  const mainInfo = await getIdmItemByPid(token, environment, mainPid, language);
+
+  await linkIdmItemDocuments(token, environment, mainPid, mainEntityName, combinedMain, language, {
+    aclName: mainInfo?.aclName,
+  });
 
   // For each target PID (B), include back-link to main (A)
   for (const pid of cleanTargets) {
@@ -1084,14 +1099,16 @@ export const linkIdmItemDocumentsBidirectional = async (
       ? Array.from(new Set([...(existingTarget || []), mainPid]))
       : existingTarget || [];
 
-    // Find correct entityName for target item
+    // Find correct entityName + ACL for target item
     const targetInfo = await getIdmItemByPid(token, environment, pid, language);
     const targetEntityName = String(targetInfo?.entityName || "");
     if (!targetEntityName) {
       throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when creating backlink to '${mainPid}'.`);
     }
 
-    await linkIdmItemDocuments(token, environment, pid, targetEntityName, combinedTarget, language);
+    await linkIdmItemDocuments(token, environment, pid, targetEntityName, combinedTarget, language, {
+      aclName: targetInfo?.aclName,
+    });
   }
 };
 
