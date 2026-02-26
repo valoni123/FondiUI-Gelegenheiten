@@ -551,14 +551,15 @@ export const replaceIdmItemResource = async (
   environment: CloudEnvironment,
   pid: string,
   file: { filename: string; base64: string },
-  language: string = "de-DE"
+  options?: { aclName?: string; language?: string }
 ): Promise<void> => {
+  const language = options?.language ?? "de-DE";
   const base = buildIdmBase(environment);
   const url =
     `${base}/api/items/${encodeURIComponent(pid)}?` +
     `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
 
-  const body = {
+  const body: any = {
     item: {
       resrs: {
         res: [
@@ -570,6 +571,10 @@ export const replaceIdmItemResource = async (
       },
     },
   };
+
+  if (options?.aclName) {
+    body.item.acl = { name: options.aclName };
+  }
 
   const res = await fetch(url, {
     method: "PUT",

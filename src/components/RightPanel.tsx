@@ -403,6 +403,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
       await replaceIdmItemResource(authToken, cloudEnvironment, doc.pid, {
         filename: file.name,
         base64,
+      }, {
+        language: "de-DE",
+        aclName: doc.acl?.name,
       });
       toast({
         title: (
