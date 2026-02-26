@@ -635,7 +635,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
                         </div>
                       )}
                       <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {doc.filename || doc.entityName || "Dokument"}
+                        {doc.filename || "Dokument"}
+                        {doc.entityName ? (
+                          <span className="text-white/80"> · {doc.entityName}</span>
+                        ) : null}
                       </div>
                       <Button
                         variant="ghost"
