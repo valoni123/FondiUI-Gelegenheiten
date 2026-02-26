@@ -349,8 +349,47 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       setIsPreviewsLoading(true);
       try {
-        const docs = await searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE");
+        const docs = await searchIdmItemsByXQueryJson(
+          authToken,
+          cloudEnvironment,
+          filter.xquery,
+          0,
+          200,
+          "de-DE"
+        );
         setDocPreviews(docs);
+      } catch (err: any) {
+        const raw = String(err?.message ?? err ?? "Unbekannter Fehler");
+
+        // searchIdmItemsByXQueryJson throws: "... - {json}". Try to extract the JSON and show a user-friendly message.
+        const jsonStart = raw.indexOf("{");
+        const jsonText = jsonStart >= 0 ? raw.slice(jsonStart) : "";
+
+        let title = "Filter konnte nicht angewendet werden";
+        let description = raw;
+
+        if (jsonText) {
+          try {
+            const parsed = JSON.parse(jsonText);
+            const msg = parsed?.error?.message;
+            const detail = parsed?.error?.detail;
+            if (msg) title = String(msg);
+            if (detail) description = String(detail);
+          } catch {
+            // ignore JSON parse failures
+          }
+        }
+
+        toast({
+          title: (
+            <span className="inline-flex items-center gap-2">
+              <X className="h-4 w-4 text-white" />
+              {title}
+            </span>
+          ),
+          description,
+          variant: "destructive",
+        });
       } finally {
         setIsPreviewsLoading(false);
       }
