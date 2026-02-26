@@ -375,8 +375,7 @@ export const searchIdmItemsByEntityJson = async (
     const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
     const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
 
-    // Prefer Thumbnail for sharper list previews; fall back to SmallPreview, then Preview
-    const thumbnail = resList.find((r) => (r?.name ?? r?.["name"]) === "Thumbnail");
+    // Prefer SmallPreview; fallback to Preview
     const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
     const mainRes = resList[0] ?? resList.find((r) => (r?.name ?? r?.["name"]) === ""); // erstes echtes Resource-Objekt
@@ -407,7 +406,7 @@ export const searchIdmItemsByEntityJson = async (
     const lastChangedTS: string | undefined =
       item?.lastChangedTS ?? item?.LastChangedTS ?? item?.modifiedAt ?? item?.ModifiedAt;
 
-    const chosen = thumbnail || small || preview;
+    const chosen = small || preview;
     const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid; // capture PID
 
     const aclRaw = (item as any)?.acl;
@@ -813,8 +812,7 @@ export const searchIdmItemsByAttributesJson = async (
     const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
     const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
 
-    // Prefer sharper Thumbnail for lists; fall back to SmallPreview then Preview
-    const thumbnail = resList.find((r) => (r?.name ?? r?.["name"]) === "Thumbnail");
+    // Wähle Vorschaubilder für die Anzeige
     const smallPreview = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
 
@@ -833,8 +831,8 @@ export const searchIdmItemsByAttributesJson = async (
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
-    // Für die Kachel-Anzeige nutzen wir Thumbnail/SmallPreview/Preview, aber zum Öffnen liefern wir resourceUrl vom ersten res
-    const chosenPreview = thumbnail ?? smallPreview ?? preview;
+    // Für die Kachel-Anzeige nutzen wir SmallPreview/Preview, aber zum Öffnen liefern wir resourceUrl vom ersten res
+    const chosenPreview = smallPreview ?? preview;
 
     const aclRaw = (item as any)?.acl;
     const acl = aclRaw
