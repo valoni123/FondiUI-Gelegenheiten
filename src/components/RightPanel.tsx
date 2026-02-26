@@ -767,7 +767,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             />
           </div>
 
-          <Separator className="mb-4" />
+          <Separator className="mt-4 mb-4" />
 
           {/* UNTEN: Dokumentenvorschau (no fixed-height scroll; let outer page scroll) */}
           <div className="flex-shrink-0">
