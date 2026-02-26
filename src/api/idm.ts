@@ -864,6 +864,106 @@ export const searchIdmItemsByAttributesJson = async (
   return previews;
 };
 
+// NEW: Search by custom XQuery (supports OR conditions), JSON response, collecting Preview URLs.
+export const searchIdmItemsByXQueryJson = async (
+  token: string,
+  environment: CloudEnvironment,
+  xquery: string,
+  offset: number = 0,
+  limit: number = 50,
+  language: string = "de-DE"
+): Promise<IdmDocPreview[]> => {
+  const base = buildIdmBase(environment);
+
+  const url =
+    `${base}/api/items/search?` +
+    `%24query=${encodeURIComponent(xquery)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] items search by xquery failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+
+  // Robustly extract items array: items.item[] or item[]
+  const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
+  const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
+
+  const previews: IdmDocPreview[] = [];
+  for (const item of items) {
+    const resrs = item?.resrs ?? {};
+    const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
+    const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
+
+    const smallPreview = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
+    const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
+
+    const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
+    const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const attributes =
+      attrsList
+        .map((a) => {
+          const n = a?.name ?? a?.n ?? a?.key ?? "";
+          const v = a?.value ?? a?.val ?? a?.v ?? a?._ ?? a?.text ?? "";
+          return { name: String(n ?? ""), value: String(v ?? "") };
+        })
+        .filter((a) => a.name || a.value) as { name: string; value: string }[];
+
+    const createdByName: string | undefined =
+      item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
+    const createdTS: string | undefined =
+      item?.createdTS ?? item?.CreatedTS ?? item?.createdAt ?? item?.CreatedAt;
+    const lastChangedByName: string | undefined =
+      item?.lastChangedByName ?? item?.LastChangedByName ?? item?.modifiedBy ?? item?.ModifiedBy;
+    const lastChangedTS: string | undefined =
+      item?.lastChangedTS ?? item?.LastChangedTS ?? item?.modifiedAt ?? item?.ModifiedAt;
+
+    const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid;
+
+    const aclRaw = (item as any)?.acl;
+    const acl = aclRaw
+      ? {
+          id: aclRaw?.id != null ? String(aclRaw.id) : undefined,
+          name: aclRaw?.name != null ? String(aclRaw.name) : undefined,
+        }
+      : undefined;
+
+    const chosenPreview = smallPreview ?? preview;
+
+    if (chosenPreview?.url || mainRes?.url) {
+      previews.push({
+        smallUrl: String((chosenPreview?.url ?? preview?.url ?? "")),
+        fullUrl: preview?.url ? String(preview.url) : undefined,
+        contentType: String(
+          chosenPreview?.mimetype || preview?.mimetype || mainRes?.mimetype || item?.mimetype || ""
+        ),
+        filename: String((mainRes?.filename ?? item?.filename ?? chosenPreview?.filename ?? "")),
+        entityName: String(item?.entityName ?? item?.name ?? ""),
+        attributes,
+        pid: pidRaw ? String(pidRaw) : undefined,
+        resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
+        createdByName: createdByName ? String(createdByName) : undefined,
+        createdTS: createdTS ? String(createdTS) : undefined,
+        lastChangedByName: lastChangedByName ? String(lastChangedByName) : undefined,
+        lastChangedTS: lastChangedTS ? String(lastChangedTS) : undefined,
+        acl,
+      });
+    }
+  }
+
+  return previews;
+};
+
 export const getExistingLinkedPids = async (
   token: string,
   environment: CloudEnvironment,
@@ -997,8 +1097,8 @@ export const getIdmItemByPid = async (
   const json = await res.json();
   const item = (json as any)?.item ?? json;
   const filename =
-    item?.filename ??
-    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
+    item?.filename ?? 
+    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ?? 
     undefined;
   const entityName = item?.entityName ?? undefined;
   const drillbackurl = item?.drillbackurl ?? undefined;

@@ -12,6 +12,7 @@ import {
   type IdmDocPreview,
   updateIdmItemAttributes,
   changeIdmItemDocumentType,
+  searchIdmItemsByXQueryJson,
 } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -259,6 +260,109 @@ const RightPanel: React.FC<RightPanelProps> = ({
       entityNames,
     });
   }, [selectedOpportunityId, selectedOpportunityProject, authToken, cloudEnvironment, entityNames]);
+
+  type DocFilterKey =
+    | "FME_GEOM_KUNDE"
+    | "FME_SERIE_GUELTIG"
+    | "FME_VERSUCH_GUELTIG"
+    | "FSI_GEOM_KUNDE"
+    | "FSI_SERIE_GUELTIG"
+    | "FSI_VERSUCH_GUELTIG";
+
+  const docFilters = React.useMemo(
+    () =>
+      [
+        {
+          key: "FME_GEOM_KUNDE" as const,
+          label: "FME Geometrien‑Kunde",
+          xquery: `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann"]`,
+        },
+        {
+          key: "FME_SERIE_GUELTIG" as const,
+          label: "Serie gültig FME",
+          xquery:
+            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann" AND (` +
+            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `) AND (` +
+            `@Serienstatus = "Serie normal" OR @Serienstatus = "Serie führend" OR @Serienstatus = "Serie eingeschränkt"` +
+            `)]`,
+        },
+        {
+          key: "FME_VERSUCH_GUELTIG" as const,
+          label: "Versuch gültig FME",
+          xquery:
+            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann" AND (` +
+            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `) AND (` +
+            `@Versuchsstatus = "Versuch führend" OR @Versuchsstatus = "Versuch normal" OR @Versuchsstatus = "Versuch eingeschränkt"` +
+            `)]`,
+        },
+        {
+          key: "FSI_GEOM_KUNDE" as const,
+          label: "FSI Geometrie‑Kunde",
+          xquery: `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen"]`,
+        },
+        {
+          key: "FSI_SERIE_GUELTIG" as const,
+          label: "Serie gültig FSI",
+          xquery:
+            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen" AND (` +
+            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `) AND (` +
+            `@Serienstatus = "Serie normal" OR @Serienstatus = "Serie führend" OR @Serienstatus = "Serie eingeschränkt"` +
+            `)]`,
+        },
+        {
+          key: "FSI_VERSUCH_GUELTIG" as const,
+          label: "Versuch gültig FSI",
+          xquery:
+            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen" AND (` +
+            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `) AND (` +
+            `@Versuchsstatus = "Versuch führend" OR @Versuchsstatus = "Versuch normal" OR @Versuchsstatus = "Versuch eingeschränkt"` +
+            `)]`,
+        },
+      ] as const,
+    [selectedOpportunityId]
+  );
+
+  const [activeDocFilter, setActiveDocFilter] = React.useState<DocFilterKey | null>(null);
+
+  const applyDocFilter = React.useCallback(
+    async (filterKey: DocFilterKey | null) => {
+      if (!selectedOpportunityId || !authToken) return;
+      setActiveDocFilter(filterKey);
+
+      // clear any full preview highlight when changing filters
+      setHighlightedDocKeys([]);
+
+      if (!filterKey) {
+        await reloadPreviews();
+        return;
+      }
+
+      const filter = docFilters.find((f) => f.key === filterKey);
+      if (!filter) {
+        await reloadPreviews();
+        return;
+      }
+
+      setIsPreviewsLoading(true);
+      try {
+        const docs = await searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE");
+        setDocPreviews(docs);
+      } finally {
+        setIsPreviewsLoading(false);
+      }
+    },
+    [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews]
+  );
+
+  // Re-apply active filter if opportunity changes
+  React.useEffect(() => {
+    if (!activeDocFilter) return;
+    applyDocFilter(activeDocFilter);
+  }, [selectedOpportunityId]);
 
   const openFullPreview = (doc: IdmDocPreview) => {
     // Any user action can clear the one-time highlight
@@ -574,6 +678,35 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </div>
 
           <Separator className="mb-4" />
+
+          {/* FILTER: Quick filters for document list */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <div className="text-sm font-medium text-muted-foreground">Filter:</div>
+            {docFilters.map((f) => {
+              const active = activeDocFilter === f.key;
+              return (
+                <Button
+                  key={f.key}
+                  variant={active ? "default" : "outline"}
+                  size="sm"
+                  className={active ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
+                  onClick={() => applyDocFilter(active ? null : f.key)}
+                >
+                  {f.label}
+                </Button>
+              );
+            })}
+            {activeDocFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => applyDocFilter(null)}
+              >
+                Filter zurücksetzen
+              </Button>
+            )}
+          </div>
 
           {/* MITTE: Dokumentenliste */}
           <div className="flex-shrink-0">
