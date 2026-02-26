@@ -331,12 +331,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
     if (!doc.pid) return { ok: false, errorAttributes: [] };
 
     const newEntityName = options?.entityName?.trim();
+    const aclName = doc.acl?.name;
 
     try {
       if (newEntityName && newEntityName.length > 0 && newEntityName !== (doc.entityName ?? "")) {
-        await changeIdmItemDocumentType(authToken, cloudEnvironment, doc.pid, newEntityName, updates, "de-DE");
+        await changeIdmItemDocumentType(authToken, cloudEnvironment, doc.pid, newEntityName, updates, {
+          language: "de-DE",
+          aclName,
+        });
       } else {
-        await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates);
+        await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates, {
+          language: "de-DE",
+          aclName,
+        });
       }
 
       toast({

@@ -84,6 +84,8 @@ export type IdmDocPreview = {
   createdTS?: string; // ISO string, e.g. 2026-02-20T08:45:29.052Z
   lastChangedByName?: string;
   lastChangedTS?: string; // ISO string
+  // NEW: ACL info (used when updating items so IDM keeps the existing ACL)
+  acl?: { id?: string; name?: string };
 };
 
 export type IdmAttribute = {
@@ -406,6 +408,15 @@ export const searchIdmItemsByEntityJson = async (
 
     const chosen = small || preview;
     const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid; // capture PID
+
+    const aclRaw = (item as any)?.acl;
+    const acl = aclRaw
+      ? {
+          id: aclRaw?.id != null ? String(aclRaw.id) : undefined,
+          name: aclRaw?.name != null ? String(aclRaw.name) : undefined,
+        }
+      : undefined;
+
     if (chosen?.url) {
       previews.push({
         smallUrl: String(chosen.url),
@@ -422,6 +433,7 @@ export const searchIdmItemsByEntityJson = async (
         createdTS: createdTS ? String(createdTS) : undefined,
         lastChangedByName: lastChangedByName ? String(lastChangedByName) : undefined,
         lastChangedTS: lastChangedTS ? String(lastChangedTS) : undefined,
+        acl,
       });
     }
   }
@@ -435,20 +447,25 @@ export const updateIdmItemAttributes = async (
   environment: CloudEnvironment,
   pid: string,
   updates: { name: string; value: string }[],
-  language: string = "de-DE"
+  options?: { aclName?: string; language?: string }
 ): Promise<void> => {
+  const language = options?.language ?? "de-DE";
   const base = buildIdmBase(environment);
   const url =
     `${base}/api/items/${encodeURIComponent(pid)}?` +
     `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
 
-  const body = {
+  const body: any = {
     item: {
       attrs: {
         attr: updates.map((u) => ({ name: u.name, value: u.value })),
       },
     },
   };
+
+  if (options?.aclName) {
+    body.item.acl = { name: options.aclName };
+  }
 
   const res = await fetch(url, {
     method: "PUT",
@@ -478,8 +495,9 @@ export const changeIdmItemDocumentType = async (
   pid: string,
   newEntityName: string,
   attrs: { name: string; value: string }[] = [],
-  language: string = "de-DE"
+  options?: { aclName?: string; language?: string }
 ): Promise<void> => {
+  const language = options?.language ?? "de-DE";
   const base = buildIdmBase(environment);
 
   const schemaAttrs = await getIdmEntityAttributes(token, environment, newEntityName, language);
@@ -496,6 +514,10 @@ export const changeIdmItemDocumentType = async (
       entityName: newEntityName,
     },
   };
+
+  if (options?.aclName) {
+    body.item.acl = { name: options.aclName };
+  }
 
   // Only include attrs if there is at least one valid attribute.
   // Sending an empty attr array can lead to "Attribute name: null" errors in some IDM setups.
@@ -807,6 +829,14 @@ export const searchIdmItemsByAttributesJson = async (
     // Für die Kachel-Anzeige nutzen wir SmallPreview/Preview, aber zum Öffnen liefern wir resourceUrl vom ersten res
     const chosenPreview = smallPreview ?? preview;
 
+    const aclRaw = (item as any)?.acl;
+    const acl = aclRaw
+      ? {
+          id: aclRaw?.id != null ? String(aclRaw.id) : undefined,
+          name: aclRaw?.name != null ? String(aclRaw.name) : undefined,
+        }
+      : undefined;
+
     if (chosenPreview?.url || mainRes?.url) {
       previews.push({
         smallUrl: String((chosenPreview?.url ?? preview?.url ?? "")),
@@ -821,6 +851,7 @@ export const searchIdmItemsByAttributesJson = async (
         pid: item?.pid ? String(item.pid) : undefined,
         // WICHTIG: URL der echten Datei
         resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
+        acl,
       });
     }
   }
