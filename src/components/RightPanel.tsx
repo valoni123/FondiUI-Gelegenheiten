@@ -716,7 +716,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             />
           </div>
 
-          <Separator className="mb-4" />
+          <Separator className="mt-4 mb-4" />
 
           {/* FILTER: Quick filters for document list */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
