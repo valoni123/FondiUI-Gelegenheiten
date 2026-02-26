@@ -1267,7 +1267,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-fit max-w-[95vw]">
           <DialogHeader>
             <DialogTitle>Nicht gespeicherte Änderungen</DialogTitle>
             <DialogDescription>
@@ -1281,7 +1281,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-wrap justify-end gap-2 pt-2">
             <Button
               variant="secondary"
               disabled={unsavedSaving}
