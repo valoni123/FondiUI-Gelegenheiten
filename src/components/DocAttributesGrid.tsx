@@ -1286,6 +1286,24 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             >
               Abbrechen
             </Button>
+
+            <Button
+              variant="destructive"
+              disabled={unsavedSaving}
+              onClick={() => {
+                // Discard all local edits and continue with the user's intended action.
+                setEdited(initial);
+                setEditedDocTypes(initialDocTypes);
+                setUnsavedDialogOpen(false);
+                setUnsavedSaveFailed(false);
+                const action = pendingActionRef.current;
+                pendingActionRef.current = null;
+                action?.();
+              }}
+            >
+              Ohne Speichern fortfahren
+            </Button>
+
             <Button
               disabled={unsavedSaving}
               onClick={async () => {
