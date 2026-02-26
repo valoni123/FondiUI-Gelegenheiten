@@ -275,51 +275,51 @@ const RightPanel: React.FC<RightPanelProps> = ({
         {
           key: "FME_GEOM_KUNDE" as const,
           label: "FME Geometrien‑Kunde",
-          xquery: `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann"]`,
+          xquery: `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10"]`,
         },
         {
           key: "FME_SERIE_GUELTIG" as const,
           label: "Serie gültig FME",
           xquery:
-            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann" AND (` +
-            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10" AND (` +
+            `@Status = "60" OR @Status = "50"` +
             `) AND (` +
-            `@Serienstatus = "Serie normal" OR @Serienstatus = "Serie führend" OR @Serienstatus = "Serie eingeschränkt"` +
+            `@Serienstatus = "2" OR @Serienstatus = "1" OR @Serienstatus = "3"` +
             `)]`,
         },
         {
           key: "FME_VERSUCH_GUELTIG" as const,
           label: "Versuch gültig FME",
           xquery:
-            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Mettmann" AND (` +
-            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10" AND (` +
+            `@Status = "60" OR @Status = "50"` +
             `) AND (` +
-            `@Versuchsstatus = "Versuch führend" OR @Versuchsstatus = "Versuch normal" OR @Versuchsstatus = "Versuch eingeschränkt"` +
+            `@Versuchsstatus = "10" OR @Versuchsstatus = "20" OR @Versuchsstatus = "30"` +
             `)]`,
         },
         {
           key: "FSI_GEOM_KUNDE" as const,
           label: "FSI Geometrie‑Kunde",
-          xquery: `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen"]`,
+          xquery: `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20"]`,
         },
         {
           key: "FSI_SERIE_GUELTIG" as const,
           label: "Serie gültig FSI",
           xquery:
-            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen" AND (` +
-            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20" AND (` +
+            `@Status = "60" OR @Status = "50"` +
             `) AND (` +
-            `@Serienstatus = "Serie normal" OR @Serienstatus = "Serie führend" OR @Serienstatus = "Serie eingeschränkt"` +
+            `@Serienstatus = "2" OR @Serienstatus = "1" OR @Serienstatus = "3"` +
             `)]`,
         },
         {
           key: "FSI_VERSUCH_GUELTIG" as const,
           label: "Versuch gültig FSI",
           xquery:
-            `/Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Werk = "Singen" AND (` +
-            `@Status = "Freigegeben" OR @Status = "in Änderung"` +
+            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20" AND (` +
+            `@Status = "60" OR @Status = "50"` +
             `) AND (` +
-            `@Versuchsstatus = "Versuch führend" OR @Versuchsstatus = "Versuch normal" OR @Versuchsstatus = "Versuch eingeschränkt"` +
+            `@Versuchsstatus = "10" OR @Versuchsstatus = "20" OR @Versuchsstatus = "30"` +
             `)]`,
         },
       ] as const,
