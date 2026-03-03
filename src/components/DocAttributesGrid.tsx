@@ -1205,7 +1205,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         }}
       >
         <DialogContent className="w-fit max-w-[95vw]">
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
             <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
           </DialogHeader>
@@ -1236,7 +1236,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         onOpenChange={(open) => setConfirmBatchDelete(open)}
       >
         <DialogContent className="w-fit max-w-[95vw]">
-          <DialogHeader>
+          <DialogHeader className="pr-10">
             <DialogTitle>Sollen die ausgewählten Dokumente wirklich gelöscht werden?</DialogTitle>
             <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
           </DialogHeader>
