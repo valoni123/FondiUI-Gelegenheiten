@@ -59,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
       // expired/missing → try refresh
       if (hasRefresh) {
         try {
-          console.log("[Auth] Startup: token invalid, attempting silent refresh...");
+          
           await refreshAccessToken(cloudEnvironment);
           if (!cancelled) setTokenReady(true);
           return;
@@ -111,7 +111,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
   }, [tokenReady, opportunityId, navigate, searchParams]);
 
   const handleLogin = useCallback(async () => {
-    console.log("Starting login for environment:", cloudEnvironment);
+    
     const cfg = getIonApiConfig(cloudEnvironment);
     const authUrl = getAuthUrl(cloudEnvironment); // pu + oa
     const redirectUri = getRedirectUri(cloudEnvironment); // ionapi.ru if present
@@ -164,10 +164,7 @@ const Login: React.FC<LoginProps> = ({ cloudEnvironment }) => {
     });
 
     const fullUrl = `${authUrl}?${params.toString()}`;
-    console.log("Auth URL (pu+oa):", authUrl);
-    console.log("Redirect URI (ru):", redirectUri);
-    console.log("Full authorization URL:", fullUrl);
-
+    
     const popup = window.open(
       fullUrl,
       "ion-login",

@@ -54,11 +54,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       setIsLoadingOpportunities(true);
     }
     const startedAt = new Date();
-    console.log(`[Opportunities] Reload gestartet um ${startedAt.toISOString()} (silent=${silent})`);
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
       const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
-      console.log(`[Opportunities] Reload erfolgreich (silent=${silent}) – ${fetchedOpportunities.length} Einträge geladen`);
       setOpportunities(fetchedOpportunities);
       if (!silent) {
         toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
@@ -74,7 +72,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       if (!silent) {
         setIsLoadingOpportunities(false);
       }
-      console.log(`[Opportunities] Reload beendet um ${new Date().toISOString()} (silent=${silent})`);
     }
   }, []);
 
@@ -98,7 +95,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
         // Silent refresh if expired and refresh token is available
         if ((!token || (expiresAt && Date.now() >= expiresAt)) && hasRefresh) {
           try {
-            console.log("[Auth] Silent refresh during init...");
             token = await refreshAccessToken(cloudEnvironment);
           } catch (e) {
             console.warn("[Auth] Silent refresh failed during init.", e);
@@ -144,14 +140,12 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
       const refreshInterval = setInterval(async () => {
-        console.log(`[Opportunities] Silent Intervall-Reload um ${new Date().toISOString()}`);
         let token = localStorage.getItem("oauthAccessToken") || authToken;
         const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
         const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
 
         if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
           try {
-            console.log("[Auth] Silent refresh before interval reload...");
             token = await refreshAccessToken(cloudEnvironment);
             setAuthToken(token);
           } catch (e) {
@@ -319,7 +313,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
 
                   if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
                     try {
-                      console.log("[Auth] Silent refresh triggered by 'Zur Übersicht'...");
                       token = await refreshAccessToken(cloudEnvironment);
                       setAuthToken(token);
                     } catch (e) {

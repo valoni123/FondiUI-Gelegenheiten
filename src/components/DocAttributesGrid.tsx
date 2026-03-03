@@ -824,7 +824,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             onClick={() =>
                               runWithUnsavedGuard(() =>
                                 onOpenFullPreview(doc, (updatedDoc) => {
-                                  console.log("Doc updated from DetailDialog:", updatedDoc);
+                                  void updatedDoc;
                                 })
                               )
                             }

@@ -100,13 +100,11 @@ const OAuthCallback: React.FC = () => {
           // Store tokens in localStorage
           if (refreshToken) {
             localStorage.setItem("oauthRefreshToken", refreshToken);
-            console.log("[OAuth] Received refresh_token (stored).");
           } else {
             console.warn("[OAuth] No refresh_token present in token response.");
           }
           if (idToken) {
             localStorage.setItem("oauthIdToken", idToken);
-            console.log("[OAuth] Received id_token (stored).");
           }
 
           if (tokenType) {

@@ -461,7 +461,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => console.log(`Search for ${key}`)}
+                onClick={() => {}}
                 aria-label={`Search ${label}`}
                 className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
               >
@@ -472,7 +472,7 @@ const DetailDialog: React.FC<DetailDialogProps> = ({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => console.log(`Assign to me: ${key}`)}
+                onClick={() => {}}
                 className="ml-2"
               >
                 Mir zuweisen

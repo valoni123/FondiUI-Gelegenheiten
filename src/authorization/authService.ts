@@ -26,8 +26,7 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
     tokenCache.cachedCompanyNumber === companyNumber &&
     tokenCache.cachedCloudEnvironment === cloudEnvironment
   ) {
-    console.log("Using cached OAuth2 Token.");
-    return tokenCache.accessToken;
+    
   }
 
   try {
@@ -46,8 +45,7 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
     params.append('username', USERNAME);
     params.append('password', PASSWORD);
 
-    console.log("Attempting to fetch new access token from proxy:", PROXY_TOKEN_PATH);
-
+    
     const response = await fetch(PROXY_TOKEN_PATH, { // Request to the proxy
       method: 'POST',
       headers: {
@@ -81,7 +79,7 @@ export const getAccessToken = async (companyNumber: string, cloudEnvironment: Cl
       cachedCompanyNumber: companyNumber, // Store the company number with the token
       cachedCloudEnvironment: cloudEnvironment, // Store the cloud environment with the token
     };
-    console.log("New OAuth2 Token retrieved and cached successfully.");
+    
     return data.access_token;
 
   } catch (error) {
@@ -150,7 +148,7 @@ export const refreshAccessToken = async (cloudEnvironment: CloudEnvironment): Pr
     cachedCloudEnvironment: cloudEnvironment,
   };
 
-  console.log("[Auth] Access token refreshed successfully.");
+   
   return newAccessToken;
 };
 
@@ -187,7 +185,7 @@ export const revokeAccessToken = async (cloudEnvironment: CloudEnvironment, toke
     params.append('client_id', ionapiConfig.ci);
     params.append('client_secret', ionapiConfig.cs);
 
-    console.log("Revoking access token via proxy:", PROXY_REVOKE_PATH);
+    
     const resp = await fetch(PROXY_REVOKE_PATH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -196,9 +194,8 @@ export const revokeAccessToken = async (cloudEnvironment: CloudEnvironment, toke
     if (!resp.ok) {
       const text = await resp.text();
       console.warn(`Token revoke failed: ${resp.status} ${resp.statusText} - ${text}`);
-    } else {
-      console.log("Access token revoked successfully.");
     }
+     
   } finally {
     // Always clear local cache after attempting revoke
     tokenCache = { accessToken: null, expiresAt: null, cachedCompanyNumber: null, cachedCloudEnvironment: null };
@@ -217,7 +214,7 @@ export const setExternalAccessToken = (
     cachedCompanyNumber: companyNumber,
     cachedCloudEnvironment: cloudEnvironment,
   };
-  console.log("External OAuth2 Token set and cached.");
+  
 };
 
 export const clearAuth = (): void => {

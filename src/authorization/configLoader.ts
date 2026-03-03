@@ -34,7 +34,6 @@ export const getIonApiConfig = (environment: CloudEnvironment): IonApiConfig => 
     console.warn(`Invalid cloud environment: ${environment}. Falling back to default ionapi.json.`);
     return ionapiConfig as IonApiConfig;
   }
-  console.log(`Loaded config for ${environment}:`, config);
   return config;
 };
 
@@ -65,7 +64,6 @@ export const getSsoProxyPath = (environment: CloudEnvironment): string => {
 export const getAuthUrl = (environment: CloudEnvironment): string => {
   const config = getIonApiConfig(environment);
   const authUrl = `${config.pu}${config.oa}`;
-  console.log(`Auth URL for ${environment}:`, authUrl);
   return authUrl;
 };
 

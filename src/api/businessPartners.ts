@@ -36,7 +36,6 @@ export const getActiveBusinessPartners = async (
   const url = `${BUSINESS_PARTNERS_API_URL}?$filter=${encodeURIComponent(filter)}&$select=${encodeURIComponent(select)}&$expand=${encodeURIComponent(expand)}&$top=${top}`;
 
   try {
-    console.log("Fetching business partners with URL:", url);
     const response = await fetch(url, {
       method: "GET",
       headers: {

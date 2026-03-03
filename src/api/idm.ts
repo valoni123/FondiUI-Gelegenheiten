@@ -19,7 +19,6 @@ export const getIdmEntities = async (
   environment: CloudEnvironment,
   language: string = "de-DE"
 ): Promise<string[]> => {
-  console.log("[getIdmEntities] Function called."); // Log function entry
   const base = buildIdmBase(environment);
   const url = `${base}/api/datamodel/entities?%24language=${encodeURIComponent(language)}`;
 
@@ -38,7 +37,6 @@ export const getIdmEntities = async (
   }
 
   const json = await res.json();
-  console.log("[getIdmEntities] Raw API response JSON:", json); // Log raw JSON response
 
   // Helper to extract entities array robustly
   const getEntitiesArray = (obj: any): any[] => {
@@ -65,9 +63,7 @@ export const getIdmEntities = async (
     }
   }
 
-  const unique = Array.from(new Set(names.filter(Boolean)));
-  console.log("[getIdmEntities] Returning entities:", unique);
-  return unique;
+  return Array.from(new Set(names.filter(Boolean)));
 };
 
 export type IdmDocPreview = {
@@ -313,14 +309,6 @@ export const searchIdmItemsByEntityJson = async (
     `${base}/api/items/search?` +
     `%24query=${encodeURIComponent(query)}&%24offset=${offset}&%24limit=${limit}&%24state=0&%24language=${encodeURIComponent(language)}`;
 
-  // DEBUG: helps to see the exact $query and the full request URL used by the document list
-  console.log("[IDM] searchIdmItemsByEntityJson request:", {
-    entityName,
-    opportunityId,
-    query,
-    url,
-  });
-
   const res = await fetch(url, {
     method: "GET",
     headers: {
@@ -339,34 +327,6 @@ export const searchIdmItemsByEntityJson = async (
   // Robustly extract items array: items.item[] or item[]
   const itemsNode = (json as any)?.items?.item ?? (json as any)?.item ?? [];
   const items: any[] = Array.isArray(itemsNode) ? itemsNode : itemsNode ? [itemsNode] : [];
-
-  // DEBUG: dump what fields the API actually returns so we can map created/modified fields correctly
-  if (items.length > 0) {
-    const first = items[0];
-    const firstKeys = first && typeof first === "object" ? Object.keys(first) : [];
-
-    const attrsRaw = first?.attrs?.attr ?? first?.attrs ?? first?.attr ?? [];
-    const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
-    const attrNames = attrsList
-      .map((a) => String(a?.name ?? a?.n ?? a?.key ?? "").trim())
-      .filter(Boolean);
-
-    const resrs = first?.resrs ?? {};
-    const resArrayRaw = (resrs?.res ?? resrs?.resr ?? []);
-    const resList: any[] = Array.isArray(resArrayRaw) ? resArrayRaw : resArrayRaw ? [resArrayRaw] : [];
-    const resNames = resList
-      .map((r) => String(r?.name ?? r?.["name"] ?? "").trim())
-      .filter((v, i, arr) => arr.indexOf(v) === i);
-
-    console.log("[IDM] items/search first item field overview:", {
-      entityName,
-      opportunityId,
-      topLevelKeys: firstKeys,
-      attrNames,
-      resourceNames: resNames,
-      firstItemSample: first,
-    });
-  }
 
   const previews: IdmDocPreview[] = [];
   for (const item of items) {
@@ -424,14 +384,6 @@ export const searchIdmItemsByEntityJson = async (
       const joined = uniqProjektVerlinkungValues.join(";");
       if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
       else attributes.push({ name: "Projekt_Verlinkung", value: joined });
-
-      console.log("[IDM] Projekt_Verlinkung geladen:", {
-        opportunityId,
-        entityName,
-        pid: (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid,
-        filename: String((mainRes?.filename ?? item?.filename ?? "")),
-        projektVerlinkung: uniqProjektVerlinkungValues,
-      });
     }
 
     // NEW: top-level created/changed fields (keep case-insensitive fallbacks for robustness)
@@ -1010,14 +962,6 @@ export const searchIdmItemsByXQueryJson = async (
       const joined = uniqProjektVerlinkungValues.join(";");
       if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
       else attributes.push({ name: "Projekt_Verlinkung", value: joined });
-
-      console.log("[IDM] Projekt_Verlinkung geladen (XQuery):", {
-        xquery,
-        entityName: item?.entityName ?? item?.name ?? "",
-        pid: (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid,
-        filename: String((mainRes?.filename ?? item?.filename ?? "")),
-        projektVerlinkung: uniqProjektVerlinkungValues,
-      });
     }
 
     const createdByName: string | undefined =

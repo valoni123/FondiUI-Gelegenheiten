@@ -129,28 +129,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
         )
       );
 
-      // DEBUG: log raw results per entity
-      console.log("[RightPanel] reloadPreviews() results:", {
-        selectedOpportunityId,
-        entityNames,
-        results: results.map((r, i) => {
-          const entityName = entityNames[i];
-          if (r.status === "fulfilled") {
-            return {
-              entityName,
-              status: "fulfilled" as const,
-              count: Array.isArray(r.value) ? r.value.length : 0,
-              sample: Array.isArray(r.value) ? r.value[0] : undefined,
-            };
-          }
-          return {
-            entityName,
-            status: "rejected" as const,
-            reason: r.reason instanceof Error ? r.reason.message : String(r.reason),
-          };
-        }),
-      });
-
       const merged: IdmDocPreview[] = [];
       results.forEach((r) => {
         if (r.status === "fulfilled" && Array.isArray(r.value)) {
@@ -163,11 +141,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
         const newKeys = merged.map(getDocKey).filter((k) => !prev.has(k));
         setHighlightedDocKeys(newKeys);
       }
-
-      console.log("[RightPanel] reloadPreviews() merged docPreviews:", {
-        count: merged.length,
-        sample: merged[0],
-      });
 
       setDocPreviews(merged);
     } finally {
@@ -198,39 +171,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
           )
         );
 
-        // DEBUG: log raw results per entity
-        console.log("[RightPanel] loadPreviews() results:", {
-          selectedOpportunityId,
-          entityNames,
-          results: results.map((r, i) => {
-            const entityName = entityNames[i];
-            if (r.status === "fulfilled") {
-              return {
-                entityName,
-                status: "fulfilled" as const,
-                count: Array.isArray(r.value) ? r.value.length : 0,
-                sample: Array.isArray(r.value) ? r.value[0] : undefined,
-              };
-            }
-            return {
-              entityName,
-              status: "rejected" as const,
-              reason: r.reason instanceof Error ? r.reason.message : String(r.reason),
-            };
-          }),
-        });
-
         if (cancelled) return;
         const merged: IdmDocPreview[] = [];
         results.forEach((r) => {
           if (r.status === "fulfilled" && Array.isArray(r.value)) {
             merged.push(...r.value);
           }
-        });
-
-        console.log("[RightPanel] loadPreviews() merged docPreviews:", {
-          count: merged.length,
-          sample: merged[0],
         });
 
         setDocPreviews(merged);
@@ -243,227 +189,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
       cancelled = true;
     };
   }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
-
-  // DEBUG: Log component mount/unmount
-  React.useEffect(() => {
-    console.log("[RightPanel] Component MOUNTED");
-    return () => console.log("[RightPanel] Component UNMOUNTED");
-  }, []);
-
-  // DEBUG: Log prop changes
-  React.useEffect(() => {
-    console.log("[RightPanel] Props changed:", {
-      selectedOpportunityId,
-      selectedOpportunityProject,
-      authToken: authToken ? "PRESENT" : "MISSING",
-      cloudEnvironment,
-      entityNames,
-    });
-  }, [selectedOpportunityId, selectedOpportunityProject, authToken, cloudEnvironment, entityNames]);
-
-  type DocFilterKey =
-    | "FME_GEOM_KUNDE"
-    | "FME_SERIE_GUELTIG"
-    | "FME_VERSUCH_GUELTIG"
-    | "FSI_GEOM_KUNDE"
-    | "FSI_SERIE_GUELTIG"
-    | "FSI_VERSUCH_GUELTIG";
-
-  const docFilters = React.useMemo(
-    () =>
-      [
-        {
-          key: "FME_GEOM_KUNDE" as const,
-          label: "FME Geometrien‑Kunde",
-          xquery: `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10"]`,
-        },
-        {
-          key: "FME_SERIE_GUELTIG" as const,
-          label: "Serie gültig FME",
-          xquery:
-            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10" AND (` +
-            `@Status = "60" OR @Status = "50"` +
-            `) AND (` +
-            `@Serienstatus = "2" OR @Serienstatus = "1" OR @Serienstatus = "3"` +
-            `)]`,
-        },
-        {
-          key: "FME_VERSUCH_GUELTIG" as const,
-          label: "Versuch gültig FME",
-          xquery:
-            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "10" AND (` +
-            `@Status = "60" OR @Status = "50"` +
-            `) AND (` +
-            `@Versuchsstatus = "10" OR @Versuchsstatus = "20" OR @Versuchsstatus = "30"` +
-            `)]`,
-        },
-        {
-          key: "FSI_GEOM_KUNDE" as const,
-          label: "FSI Geometrie‑Kunde",
-          xquery: `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20"]`,
-        },
-        {
-          key: "FSI_SERIE_GUELTIG" as const,
-          label: "Serie gültig FSI",
-          xquery:
-            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20" AND (` +
-            `@Status = "60" OR @Status = "50"` +
-            `) AND (` +
-            `@Serienstatus = "2" OR @Serienstatus = "1" OR @Serienstatus = "3"` +
-            `)]`,
-        },
-        {
-          key: "FSI_VERSUCH_GUELTIG" as const,
-          label: "Versuch gültig FSI",
-          xquery:
-            `/_Geometriedaten[@Gelegenheit = "${selectedOpportunityId}" AND @Ort = "20" AND (` +
-            `@Status = "60" OR @Status = "50"` +
-            `) AND (` +
-            `@Versuchsstatus = "10" OR @Versuchsstatus = "20" OR @Versuchsstatus = "30"` +
-            `)]`,
-        },
-      ] as const,
-    [selectedOpportunityId]
-  );
-
-  const [activeDocFilter, setActiveDocFilter] = React.useState<DocFilterKey | null>(null);
-
-  const applyDocFilter = React.useCallback(
-    async (filterKey: DocFilterKey | null) => {
-      if (!selectedOpportunityId || !authToken) return;
-      setActiveDocFilter(filterKey);
-
-      // clear any full preview highlight when changing filters
-      setHighlightedDocKeys([]);
-
-      if (!filterKey) {
-        await reloadPreviews();
-        return;
-      }
-
-      const filter = docFilters.find((f) => f.key === filterKey);
-      if (!filter) {
-        await reloadPreviews();
-        return;
-      }
-
-      setIsPreviewsLoading(true);
-      try {
-        const docs = await searchIdmItemsByXQueryJson(
-          authToken,
-          cloudEnvironment,
-          filter.xquery,
-          0,
-          200,
-          "de-DE"
-        );
-        setDocPreviews(docs);
-      } catch (err: any) {
-        const raw = String(err?.message ?? err ?? "Unbekannter Fehler");
-
-        // searchIdmItemsByXQueryJson throws: "... - {json}". Try to extract the JSON and show a user-friendly message.
-        const jsonStart = raw.indexOf("{");
-        const jsonText = jsonStart >= 0 ? raw.slice(jsonStart) : "";
-
-        let title = "Filter konnte nicht angewendet werden";
-        let description = raw;
-
-        if (jsonText) {
-          try {
-            const parsed = JSON.parse(jsonText);
-            const msg = parsed?.error?.message;
-            const detail = parsed?.error?.detail;
-            if (msg) title = String(msg);
-            if (detail) description = String(detail);
-          } catch {
-            // ignore JSON parse failures
-          }
-        }
-
-        toast({
-          title: (
-            <span className="inline-flex items-center gap-2">
-              <X className="h-4 w-4 text-white" />
-              {title}
-            </span>
-          ),
-          description,
-          variant: "destructive",
-        });
-      } finally {
-        setIsPreviewsLoading(false);
-      }
-    },
-    [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews]
-  );
-
-  // Re-apply active filter if opportunity changes
-  React.useEffect(() => {
-    if (!activeDocFilter) return;
-    applyDocFilter(activeDocFilter);
-  }, [selectedOpportunityId]);
-
-  const openFullPreview = (doc: IdmDocPreview) => {
-    // Any user action can clear the one-time highlight
-    setHighlightedDocKeys([]);
-    setFullPreviewData(doc);
-    setIsFullPreviewDialogOpen(true);
-    // compute index in current docPreviews
-    const byPid = docPreviews.findIndex((d) => d.pid && d.pid === doc.pid);
-    let idx = byPid;
-    if (idx < 0) {
-      idx = docPreviews.findIndex((d) => d.smallUrl === doc.smallUrl && d.filename === doc.filename);
-    }
-    if (idx < 0) {
-      idx = docPreviews.findIndex((d) => d.filename === doc.filename);
-    }
-    setFullPreviewIndex(idx >= 0 ? idx : null);
-    setIsFullPreviewLoading(false);
-  };
-
-  // Keep index in sync if the list or doc changes (e.g., after replacements or reloads)
-  React.useEffect(() => {
-    if (!fullPreviewData) {
-      setFullPreviewIndex(null);
-      return;
-    }
-    const byPid = docPreviews.findIndex((d) => d.pid && d.pid === fullPreviewData.pid);
-    let idx = byPid;
-    if (idx < 0) {
-      idx = docPreviews.findIndex(
-        (d) => d.smallUrl === fullPreviewData.smallUrl && d.filename === fullPreviewData.filename
-      );
-    }
-    if (idx < 0) {
-      idx = docPreviews.findIndex((d) => d.filename === fullPreviewData.filename);
-    }
-    setFullPreviewIndex(idx >= 0 ? idx : null);
-  }, [docPreviews, fullPreviewData]);
-
-  // Navigation handlers
-  const goToPrev = React.useCallback(() => {
-    if (fullPreviewIndex == null) return;
-    const prevIdx = fullPreviewIndex - 1;
-    if (prevIdx >= 0) {
-      const doc = docPreviews[prevIdx];
-      if (doc) {
-        setFullPreviewData(doc);
-        setFullPreviewIndex(prevIdx);
-      }
-    }
-  }, [fullPreviewIndex, docPreviews]);
-
-  const goToNext = React.useCallback(() => {
-    if (fullPreviewIndex == null) return;
-    const nextIdx = fullPreviewIndex + 1;
-    if (nextIdx < docPreviews.length) {
-      const doc = docPreviews[nextIdx];
-      if (doc) {
-        setFullPreviewData(doc);
-        setFullPreviewIndex(nextIdx);
-      }
-    }
-  }, [fullPreviewIndex, docPreviews]);
 
   // ADD: Save handler
   const handleSaveRow = async (

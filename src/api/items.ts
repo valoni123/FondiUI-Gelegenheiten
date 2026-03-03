@@ -49,7 +49,6 @@ const preparePayload = (itemData: Item): Record<string, any> => {
       }
     }
   }
-  console.log("Final payload before JSON.stringify:", payload);
   return payload;
 };
 
@@ -76,7 +75,6 @@ export const createItem = async (
     const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
     const payload = preparePayload(itemData);
 
-    console.log("API: Creating item with payload:", payload);
     const response = await fetch(`${API_BASE_URL}/Opportunities`, {
       method: "POST",
       headers: {
@@ -95,7 +93,6 @@ export const createItem = async (
     }
 
     const odataResponse = await response.json();
-    console.log("API: Item created successfully", odataResponse);
 
     const newItem: Item = {
       id: odataResponse.Opportunity || String(Math.random() * 100000),
@@ -137,8 +134,6 @@ export const updateItem = async (
     const opportunityId = itemData.id; 
     const payload = preparePayload(itemData);
 
-    console.log("API: Updating item with payload:", payload);
-    console.log("API: Sending X-Infor-LnCompany header with value:", companyNumber);
     const response = await fetch(`${API_BASE_URL}/Opportunities('${opportunityId}')`, {
       method: "PATCH",
       headers: {
@@ -157,7 +152,6 @@ export const updateItem = async (
       throw new Error(errorMessage);
     }
 
-    console.log("API: Item updated successfully", itemData);
     return itemData; 
   } catch (error) {
     console.error("API Error: Failed to update item", error);
@@ -186,7 +180,6 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
     }
 
     const odataResponse = await response.json();
-    console.log("API: Opportunities fetched successfully", odataResponse);
 
     const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
       const mappedItem: Item = {
