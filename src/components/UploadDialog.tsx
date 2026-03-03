@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Save, Copy, Upload } from "lucide-react";
+import { Loader2, Save, Copy, Upload, Link2, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
@@ -55,6 +55,7 @@ type RowState = {
   entityName?: string;
   attrs: IdmAttribute[]; // now includes valueset
   values: Record<string, string>;
+  projectLinks: string[]; // NEW: additional projects linked to this document (saved into Projekt_Verlinkung)
   loadingAttrs: boolean;
   saving: boolean;
   saved: boolean;
@@ -116,6 +117,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         entityName: undefined,
         attrs: [],
         values: {},
+        projectLinks: [],
         loadingAttrs: false,
         saving: false,
         saved: false,
@@ -123,6 +125,54 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     }
     setRows(next);
   }, [files, open]);
+
+  const addProjectLink = React.useCallback((rowKey: string) => {
+    setRows((prev) =>
+      prev.map((r) =>
+        r.key === rowKey
+          ? { ...r, projectLinks: [...(r.projectLinks ?? []), ""] }
+          : r
+      )
+    );
+  }, []);
+
+  const removeProjectLink = React.useCallback((rowKey: string, index: number) => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.key !== rowKey) return r;
+        const next = [...(r.projectLinks ?? [])];
+        next.splice(index, 1);
+        return { ...r, projectLinks: next };
+      })
+    );
+  }, []);
+
+  const updateProjectLink = React.useCallback((rowKey: string, index: number, value: string) => {
+    setRows((prev) =>
+      prev.map((r) => {
+        if (r.key !== rowKey) return r;
+        const next = [...(r.projectLinks ?? [])];
+        next[index] = value;
+        return { ...r, projectLinks: next };
+      })
+    );
+  }, []);
+
+  const buildProjektVerlinkungValue = React.useCallback((row: RowState) => {
+    const main = (row.values?.["Projekt"] ?? "").toString().trim();
+    const extras = (row.projectLinks ?? [])
+      .map((v) => (v ?? "").toString().trim())
+      .filter(Boolean)
+      .filter((v) => v !== main);
+
+    // De-duplicate while preserving order
+    const uniq: string[] = [];
+    for (const v of extras) {
+      if (!uniq.includes(v)) uniq.push(v);
+    }
+
+    return uniq.length ? uniq.join(";") : "";
+  }, []);
 
   const loadAttrsForEntity = async (
     rowKey: string,
@@ -276,8 +326,20 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       const base64 = await fileToBase64(row.file);
       // Only send attributes that have a value and are not MDS_ID
       const attrsPayload = Object.entries(row.values)
-        .filter(([name, v]) => name !== "MDS_ID" && v !== undefined && v !== null && String(v).length > 0)
+        .filter(
+          ([name, v]) =>
+            name !== "MDS_ID" &&
+            name !== "Projekt_Verlinkung" &&
+            v !== undefined &&
+            v !== null &&
+            String(v).length > 0
+        )
         .map(([name, value]) => ({ name, value: String(value) }));
+
+      const projektVerlinkung = buildProjektVerlinkungValue(row);
+      if (projektVerlinkung) {
+        attrsPayload.push({ name: "Projekt_Verlinkung", value: projektVerlinkung });
+      }
 
       await createIdmItem(authToken, cloudEnvironment, {
         entityName: row.entityName!,
@@ -355,8 +417,21 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       try {
         const base64 = await fileToBase64(row.file);
         const attrsPayload = Object.entries(row.values)
-          .filter(([name, v]) => name !== "MDS_ID" && v !== undefined && v !== null && String(v).length > 0)
+          .filter(
+            ([name, v]) =>
+              name !== "MDS_ID" &&
+              name !== "Projekt_Verlinkung" &&
+              v !== undefined &&
+              v !== null &&
+              String(v).length > 0
+          )
           .map(([name, value]) => ({ name, value: String(value) }));
+
+        const projektVerlinkung = buildProjektVerlinkungValue(row);
+        if (projektVerlinkung) {
+          attrsPayload.push({ name: "Projekt_Verlinkung", value: projektVerlinkung });
+        }
+
         await createIdmItem(authToken, cloudEnvironment, {
           entityName: row.entityName!,
           attrs: attrsPayload,
@@ -453,7 +528,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Neue Dokumente hochladen</DialogTitle>
           <DialogDescription>
-            Wählen Sie pro Datei den Dokumententyp und füllen Sie die Attribute aus. Speichern Sie jede Zeile separat.
+            Wählen Sie pro Datei den Dokumententyp und füllen Sie die Attribute aus. Optional können Sie ein Dokument zusätzlich mit weiteren Projekten verknüpfen (Link‑Icon im Feld „Projekt“).
           </DialogDescription>
         </DialogHeader>
 
@@ -539,191 +614,284 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
               {/* Rows */}
               <div className="divide-y">
                 {rows.map((row) => (
-                  <div
-                    key={row.key}
-                    className="grid items-center py-2"
-                    style={{ gridTemplateColumns: gridTemplate }}
-                  >
-                    {/* Entity Select */}
-                    <div className="px-2">
-                      <Select
-                        value={row.entityName}
-                        onValueChange={(val) =>
-                          loadAttrsForEntity(
-                            row.key,
-                            val,
-                            row.file.name,
-                            row.values?.["Gelegenheit"] || defaultOpportunityNumber
-                          )
-                        }
-                      >
-                        <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Dokumententyp wählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(() => {
-                            const baseOptions =
-                              entityOptions && entityOptions.length
-                                ? entityOptions
-                                : entityNames.map((n) => ({ name: n, desc: n }));
-
-                            const prepared = baseOptions
-                              .filter((opt) => (opt.desc || "").trim().startsWith("*"))
-                              .map((opt) => ({
-                                ...opt,
-                                label: (opt.desc || opt.name).replace(/^\*/, "").trim(),
-                              }))
-                              .sort((a, b) => a.label.localeCompare(b.label, "de"));
-
-                            return prepared.map((opt) => (
-                              <SelectItem key={opt.name} value={opt.name}>
-                                {opt.label}
-                              </SelectItem>
-                            ));
-                          })()}
-                        </SelectContent>
-                      </Select>
-                      {/* moved duplicate message above the table */}
-                    </div>
-
-                    {/* Filename */}
-                    <div className="px-2">
-                      <div className="max-w-[200px] overflow-hidden">
-                        <Badge
-                          variant="secondary"
-                          className="text-[10px] font-normal block truncate max-w-full"
-                          title={row.file.name}
+                  <React.Fragment key={row.key}>
+                    <div
+                      className="grid items-center py-2"
+                      style={{ gridTemplateColumns: gridTemplate }}
+                    >
+                      {/* Entity Select */}
+                      <div className="px-2">
+                        <Select
+                          value={row.entityName}
+                          onValueChange={(val) =>
+                            loadAttrsForEntity(
+                              row.key,
+                              val,
+                              row.file.name,
+                              row.values?.["Gelegenheit"] || defaultOpportunityNumber
+                            )
+                          }
                         >
-                          {row.file.name}
-                        </Badge>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {(row.file.size / 1024).toFixed(1)} KB
+                          <SelectTrigger className="h-8">
+                            <SelectValue placeholder="Dokumententyp wählen" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(() => {
+                              const baseOptions =
+                                entityOptions && entityOptions.length
+                                  ? entityOptions
+                                  : entityNames.map((n) => ({ name: n, desc: n }));
+
+                              const prepared = baseOptions
+                                .filter((opt) => (opt.desc || "").trim().startsWith("*"))
+                                .map((opt) => ({
+                                  ...opt,
+                                  label: (opt.desc || opt.name).replace(/^\*/, "").trim(),
+                                }))
+                                .sort((a, b) => a.label.localeCompare(b.label, "de"));
+
+                              return prepared.map((opt) => (
+                                <SelectItem key={opt.name} value={opt.name}>
+                                  {opt.label}
+                                </SelectItem>
+                              ));
+                            })()}
+                          </SelectContent>
+                        </Select>
+                        {/* moved duplicate message above the table */}
+                      </div>
+
+                      {/* Filename */}
+                      <div className="px-2">
+                        <div className="max-w-[200px] overflow-hidden">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] font-normal block truncate max-w-full"
+                            title={row.file.name}
+                          >
+                            {row.file.name}
+                          </Badge>
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {(row.file.size / 1024).toFixed(1)} KB
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Dynamic attribute inputs */}
-                    {Array.from({ length: maxAttrCount }).map((_, idx) => {
-                      const attr = row.attrs[idx];
-                      return (
-                        <div key={`${row.key}-attr-${idx}`} className="px-2">
-                          {row.loadingAttrs ? (
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                              Attribute laden…
-                            </div>
-                          ) : attr ? (
-                            <div className="space-y-1">
-                              <div className="text-[10px] text-muted-foreground">{attr.name}</div>
-                              {attr.valueset && attr.valueset.length > 0 ? (
-                                <Select
-                                  value={row.values[attr.name] ?? ""}
-                                  onValueChange={(val) => {
-                                    setRows((prev) =>
-                                      prev.map((r) =>
-                                        r.key === row.key
-                                          ? { ...r, values: { ...r.values, [attr.name]: val } }
-                                          : r
-                                      )
-                                    );
-                                  }}
-                                >
-                                  <SelectTrigger className="h-8 text-[12px] px-2">
-                                    <SelectValue placeholder="Wählen…" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {attr.valueset.map((vs) => (
-                                      <SelectItem key={vs.name} value={vs.name}>
-                                        {vs.desc}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              ) : attr.name === "Belegdatum" || attr.type === "7" ? (
-                                // datepicker for Belegdatum, stored as yyyy-MM-dd
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      className="h-8 w-[160px] justify-start text-left text-[12px] px-2"
-                                    >
-                                      {row.values[attr.name]
-                                        ? format(parse(row.values[attr.name], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
-                                        : "Datum wählen"}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="p-0" align="start">
-                                    <Calendar
-                                      mode="single"
-                                      selected={
-                                        row.values[attr.name]
-                                          ? parse(row.values[attr.name], "yyyy-MM-dd", new Date())
-                                          : undefined
-                                      }
-                                      onSelect={(date) => {
-                                        const v = date ? format(date, "yyyy-MM-dd") : "";
+                      {/* Dynamic attribute inputs */}
+                      {Array.from({ length: maxAttrCount }).map((_, idx) => {
+                        const attr = row.attrs[idx];
+                        return (
+                          <div key={`${row.key}-attr-${idx}`} className="px-2">
+                            {row.loadingAttrs ? (
+                              <div className="flex items-center text-xs text-muted-foreground">
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Attribute laden…
+                              </div>
+                            ) : attr ? (
+                              <div className="space-y-1">
+                                <div className="text-[10px] text-muted-foreground">{attr.name}</div>
+
+                                {attr.name === "Projekt" ? (
+                                  <div className="flex items-center gap-1">
+                                    <Input
+                                      value={row.values[attr.name] ?? ""}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
                                         setRows((prev) =>
                                           prev.map((r) =>
                                             r.key === row.key
-                                              ? { ...r, values: { ...r.values, [attr.name]: v } }
+                                              ? {
+                                                  ...r,
+                                                  values: { ...r.values, [attr.name]: v },
+                                                }
                                               : r
                                           )
                                         );
                                       }}
-                                      initialFocus
+                                      className="h-8 text-[12px] px-2 flex-1"
+                                      placeholder=""
+                                      aria-label={`Attribut ${attr.name}`}
                                     />
-                                  </PopoverContent>
-                                </Popover>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8"
+                                      title="Projekt verknüpfen"
+                                      onClick={() => addProjectLink(row.key)}
+                                    >
+                                      <Link2 className="h-4 w-4 text-muted-foreground" />
+                                    </Button>
+                                  </div>
+                                ) : attr.valueset && attr.valueset.length > 0 ? (
+                                  <Select
+                                    value={row.values[attr.name] ?? ""}
+                                    onValueChange={(val) => {
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? { ...r, values: { ...r.values, [attr.name]: val } }
+                                            : r
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    <SelectTrigger className="h-8 text-[12px] px-2">
+                                      <SelectValue placeholder="Wählen…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {attr.valueset.map((vs) => (
+                                        <SelectItem key={vs.name} value={vs.name}>
+                                          {vs.desc}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                ) : attr.name === "Belegdatum" || attr.type === "7" ? (
+                                  // datepicker for Belegdatum, stored as yyyy-MM-dd
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        className="h-8 w-[160px] justify-start text-left text-[12px] px-2"
+                                      >
+                                        {row.values[attr.name]
+                                          ? format(parse(row.values[attr.name], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
+                                          : "Datum wählen"}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="p-0" align="start">
+                                      <Calendar
+                                        mode="single"
+                                        selected={
+                                          row.values[attr.name]
+                                            ? parse(row.values[attr.name], "yyyy-MM-dd", new Date())
+                                            : undefined
+                                        }
+                                        onSelect={(date) => {
+                                          const v = date ? format(date, "yyyy-MM-dd") : "";
+                                          setRows((prev) =>
+                                            prev.map((r) =>
+                                              r.key === row.key
+                                                ? { ...r, values: { ...r.values, [attr.name]: v } }
+                                                : r
+                                            )
+                                          );
+                                        }}
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                ) : (
+                                  // plain input for other attributes
+                                  <Input
+                                    value={row.values[attr.name] ?? ""}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setRows((prev) =>
+                                        prev.map((r) =>
+                                          r.key === row.key
+                                            ? {
+                                                ...r,
+                                                values: { ...r.values, [attr.name]: v },
+                                              }
+                                            : r
+                                        )
+                                      );
+                                    }}
+                                    className="h-8 text-[12px] px-2"
+                                    placeholder=""
+                                    aria-label={`Attribut ${attr.name}`}
+                                    readOnly={attr.name === "Gelegenheit" && !!defaultOpportunityNumber} // Make read-only if pre-filled
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-[10px] text-muted-foreground">—</div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* Save button */}
+                      <div className="px-2">
+                        <Button
+                          variant="default"
+                          size="sm"
+                          disabled={!row.entityName || row.saving}
+                          onClick={() => handleSaveRow(row)}
+                          className={cn("h-8")}
+                          title="Zeile speichern und hochladen"
+                          aria-label="Dokument hochladen"
+                        >
+                          {row.saving ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="mr-2 h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Linked project rows */}
+                    {(row.projectLinks ?? []).map((project, linkIdx) => (
+                      <div
+                        key={`${row.key}-projectlink-${linkIdx}`}
+                        className="grid items-center py-2 bg-muted/20 border-l-2 border-blue-600/60"
+                        style={{ gridTemplateColumns: gridTemplate }}
+                      >
+                        {/* Empty entity cell */}
+                        <div className="px-2" />
+
+                        {/* Filename cell: indicate this is a linked project */}
+                        <div className="px-2">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <Link2 className="h-3 w-3" />
+                            ↳ Verknüpftes Projekt
+                          </div>
+                        </div>
+
+                        {/* Attribute cells: only Projekt editable, rest inherited */}
+                        {Array.from({ length: maxAttrCount }).map((_, idx) => {
+                          const attr = row.attrs[idx];
+                          return (
+                            <div key={`${row.key}-link-${linkIdx}-attr-${idx}`} className="px-2">
+                              {!attr ? (
+                                <div className="text-[10px] text-muted-foreground">—</div>
+                              ) : attr.name === "Projekt" ? (
+                                <div className="space-y-1">
+                                  <div className="text-[10px] text-muted-foreground">Projekt</div>
+                                  <Input
+                                    value={project}
+                                    onChange={(e) => updateProjectLink(row.key, linkIdx, e.target.value)}
+                                    className="h-8 text-[12px] px-2"
+                                    placeholder="Projekt-Nr. hinzufügen"
+                                    aria-label="Verknüpftes Projekt"
+                                  />
+                                </div>
                               ) : (
-                                // plain input for other attributes
-                                <Input
-                                  value={row.values[attr.name] ?? ""}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setRows((prev) =>
-                                      prev.map((r) =>
-                                        r.key === row.key
-                                          ? {
-                                              ...r,
-                                              values: { ...r.values, [attr.name]: v },
-                                            }
-                                          : r
-                                      )
-                                    );
-                                  }}
-                                  className="h-8 text-[12px] px-2"
-                                  placeholder=""
-                                  aria-label={`Attribut ${attr.name}`}
-                                  readOnly={attr.name === "Gelegenheit" && !!defaultOpportunityNumber} // Make read-only if pre-filled
-                                />
+                                <div className="text-[10px] text-muted-foreground">übernommen</div>
                               )}
                             </div>
-                          ) : (
-                            <div className="text-[10px] text-muted-foreground">—</div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
 
-                    {/* Save button */}
-                    <div className="px-2">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        disabled={!row.entityName || row.saving}
-                        onClick={() => handleSaveRow(row)}
-                        className={cn("h-8")}
-                        title="Zeile speichern und hochladen"
-                        aria-label="Dokument hochladen"
-                      >
-                        {row.saving ? (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                          <Upload className="mr-2 h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                        {/* Remove linked project */}
+                        <div className="px-2 flex justify-end">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Verknüpfung entfernen"
+                            onClick={() => removeProjectLink(row.key, linkIdx)}
+                          >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </React.Fragment>
                 ))}
               </div>
             </div>
