@@ -373,14 +373,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <div className="flex-none text-sm font-medium text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <span>Auswahl: {selectedOpportunityId}</span>
-            {selectedOpportunityProject && selectedOpportunityProject.trim().length > 0 && (
-              <>
-                <span className="text-muted-foreground/60">·</span>
-                <span className="max-w-[320px] truncate" title={selectedOpportunityProject}>
-                  Projekt: {selectedOpportunityProject}
-                </span>
-              </>
-            )}
+            {(() => {
+              const projectText = (selectedOpportunityProject ?? "").toString();
+              if (!projectText.trim()) return null;
+              return (
+                <>
+                  <span className="text-muted-foreground/60">·</span>
+                  <span className="max-w-[320px] truncate" title={projectText}>
+                    Projekt: {projectText}
+                  </span>
+                </>
+              );
+            })()}
           </span>
         </div>
 
@@ -437,7 +441,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 await reloadPreviews({ highlightNewFromKeys: prevKeys });
               }}
               defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
-              defaultProjectName={selectedOpportunityProject} // NEW: prefill "Projekt"
+              defaultProjectName={(selectedOpportunityProject ?? "").toString()} // NEW: prefill "Projekt"
             />
           </div>
 
