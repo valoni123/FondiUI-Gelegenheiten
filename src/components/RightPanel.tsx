@@ -566,13 +566,35 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <div className="flex h-full flex-col p-4 overflow-y-auto">
-      {/* Header row with centered selection */}
-      <div className="mb-3 flex items-center">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
+      {/* Header: title + actions on first row, info block on its own row below */}
+      <div className="mb-3 flex flex-col">
+        <div className="flex items-center">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={handleBackToOverview}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Zur Übersicht
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                window.open(
+                  "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx",
+                  "_blank",
+                  "noopener,noreferrer"
+                );
+              }}
+              title="Zu SharePoint"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Zu SharePoint
+            </Button>
+          </div>
         </div>
 
-        <div className="flex-none text-sm font-medium text-muted-foreground">
+        <div className="mt-1 text-sm font-medium text-muted-foreground">
           <span className="inline-flex items-center gap-2">
             <span>Auswahl: {selectedOpportunityId}</span>
             {(() => {
@@ -600,27 +622,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
               );
             })()}
           </span>
-        </div>
-
-        <div className="flex-1 flex items-center justify-end gap-2">
-          <Button variant="outline" onClick={handleBackToOverview}>
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Zur Übersicht
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.open(
-                "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx",
-                "_blank",
-                "noopener,noreferrer"
-              );
-            }}
-            title="Zu SharePoint"
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Zu SharePoint
-          </Button>
         </div>
       </div>
 
