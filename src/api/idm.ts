@@ -717,29 +717,29 @@ export const createIdmItem = async (
     body.item.acl = { name: payload.aclName };
   }
 
+  // IMPORTANT: IDM expects `colls` to be an array (same shape as the Dokument_Verlinkung payload),
+  // not an object wrapper like { coll: [...] }.
   if (payload.colls?.length) {
-    body.item.colls = {
-      coll: payload.colls
-        .filter((g) => g?.name && Array.isArray(g.values) && g.values.length > 0)
-        .map((g) => ({
-          name: g.name,
-          coll: g.values
-            .filter(Boolean)
-            .map((value) => ({
-              entityName: g.name,
-              attrs: {
-                attr: [
-                  {
-                    name: "Value",
-                    type: "1",
-                    qual: `${g.name}/Value`,
-                    value: String(value),
-                  },
-                ],
-              },
-            })),
-        })),
-    };
+    body.item.colls = payload.colls
+      .filter((g) => g?.name && Array.isArray(g.values) && g.values.length > 0)
+      .map((g) => ({
+        name: g.name,
+        coll: g.values
+          .filter(Boolean)
+          .map((value) => ({
+            entityName: g.name,
+            attrs: {
+              attr: [
+                {
+                  name: "Value",
+                  type: "1",
+                  qual: `${g.name}/Value`,
+                  value: String(value),
+                },
+              ],
+            },
+          })),
+      }));
   }
 
   const res = await fetch(url, {
