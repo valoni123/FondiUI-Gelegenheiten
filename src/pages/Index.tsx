@@ -316,8 +316,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                       token = await refreshAccessToken(cloudEnvironment);
                       setAuthToken(token);
                     } catch (e) {
-                      console.warn("[Auth] Silent refresh failed after 'Zur Übersicht'.", e);
-                      // Clear all user-related info and redirect to login with error
                       clearAuth();
                       const target = `${window.location.pathname}${window.location.search || ""}`;
                       navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
@@ -335,6 +333,9 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 entityOptions={idmEntityOptions}
                 selectedOpportunityProject={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Project
+                }
+                selectedOpportunityArticle={
+                  opportunities.find((i) => i.id === selectedOpportunityId)?.Artikel
                 }
               />
             </ResizablePanel>

@@ -38,9 +38,9 @@ interface RightPanelProps {
   authToken: string;
   cloudEnvironment: CloudEnvironment;
   entityNames: string[];
-  // NEW: options for dropdown display
   entityOptions?: { name: string; desc: string }[];
   selectedOpportunityProject?: string; // New optional prop
+  selectedOpportunityArticle?: string; // New optional prop
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -49,8 +49,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
   authToken,
   cloudEnvironment,
   entityNames,
-  entityOptions, // Destructure new prop
-  selectedOpportunityProject, // Destructure new prop
+  entityOptions,
+  selectedOpportunityProject, // New optional prop
+  selectedOpportunityArticle, // New optional prop
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -582,6 +583,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
                   <span className="text-muted-foreground/60">·</span>
                   <span className="max-w-[320px] truncate" title={projectText}>
                     Projekt: {projectText}
+                  </span>
+                </>
+              );
+            })()}
+            {(() => {
+              const articleText = (selectedOpportunityArticle ?? "").toString();
+              if (!articleText.trim()) return null;
+              return (
+                <>
+                  <span className="text-muted-foreground/60">·</span>
+                  <span className="max-w-[320px] truncate" title={articleText}>
+                    Artikel: {articleText}
                   </span>
                 </>
               );
