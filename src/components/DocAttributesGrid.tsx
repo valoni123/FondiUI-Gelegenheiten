@@ -1211,7 +1211,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
-              nein
+              Nein
             </Button>
             <Button
               variant="destructive"
@@ -1224,7 +1224,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                 await onDeleteDoc(doc);
               }}
             >
-              ja
+              Ja
             </Button>
           </div>
         </DialogContent>
