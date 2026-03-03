@@ -396,6 +396,44 @@ export const searchIdmItemsByEntityJson = async (
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
+    // NEW: Also extract Projekt_Verlinkung from collections (colls), and expose it as a synthetic attribute
+    // so the UI can display it like other attributes.
+    const collsRaw = (item as any)?.colls?.coll ?? (item as any)?.colls ?? [];
+    const colls: any[] = Array.isArray(collsRaw) ? collsRaw : collsRaw ? [collsRaw] : [];
+    const projektVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Projekt_Verlinkung");
+    const projektEntriesRaw = (projektVerlinkungGroup?.coll ?? projektVerlinkungGroup?.item ?? []) as any;
+    const projektEntries: any[] = Array.isArray(projektEntriesRaw)
+      ? projektEntriesRaw
+      : projektEntriesRaw
+        ? [projektEntriesRaw]
+        : [];
+
+    const projektVerlinkungValues: string[] = [];
+    for (const entry of projektEntries) {
+      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+      if (value) projektVerlinkungValues.push(String(value));
+    }
+
+    const uniqProjektVerlinkungValues = Array.from(new Set(projektVerlinkungValues.filter(Boolean)));
+    if (uniqProjektVerlinkungValues.length) {
+      // upsert in attributes
+      const existingIdx = attributes.findIndex((a) => a.name === "Projekt_Verlinkung");
+      const joined = uniqProjektVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
+      else attributes.push({ name: "Projekt_Verlinkung", value: joined });
+
+      console.log("[IDM] Projekt_Verlinkung geladen:", {
+        opportunityId,
+        entityName,
+        pid: (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid,
+        filename: String((mainRes?.filename ?? item?.filename ?? "")),
+        projektVerlinkung: uniqProjektVerlinkungValues,
+      });
+    }
+
     // NEW: top-level created/changed fields (keep case-insensitive fallbacks for robustness)
     const createdByName: string | undefined =
       item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
@@ -945,6 +983,42 @@ export const searchIdmItemsByXQueryJson = async (
           return { name: String(n ?? ""), value: String(v ?? "") };
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
+
+    // NEW: Also extract Projekt_Verlinkung from collections (colls) and expose it as a synthetic attribute.
+    const collsRaw = (item as any)?.colls?.coll ?? (item as any)?.colls ?? [];
+    const colls: any[] = Array.isArray(collsRaw) ? collsRaw : collsRaw ? [collsRaw] : [];
+    const projektVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Projekt_Verlinkung");
+    const projektEntriesRaw = (projektVerlinkungGroup?.coll ?? projektVerlinkungGroup?.item ?? []) as any;
+    const projektEntries: any[] = Array.isArray(projektEntriesRaw)
+      ? projektEntriesRaw
+      : projektEntriesRaw
+        ? [projektEntriesRaw]
+        : [];
+
+    const projektVerlinkungValues: string[] = [];
+    for (const entry of projektEntries) {
+      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+      if (value) projektVerlinkungValues.push(String(value));
+    }
+
+    const uniqProjektVerlinkungValues = Array.from(new Set(projektVerlinkungValues.filter(Boolean)));
+    if (uniqProjektVerlinkungValues.length) {
+      const existingIdx = attributes.findIndex((a) => a.name === "Projekt_Verlinkung");
+      const joined = uniqProjektVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
+      else attributes.push({ name: "Projekt_Verlinkung", value: joined });
+
+      console.log("[IDM] Projekt_Verlinkung geladen (XQuery):", {
+        xquery,
+        entityName: item?.entityName ?? item?.name ?? "",
+        pid: (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid,
+        filename: String((mainRes?.filename ?? item?.filename ?? "")),
+        projektVerlinkung: uniqProjektVerlinkungValues,
+      });
+    }
 
     const createdByName: string | undefined =
       item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
