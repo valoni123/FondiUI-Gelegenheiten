@@ -1204,14 +1204,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           if (!open) setConfirmDeleteRow(null);
         }}
       >
-        <DialogContent>
+        <DialogContent className="w-fit max-w-[95vw]">
           <DialogHeader>
             <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
-            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
-              Nein
+              Abbrechen
             </Button>
             <Button
               variant="destructive"
@@ -1235,14 +1235,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         open={confirmBatchDelete}
         onOpenChange={(open) => setConfirmBatchDelete(open)}
       >
-        <DialogContent>
+        <DialogContent className="w-fit max-w-[95vw]">
           <DialogHeader>
             <DialogTitle>Sollen die ausgewählten Dokumente wirklich gelöscht werden?</DialogTitle>
-            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setConfirmBatchDelete(false)}>
-              nein
+              Abbrechen
             </Button>
             <Button
               variant="destructive"
@@ -1250,7 +1250,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                 await executeBatchDelete();
               }}
             >
-              ja
+              Ja
             </Button>
           </div>
         </DialogContent>
