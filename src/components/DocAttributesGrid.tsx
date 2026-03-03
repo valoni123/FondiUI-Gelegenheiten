@@ -140,6 +140,16 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
       {
         kind: "meta",
+        id: "projektLinks",
+        header: "Projekt-Verlinkung",
+        getValue: (doc) => {
+          const raw = (doc.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "";
+          // Im Fetch-Layer trennt ein Semikolon mehrere Werte – für Anzeige schöner mit Kommas
+          return raw.replace(/;/g, ", ");
+        },
+      },
+      {
+        kind: "meta",
         id: "dokumenttyp",
         header: "Dokumenttyp",
         getValue: (doc) => String(doc.entityName ?? ""),
