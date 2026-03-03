@@ -703,6 +703,8 @@ export const createIdmItem = async (
     entityName: string;
     attrs: { name: string; value: string }[];
     resource: { filename: string; base64: string };
+    // NEW: allow creating initial collections (same structure as Dokument_Verlinkung)
+    colls?: { name: string; values: string[] }[];
     aclName?: string;
     language?: string;
   }
@@ -723,6 +725,31 @@ export const createIdmItem = async (
 
   if (payload.aclName) {
     body.item.acl = { name: payload.aclName };
+  }
+
+  if (payload.colls?.length) {
+    body.item.colls = {
+      coll: payload.colls
+        .filter((g) => g?.name && Array.isArray(g.values) && g.values.length > 0)
+        .map((g) => ({
+          name: g.name,
+          coll: g.values
+            .filter(Boolean)
+            .map((value) => ({
+              entityName: g.name,
+              attrs: {
+                attr: [
+                  {
+                    name: "Value",
+                    type: "1",
+                    qual: `${g.name}/Value`,
+                    value: String(value),
+                  },
+                ],
+              },
+            })),
+        })),
+    };
   }
 
   const res = await fetch(url, {

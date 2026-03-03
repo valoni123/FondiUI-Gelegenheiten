@@ -158,7 +158,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     );
   }, []);
 
-  const buildProjektVerlinkungValue = React.useCallback((row: RowState) => {
+  const buildProjektVerlinkungValues = React.useCallback((row: RowState) => {
     const main = (row.values?.["Projekt"] ?? "").toString().trim();
     const extras = (row.projectLinks ?? [])
       .map((v) => (v ?? "").toString().trim())
@@ -171,7 +171,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       if (!uniq.includes(v)) uniq.push(v);
     }
 
-    return uniq.length ? uniq.join(";") : "";
+    return uniq;
   }, []);
 
   const loadAttrsForEntity = async (
@@ -329,21 +329,18 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         .filter(
           ([name, v]) =>
             name !== "MDS_ID" &&
-            name !== "Projekt_Verlinkung" &&
             v !== undefined &&
             v !== null &&
             String(v).length > 0
         )
         .map(([name, value]) => ({ name, value: String(value) }));
 
-      const projektVerlinkung = buildProjektVerlinkungValue(row);
-      if (projektVerlinkung) {
-        attrsPayload.push({ name: "Projekt_Verlinkung", value: projektVerlinkung });
-      }
+      const projektLinks = buildProjektVerlinkungValues(row);
 
       await createIdmItem(authToken, cloudEnvironment, {
         entityName: row.entityName!,
         attrs: attrsPayload,
+        colls: projektLinks.length ? [{ name: "Projekt_Verlinkung", values: projektLinks }] : undefined,
         resource: { filename: row.file.name, base64 },
         language: "de-DE",
       });
@@ -420,21 +417,18 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
           .filter(
             ([name, v]) =>
               name !== "MDS_ID" &&
-              name !== "Projekt_Verlinkung" &&
               v !== undefined &&
               v !== null &&
               String(v).length > 0
           )
           .map(([name, value]) => ({ name, value: String(value) }));
 
-        const projektVerlinkung = buildProjektVerlinkungValue(row);
-        if (projektVerlinkung) {
-          attrsPayload.push({ name: "Projekt_Verlinkung", value: projektVerlinkung });
-        }
+        const projektLinks = buildProjektVerlinkungValues(row);
 
         await createIdmItem(authToken, cloudEnvironment, {
           entityName: row.entityName!,
           attrs: attrsPayload,
+          colls: projektLinks.length ? [{ name: "Projekt_Verlinkung", values: projektLinks }] : undefined,
           resource: { filename: row.file.name, base64 },
           language: "de-DE",
         });
