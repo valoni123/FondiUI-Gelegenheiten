@@ -159,9 +159,29 @@ export const updateItem = async (
   }
 };
 
-export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
+export type OpportunitiesPage = {
+  items: Item[];
+  totalCount?: number;
+};
+
+export const getOpportunities = async (
+  authToken: string,
+  companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
+  options?: { top?: number; skip?: number; count?: boolean }
+): Promise<OpportunitiesPage> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=20&$select=*`;
+  const top = options?.top ?? 50;
+  const skip = options?.skip ?? 0;
+  const count = options?.count ?? false;
+
+  const params = new URLSearchParams();
+  params.set("$top", String(top));
+  if (skip > 0) params.set("$skip", String(skip));
+  params.set("$select", "*");
+  if (count) params.set("$count", "true");
+
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?${params.toString()}`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {
@@ -181,7 +201,7 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
 
     const odataResponse = await response.json();
 
-    const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
+    const opportunities: Item[] = (odataResponse.value ?? []).map((odataItem: any) => {
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
@@ -206,7 +226,11 @@ export const getOpportunities = async (authToken: string, companyNumber: string,
       }
       return mappedItem;
     });
-    return opportunities;
+
+    const totalCountRaw = (odataResponse["@odata.count"] ?? odataResponse["@count"] ?? odataResponse.count);
+    const totalCount = totalCountRaw != null ? Number(totalCountRaw) : undefined;
+
+    return { items: opportunities, totalCount: Number.isFinite(totalCount) ? totalCount : undefined };
   } catch (error) {
     console.error("API Error: Failed to fetch opportunities", error);
     throw error;
