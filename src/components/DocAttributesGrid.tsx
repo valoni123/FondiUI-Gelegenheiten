@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Loader2, FileText } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -137,12 +138,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   // Fixed column order (always rendered, even if values are missing)
   const baseDisplayColumns = React.useMemo<DisplayColumn[]>(
     () => [
-      {
-        kind: "meta",
-        id: "verlinkt",
-        header: "Verlinkt",
-        getValue: (doc) => (doc.linkedViaProject ? "Projekt" : ""),
-      },
       { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
       {
         kind: "meta",
@@ -980,6 +975,24 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         {/* Data columns */}
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
+                            // Render a badge for linked docs inside the Dokumentname cell
+                            if (col.id === "dokumentname") {
+                              const value = col.getValue(doc);
+                              return (
+                                <div
+                                  key={`${idx}-${col.id}`}
+                                  className={cn(gridCellClass, "flex items-center gap-2", isHighlighted && rowHighlightClass)}
+                                >
+                                  <div className="truncate text-xs text-foreground">{value || ""}</div>
+                                  {doc.linkedViaProject ? (
+                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                                      verlinkt
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              );
+                            }
+
                             if (col.id === "dokumenttyp") {
                               const value = col.getValue(doc);
                               return (

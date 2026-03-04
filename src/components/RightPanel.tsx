@@ -31,6 +31,7 @@ import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import Li
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -799,6 +800,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       onClick={() => openFullPreview(doc)}
                       title={doc.filename || "Vorschau öffnen"}
                     >
+                      {doc.linkedViaProject ? (
+                        <Badge
+                          variant="secondary"
+                          className="absolute left-2 top-2 z-10 bg-background/90 text-foreground border"
+                        >
+                          verlinkt
+                        </Badge>
+                      ) : null}
                       {doc.smallUrl ? (
                         <img
                           src={doc.smallUrl}
