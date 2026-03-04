@@ -655,11 +655,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
               Zu SharePoint
             </Button>
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               onClick={() => setIsUploadDialogOpen(true)}
               title="Neue Dokumente hochladen"
-              className="bg-blue-600 text-white hover:bg-blue-700"
             >
               <Upload className="mr-2 h-4 w-4" />
               Dokumente hochladen
