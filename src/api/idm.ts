@@ -82,6 +82,9 @@ export type IdmDocPreview = {
   lastChangedTS?: string; // ISO string
   // NEW: ACL info (used when updating items so IDM keeps the existing ACL)
   acl?: { id?: string; name?: string };
+  // NEW: UI hint - document came from a project link query (Projekt_Verlinkung)
+  linkedViaProject?: boolean;
+  linkedProjectValue?: string;
 };
 
 export type IdmAttribute = {

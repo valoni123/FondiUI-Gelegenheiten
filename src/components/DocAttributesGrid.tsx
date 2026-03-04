@@ -137,6 +137,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   // Fixed column order (always rendered, even if values are missing)
   const baseDisplayColumns = React.useMemo<DisplayColumn[]>(
     () => [
+      {
+        kind: "meta",
+        id: "verlinkt",
+        header: "Verlinkt",
+        getValue: (doc) => (doc.linkedViaProject ? "Projekt" : ""),
+      },
       { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
       {
         kind: "meta",

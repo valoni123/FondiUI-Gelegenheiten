@@ -113,6 +113,58 @@ const RightPanel: React.FC<RightPanelProps> = ({
     [highlightedDocKeySet, getDocKey]
   );
 
+  const linkedProjectXQuery = React.useMemo(() => {
+    const project = (selectedOpportunityProject ?? "").toString().trim();
+    if (!project) return null;
+    return (
+      `/Anfrage_Kunde[Projekt_Verlinkung/@Value = "${project}"] ` +
+      `UNION /_Anfrage__Lieferant_[Projekt_Verlinkung/@Value = "${project}"] ` +
+      `SORTBY(@LASTCHANGEDTS DESCENDING)`
+    );
+  }, [selectedOpportunityProject]);
+
+  const mergeDocs = React.useCallback((primary: IdmDocPreview[], linked: IdmDocPreview[]) => {
+    const byKey = new Map<string, IdmDocPreview>();
+
+    for (const d of primary) {
+      byKey.set(getDocKey(d), d);
+    }
+
+    for (const d of linked) {
+      const key = getDocKey(d);
+      const existing = byKey.get(key);
+      if (existing) {
+        byKey.set(key, {
+          ...existing,
+          linkedViaProject: existing.linkedViaProject || true,
+          linkedProjectValue: existing.linkedProjectValue || d.linkedProjectValue,
+        });
+      } else {
+        byKey.set(key, d);
+      }
+    }
+
+    return Array.from(byKey.values());
+  }, [getDocKey]);
+
+  const fetchLinkedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
+    if (!linkedProjectXQuery || !authToken) return [];
+    const project = (selectedOpportunityProject ?? "").toString().trim();
+    const docs = await searchIdmItemsByXQueryJson(
+      authToken,
+      cloudEnvironment,
+      linkedProjectXQuery,
+      0,
+      200,
+      "de-DE"
+    );
+    return docs.map((d) => ({
+      ...d,
+      linkedViaProject: true,
+      linkedProjectValue: project,
+    }));
+  }, [linkedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
+
   // ADD: helper to reload previews for the current opportunity
   const reloadPreviews = React.useCallback(async (opts?: { highlightNewFromKeys?: string[] }) => {
     if (!selectedOpportunityId || !authToken || !entityNames?.length) return;
@@ -124,11 +176,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
     setIsPreviewsLoading(true);
     try {
-      const results = await Promise.allSettled(
-        entityNames.map((name) =>
-          searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
-        )
-      );
+      const [results, linkedResults] = await Promise.all([
+        Promise.allSettled(
+          entityNames.map((name) =>
+            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+          )
+        ),
+        fetchLinkedProjectDocs().catch(() => []),
+      ]);
 
       const merged: IdmDocPreview[] = [];
       results.forEach((r) => {
@@ -137,17 +192,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
         }
       });
 
+      const combined = mergeDocs(merged, linkedResults);
+
       if (opts?.highlightNewFromKeys) {
         const prev = new Set(opts.highlightNewFromKeys);
-        const newKeys = merged.map(getDocKey).filter((k) => !prev.has(k));
+        const newKeys = combined.map(getDocKey).filter((k) => !prev.has(k));
         setHighlightedDocKeys(newKeys);
       }
 
-      setDocPreviews(merged);
+      setDocPreviews(combined);
     } finally {
       setIsPreviewsLoading(false);
     }
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, getDocKey]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, getDocKey, fetchLinkedProjectDocs, mergeDocs]);
 
   // keep existing useEffect for initial load
   React.useEffect(() => {
@@ -166,11 +223,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
       setHighlightedDocKeys([]);
 
       try {
-        const results = await Promise.allSettled(
-          entityNames.map((name) =>
-            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
-          )
-        );
+        const [results, linkedResults] = await Promise.all([
+          Promise.allSettled(
+            entityNames.map((name) =>
+              searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+            )
+          ),
+          fetchLinkedProjectDocs().catch(() => []),
+        ]);
 
         if (cancelled) return;
         const merged: IdmDocPreview[] = [];
@@ -180,7 +240,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
           }
         });
 
-        setDocPreviews(merged);
+        setDocPreviews(mergeDocs(merged, linkedResults));
       } finally {
         if (!cancelled) setIsPreviewsLoading(false);
       }
@@ -189,7 +249,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames]);
+  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, fetchLinkedProjectDocs, mergeDocs]);
 
   type DocFilterKey =
     | "FME_GEOM_KUNDE"
@@ -287,7 +347,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
           200,
           "de-DE"
         );
-        setDocPreviews(docs);
+        const linked = await fetchLinkedProjectDocs().catch(() => []);
+        setDocPreviews(mergeDocs(docs, linked));
       } catch (err: any) {
         const raw = String(err?.message ?? err ?? "Unbekannter Fehler");
 
@@ -323,7 +384,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         setIsPreviewsLoading(false);
       }
     },
-    [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews]
+    [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews, fetchLinkedProjectDocs, mergeDocs]
   );
 
   // Re-apply active filter if opportunity changes
