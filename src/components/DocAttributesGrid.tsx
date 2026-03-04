@@ -86,10 +86,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
 
   // Excel-like look: square inputs and full gridlines
-  const headerCellClass = "sticky top-0 z-30 px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 flex items-center min-h-8";
+  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 flex items-center min-h-8";
   const gridCellClass = "px-1 py-1 min-w-0 border-r border-b border-border bg-background flex items-center min-h-8";
   const iconCellClass = "px-1 py-1 flex items-center border-r border-b border-border bg-background min-h-8";
-  const filterCellClass = "sticky top-8 z-20 px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8";
+  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8";
 
   // Document type (entityName) edit state MUST be declared before effects using it
   const initialDocTypes = React.useMemo<Record<number, string>>(() => {
@@ -731,33 +731,33 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
       <TooltipProvider>
         <div className="w-full overflow-x-auto">
-          <div>
+          <div className="max-h-[60vh] overflow-y-auto">
             <div className="grid w-max min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
               {/* Header */}
               {/* ADD one more empty header cell for the note editor column */}
-              <div className={headerCellClass}></div>
-              <div className={headerCellClass}></div>
-              <div className={headerCellClass}></div>
-              <div className={headerCellClass}></div>
-              <div className={headerCellClass}></div>
-              <div className={headerCellClass}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
               {displayColumns.map((col) => (
-                <div key={col.id} className={cn(headerCellClass, "min-w-0")}>
+                <div key={col.id} className={cn(headerCellClass, "min-w-0 sticky top-0 z-30")}>
                   <div className="truncate">{col.header}</div>
                 </div>
               ))}
-              <div className={headerCellClass}></div>
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
 
               {/* Filters */}
               {/* ADD one more empty filter cell for the note editor column */}
-              <div className={filterCellClass}></div>
-              <div className={filterCellClass}></div>
-              <div className={filterCellClass}></div>
-              <div className={filterCellClass}></div>
-              <div className={filterCellClass}></div>
-              <div className={filterCellClass}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
               {displayColumns.map((col) => (
-                <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0")}>
+                <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}>
                   <Input
                     value={filters[col.id] || ""}
                     onChange={(e) =>
@@ -770,7 +770,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                   />
                 </div>
               ))}
-              <div className={filterCellClass}></div>
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
 
               {/* Rows */}
               {isLoading ? (
