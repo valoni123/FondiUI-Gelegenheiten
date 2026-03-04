@@ -45,12 +45,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   // NEW: store name+desc for dropdown display
   const [idmEntityOptions, setIdmEntityOptions] = useState<{ name: string; desc: string }[]>([]);
 
-  // NEW: lazy loading state for overview
-  const [opportunitiesTotalCount, setOpportunitiesTotalCount] = useState<number | undefined>(undefined);
-  const [opportunitiesSkip, setOpportunitiesSkip] = useState(0);
-  const [hasMoreOpportunities, setHasMoreOpportunities] = useState(true);
-  const [isLoadingMoreOpportunities, setIsLoadingMoreOpportunities] = useState(false);
-
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
   const [rightPanelSize, setRightPanelSize] = useState(0);
@@ -59,19 +53,11 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
+    const startedAt = new Date();
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
-      const page = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment, {
-        top: 50,
-        skip: 0,
-        count: true,
-      });
-      setOpportunities(page.items);
-      setOpportunitiesSkip(page.items.length);
-      setOpportunitiesTotalCount(page.totalCount);
-      setHasMoreOpportunities(
-        page.totalCount != null ? page.items.length < page.totalCount : page.items.length > 0
-      );
+      const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
+      setOpportunities(fetchedOpportunities);
       if (!silent) {
         toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
       }
@@ -88,38 +74,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
       }
     }
   }, []);
-
-  const loadMoreOpportunities = useCallback(async () => {
-    if (!authToken) return;
-    if (isLoadingOpportunities || isLoadingMoreOpportunities) return;
-    if (!hasMoreOpportunities) return;
-
-    setIsLoadingMoreOpportunities(true);
-    try {
-      const page = await getOpportunities(authToken, companyNumber, cloudEnvironment, {
-        top: 50,
-        skip: opportunitiesSkip,
-        count: false,
-      });
-
-      setOpportunities((prev) => {
-        const byId = new Map(prev.map((it) => [it.id, it] as const));
-        page.items.forEach((it) => byId.set(it.id, it));
-        return Array.from(byId.values());
-      });
-
-      setOpportunitiesSkip((prev) => prev + page.items.length);
-
-      setHasMoreOpportunities((prevHasMore) => {
-        if (opportunitiesTotalCount != null) {
-          return opportunitiesSkip + page.items.length < opportunitiesTotalCount;
-        }
-        return prevHasMore && page.items.length > 0;
-      });
-    } finally {
-      setIsLoadingMoreOpportunities(false);
-    }
-  }, [authToken, companyNumber, cloudEnvironment, hasMoreOpportunities, isLoadingMoreOpportunities, isLoadingOpportunities, opportunitiesSkip, opportunitiesTotalCount]);
 
   useEffect(() => {
     const initWithLoginToken = async () => {
@@ -398,10 +352,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
                 selectedOpportunityId={selectedOpportunityId}
                 onSelectOpportunity={handleSelectOpportunity}
                 isLoading={isLoadingOpportunities}
-                totalCount={opportunitiesTotalCount}
-                hasMore={hasMoreOpportunities}
-                isLoadingMore={isLoadingMoreOpportunities}
-                onLoadMore={loadMoreOpportunities}
               />
             </ResizablePanel>
           )}

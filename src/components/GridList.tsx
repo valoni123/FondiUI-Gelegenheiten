@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -35,10 +35,6 @@ interface GridListProps {
   selectedOpportunityId: string | null;
   onSelectOpportunity: (opportunityId: string | null) => void;
   isLoading?: boolean;
-  totalCount?: number;
-  hasMore?: boolean;
-  isLoadingMore?: boolean;
-  onLoadMore?: () => void;
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -52,38 +48,11 @@ const GridList: React.FC<GridListProps> = ({
   selectedOpportunityId,
   onSelectOpportunity,
   isLoading,
-  totalCount,
-  hasMore,
-  isLoadingMore,
-  onLoadMore,
 }) => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
-
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!onLoadMore) return;
-    if (!hasMore) return;
-
-    const el = sentinelRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (!entry?.isIntersecting) return;
-        if (isLoading || isLoadingMore) return;
-        onLoadMore();
-      },
-      { root: null, rootMargin: "300px", threshold: 0 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [onLoadMore, hasMore, isLoading, isLoadingMore]);
 
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
@@ -164,19 +133,7 @@ const GridList: React.FC<GridListProps> = ({
 
   return (
     <React.Fragment>
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            {totalCount != null ? `${filteredAndSortedItems.length} / ${totalCount} Gelegenheiten` : `${filteredAndSortedItems.length} Gelegenheiten angezeigt`}
-          </p>
-          {isLoadingMore ? (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Lädt mehr…
-            </div>
-          ) : null}
-        </div>
-
+      <div className="space-y-4">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-border">
@@ -350,9 +307,6 @@ const GridList: React.FC<GridListProps> = ({
           </TableBody>
         </Table>
 
-        {/* Sentinel for infinite scroll */}
-        <div ref={sentinelRef} className="h-8" />
-
         <BusinessPartnerSelectDialog
           isOpen={isBpSelectDialogOpen}
           onClose={() => setIsBpSelectDialogOpen(false)}
@@ -361,6 +315,10 @@ const GridList: React.FC<GridListProps> = ({
           companyNumber={companyNumber}
           cloudEnvironment={cloudEnvironment}
         />
+
+        <p className="text-sm text-muted-foreground text-center py-2">
+          {`${filteredAndSortedItems.length} Gelegenheiten angezeigt`}
+        </p>
       </div>
     </React.Fragment>
   );
