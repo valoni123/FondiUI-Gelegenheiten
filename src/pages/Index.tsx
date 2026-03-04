@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
-import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
 import { toast } from "sonner";
 import { createItem, getOpportunities, updateItem } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
@@ -12,20 +10,30 @@ import { CloudEnvironment } from "@/authorization/configLoader";
 import {
   ResizablePanelGroup,
   ResizablePanel,
-  ResizableHandle,
 } from "@/components/ui/resizable";
 import RightPanel from "@/components/RightPanel";
 import { getIdmEntityInfos } from "@/api/idm";
 import AppHeader from "@/components/AppHeader";
+import UserStatus from "@/components/UserStatus";
+import SettingsButton from "@/components/SettingsButton";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import { refreshAccessToken, clearAuth } from "@/authorization/authService";
 
 interface IndexProps {
   companyNumber: string;
   cloudEnvironment: CloudEnvironment;
+  isAuthenticated: boolean;
+  onSaveCompanyNumber: (newCompanyNumber: string) => void;
+  onSaveCloudEnvironment: (newEnvironment: CloudEnvironment) => void;
 }
 
-const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
+const Index: React.FC<IndexProps> = ({
+  companyNumber,
+  cloudEnvironment,
+  isAuthenticated,
+  onSaveCompanyNumber,
+  onSaveCloudEnvironment,
+}) => {
   const [searchParams] = useSearchParams();
   const { opportunityId: paramOpportunityId } = useParams();
   const navigate = useNavigate();
@@ -53,7 +61,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
-    const startedAt = new Date();
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
       const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
@@ -263,12 +270,6 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
     }
   };
 
-  const handleAddItem = () => {
-    setSelectedItem(null);
-    setIsAddingNewItem(true);
-    setIsDetailDialogOpen(true);
-  };
-
   const handleSelectOpportunity = (opportunityId: string | null) => {
     setSelectedOpportunityId(opportunityId);
   };
@@ -284,7 +285,19 @@ const Index: React.FC<IndexProps> = ({ companyNumber, cloudEnvironment }) => {
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
       <div className="w-full px-4 flex flex-col flex-grow">
-        <AppHeader />
+        <AppHeader
+          rightContent={
+            <>
+              <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
+              <SettingsButton
+                currentCompanyNumber={companyNumber}
+                onSaveCompanyNumber={onSaveCompanyNumber}
+                currentCloudEnvironment={cloudEnvironment}
+                onSaveCloudEnvironment={onSaveCloudEnvironment}
+              />
+            </>
+          }
+        />
         
         {/* REMOVED: Overview 'Neue Gelegenheit' button */}
         {/* <div className="flex justify-start gap-2 mb-4 flex-shrink-0">

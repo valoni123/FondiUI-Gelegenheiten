@@ -4,10 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
-import SettingsButton from "./components/SettingsButton";
-import UserStatus from "./components/UserStatus";
 import React, { useState, useEffect } from "react";
 import { CloudEnvironment } from "./authorization/configLoader";
 import Login from "./pages/Login";
@@ -30,7 +27,7 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [children]);
+  }, [children, location]);
 
   return (
     <div
@@ -101,15 +98,6 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
-            <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
-            <SettingsButton
-              currentCompanyNumber={companyNumber}
-              onSaveCompanyNumber={handleSaveCompanyNumber}
-              currentCloudEnvironment={cloudEnvironment}
-              onSaveCloudEnvironment={handleSaveCloudEnvironment}
-            />
-          </div>
           <FadeTransition>
             <Routes>
               {/* Redirect root to opportunities */}
@@ -119,7 +107,13 @@ const App = () => {
                 path="/opportunities"
                 element={
                   <ProtectedRoute>
-                    <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                    <Index
+                      companyNumber={companyNumber}
+                      cloudEnvironment={cloudEnvironment}
+                      isAuthenticated={isAuthenticated}
+                      onSaveCompanyNumber={handleSaveCompanyNumber}
+                      onSaveCloudEnvironment={handleSaveCloudEnvironment}
+                    />
                   </ProtectedRoute>
                 }
               />
@@ -129,7 +123,13 @@ const App = () => {
                 path="/:opportunityId"
                 element={
                   <ProtectedRoute>
-                    <Index companyNumber={companyNumber} cloudEnvironment={cloudEnvironment} />
+                    <Index
+                      companyNumber={companyNumber}
+                      cloudEnvironment={cloudEnvironment}
+                      isAuthenticated={isAuthenticated}
+                      onSaveCompanyNumber={handleSaveCompanyNumber}
+                      onSaveCloudEnvironment={handleSaveCloudEnvironment}
+                    />
                   </ProtectedRoute>
                 }
               />

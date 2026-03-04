@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 
 import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
 import {
   searchIdmItemsByEntityJson,
@@ -56,7 +55,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
 }) => {
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
-  const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
@@ -619,16 +617,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
     });
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
-  };
-
   return (
-    <div className="flex h-full flex-col p-4 overflow-y-auto">
+    <div className="flex h-full flex-col p-4 overflow-hidden">
       {/* Header: title + actions on first row, info block on its own row below */}
       <div className="mb-3 flex flex-col">
         <div className="flex items-center">
@@ -713,8 +703,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
         </div>
       </div>
 
-      <Card className="flex-grow flex flex-col">
-        <CardContent className="p-6 flex flex-1 flex-col">
+      <Card className="flex-grow flex flex-col min-h-0">
+        <CardContent className="p-6 flex flex-1 flex-col min-h-0 overflow-hidden">
           {/* Upload dialog remains mounted; opened via header button */}
           <UploadDialog
             open={isUploadDialogOpen}
@@ -769,24 +759,26 @@ const RightPanel: React.FC<RightPanelProps> = ({
             )}
           </div>
 
-          {/* MITTE: Dokumentenliste */}
-          <div className="flex-shrink-0">
-            <DocAttributesGrid
-              ref={docListGridRef}
-              title="Dokumentenliste"
-              docs={docPreviews}
-              highlightedDocKeys={highlightedDocKeys}
-              onOpenFullPreview={openFullPreview}
-              onSaveRow={handleSaveRow}
-              onReplaceDoc={handleReplaceDoc}
-              onDeleteDoc={handleDeleteDoc}
-              authToken={authToken}
-              cloudEnvironment={cloudEnvironment}
-              entityOptions={entityOptions}
-              hideProjectColumn={true}
-              // ADD: loader flag
-              isLoading={isPreviewsLoading}
-            />
+          {/* MITTE: Dokumentenliste (scrolls, sticky header inside) */}
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="h-full overflow-y-auto">
+              <DocAttributesGrid
+                ref={docListGridRef}
+                title="Dokumentenliste"
+                docs={docPreviews}
+                highlightedDocKeys={highlightedDocKeys}
+                onOpenFullPreview={openFullPreview}
+                onSaveRow={handleSaveRow}
+                onReplaceDoc={handleReplaceDoc}
+                onDeleteDoc={handleDeleteDoc}
+                authToken={authToken}
+                cloudEnvironment={cloudEnvironment}
+                entityOptions={entityOptions}
+                hideProjectColumn={true}
+                // ADD: loader flag
+                isLoading={isPreviewsLoading}
+              />
+            </div>
           </div>
 
           <Separator className="mt-4 mb-4" />

@@ -9,13 +9,19 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
   title?: string;
   subtitle?: string;
+  rightContent?: React.ReactNode;
 }
 
-const AppHeader: React.FC<AppHeaderProps> = ({ title = "Gelegenheiten", subtitle = "FONDIUM USER INTERFACE" }) => {
+const AppHeader: React.FC<AppHeaderProps> = ({
+  title = "Gelegenheiten",
+  subtitle = "FONDIUM USER INTERFACE",
+  rightContent,
+}) => {
   // apps stored in localStorage under "availableApps".
   // Supported formats:
   // - JSON array of strings: ["App 2", "App 3"]
@@ -39,10 +45,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title = "Gelegenheiten", subtitle
   }, [title]);
 
   return (
-    <header className="w-full mb-0">
+    <header className="sticky top-0 z-50 w-full mb-0">
       <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-b-md">
         <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-start py-5">
+          <div className="flex items-center justify-between py-5">
             <div className="flex items-center gap-4 ml-0">
               {/* Small logo card */}
               <DropdownMenu>
@@ -101,9 +107,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({ title = "Gelegenheiten", subtitle
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            
-            {/* Right side intentionally left empty so header stays left-aligned */}
-            <div className="flex-1" />
+
+            {rightContent ? (
+              <div className="flex items-center gap-3">{rightContent}</div>
+            ) : null}
           </div>
         </div>
       </div>
