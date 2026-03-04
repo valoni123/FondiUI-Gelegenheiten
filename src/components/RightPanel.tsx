@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import FileDropzone, { FileDropzoneHandle } from "./FileDropzone";
 import { showSuccess } from "@/utils/toast";
@@ -635,12 +635,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
             <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
           </div>
           <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" onClick={handleBackToOverview}>
+            <Button variant="outline" onClick={handleBackToOverview} size="sm">
               <ChevronLeft className="mr-2 h-4 w-4" />
               Zur Übersicht
             </Button>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 window.open(
                   "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx",
@@ -655,10 +656,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
             </Button>
             <Button
               variant="default"
+              size="sm"
               onClick={() => setIsUploadDialogOpen(true)}
               title="Neue Dokumente hochladen"
               className="bg-blue-600 text-white hover:bg-blue-700"
             >
+              <Upload className="mr-2 h-4 w-4" />
               Dokumente hochladen
             </Button>
           </div>
