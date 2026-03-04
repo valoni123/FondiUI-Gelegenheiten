@@ -57,6 +57,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const dropzoneRef = React.useRef<FileDropzoneHandle | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const [docPreviews, setDocPreviews] = React.useState<IdmDocPreview[]>([]);
   // CHANGED: Start in loading state to avoid initial "Keine Dokumente gefunden" flicker on first mount.
@@ -654,15 +655,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <ExternalLink className="mr-2 h-4 w-4" />
               Zu SharePoint
             </Button>
+            {/* Upload button with icon; same size and style as others */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsUploadDialogOpen(true)}
+              onClick={() => fileInputRef.current?.click()}
               title="Neue Dokumente hochladen"
             >
               <Upload className="mr-2 h-4 w-4" />
               Dokumente hochladen
             </Button>
+            {/* Hidden file input to trigger native picker */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const list = e.target.files;
+                if (!list || list.length === 0) return;
+                addFiles(Array.from(list));
+                // Reset the input value so the same files can be selected again if needed
+                e.currentTarget.value = "";
+              }}
+            />
           </div>
         </div>
 
