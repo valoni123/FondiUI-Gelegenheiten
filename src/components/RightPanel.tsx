@@ -653,6 +653,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <ExternalLink className="mr-2 h-4 w-4" />
               Zu SharePoint
             </Button>
+            <Button
+              variant="default"
+              onClick={() => setIsUploadDialogOpen(true)}
+              title="Neue Dokumente hochladen"
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Dokumente hochladen
+            </Button>
           </div>
         </div>
 
@@ -689,40 +697,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       <Card className="flex-grow flex flex-col">
         <CardContent className="p-6 flex flex-1 flex-col">
-          {/* OBEN: Upload */}
-          <div className="flex-shrink-0">
-            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumente hochladen</div>
-            <FileDropzone ref={dropzoneRef} onFilesAdded={addFiles} />
-
-            {/* Upload Dialog for new files */}
-            <UploadDialog
-              open={isUploadDialogOpen}
-              onOpenChange={(open) => {
-                setIsUploadDialogOpen(open);
-                if (!open) {
-                  // Clear pending files when dialog closes so reopening starts fresh
-                  setFiles([]);
-                }
-              }}
-              files={files}
-              entityNames={entityNames}
-              // NEW: pass name+desc display options
-              entityOptions={entityOptions}
-              authToken={authToken}
-              cloudEnvironment={cloudEnvironment}
-              onCompleted={async () => {
-                // Clear files and refresh previews
+          {/* Upload dialog remains mounted; opened via header button */}
+          <UploadDialog
+            open={isUploadDialogOpen}
+            onOpenChange={(open) => {
+              setIsUploadDialogOpen(open);
+              if (!open) {
+                // Clear pending files when dialog closes so reopening starts fresh
                 setFiles([]);
-                // One-time highlight for newly uploaded docs
-                const prevKeys = docPreviews.map(getDocKey);
-                await reloadPreviews({ highlightNewFromKeys: prevKeys });
-              }}
-              defaultOpportunityNumber={selectedOpportunityId} // pass 'M000...' to prefill "Gelegenheit"
-              defaultProjectName={(selectedOpportunityProject ?? "").toString()} // NEW: prefill "Projekt"
-            />
-          </div>
-
-          <Separator className="mt-4 mb-4" />
+              }
+            }}
+            files={files}
+            entityNames={entityNames}
+            entityOptions={entityOptions}
+            authToken={authToken}
+            cloudEnvironment={cloudEnvironment}
+            onCompleted={async () => {
+              setFiles([]);
+              const prevKeys = docPreviews.map(getDocKey);
+              await reloadPreviews({ highlightNewFromKeys: prevKeys });
+            }}
+            defaultOpportunityNumber={selectedOpportunityId}
+            defaultProjectName={(selectedOpportunityProject ?? "").toString()}
+          />
+          <Separator className="mb-4" />
 
           {/* FILTER: Quick filters for document list */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
