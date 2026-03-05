@@ -1093,9 +1093,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <div className="flex items-center gap-2">
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
-                    <span className="text-xs text-muted-foreground">
-                      Dokument {(fullPreviewIndex ?? 0) + 1}/{docPreviews.length}
-                    </span>
                     <div className="flex items-center">
                       {fullPreviewIndex > 0 && (
                         <Button
