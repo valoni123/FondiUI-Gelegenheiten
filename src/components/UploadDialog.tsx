@@ -27,12 +27,32 @@ import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/
 import { existsIdmItemByEntityFilenameOpportunity } from "@/api/idm";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import {
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+
+const toDisplayDate = (raw: string) => {
+  const v = (raw || "").toString().trim();
+  if (!v) return "";
+  if (v.includes("-")) {
+    const d = parse(v, "yyyy-MM-dd", new Date());
+    if (isValid(d)) return format(d, "dd.MM.yyyy");
+  }
+  return v;
+};
+
+const toInternalDateIfPossible = (raw: string) => {
+  const v = (raw || "").toString().trim();
+  if (!v) return "";
+  if (v.includes(".")) {
+    const d = parse(v, "dd.MM.yyyy", new Date());
+    if (isValid(d)) return format(d, "yyyy-MM-dd");
+  }
+  return v;
+};
 
 type UploadDialogProps = {
   open: boolean;
@@ -365,17 +385,41 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     }
   };
 
-  // Calculate dynamic grid template based on maximum attrs count among rows
-  const maxAttrCount = React.useMemo(
-    () => rows.reduce((m, r) => Math.max(m, r.attrs.length), 0),
-    [rows]
-  );
+  // Create a stable, name-based column layout so the same fields stay in the same position
+  // across different document types.
+  const attrColumns = React.useMemo(() => {
+    const ordered: string[] = [];
+    const seen = new Set<string>();
+
+    // Prefer the first row's attribute order (if present) as a baseline.
+    const baseline = rows[0]?.attrs ?? [];
+    for (const a of baseline) {
+      if (!a?.name) continue;
+      if (seen.has(a.name)) continue;
+      seen.add(a.name);
+      ordered.push(a.name);
+    }
+
+    // Add any attributes that exist in other rows.
+    for (const r of rows) {
+      for (const a of r.attrs) {
+        if (!a?.name) continue;
+        if (seen.has(a.name)) continue;
+        seen.add(a.name);
+        ordered.push(a.name);
+      }
+    }
+
+    return ordered;
+  }, [rows]);
+
+  const attrColumnsCount = attrColumns.length;
   const gridTemplate = React.useMemo(() => {
     const baseCols = ["200px", "160px"]; // Entity select, filename
-    const attrCols = Array.from({ length: maxAttrCount }).map(() => "160px");
+    const attrCols = Array.from({ length: attrColumnsCount }).map(() => "160px");
     const actionCols = ["120px"]; // Save button
     return [...baseCols, ...attrCols, ...actionCols].join(" ");
-  }, [maxAttrCount]);
+  }, [attrColumnsCount]);
 
   // Enable "apply to all" only if there are multiple rows, a Dokumententyp is selected in the first row,
   // attributes are loaded, and at least one attribute has a value.
@@ -599,7 +643,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
               >
                 <div className="px-2">Dokumententyp</div>
                 <div className="px-2">Dateiname</div>
-                {Array.from({ length: maxAttrCount }).map((_, idx) => (
+                {Array.from({ length: attrColumnsCount }).map((_, idx) => (
                   <div key={`hdr-${idx}`} className="px-2"></div>
                 ))}
                 <div className="px-2">Aktion</div>
@@ -672,8 +716,8 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                       </div>
 
                       {/* Dynamic attribute inputs */}
-                      {Array.from({ length: maxAttrCount }).map((_, idx) => {
-                        const attr = row.attrs[idx];
+                      {attrColumns.map((attrName, idx) => {
+                        const attr = row.attrs.find((a) => a.name === attrName);
                         return (
                           <div key={`${row.key}-attr-${idx}`} className="px-2">
                             {row.loadingAttrs ? (
@@ -742,26 +786,66 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                     </SelectContent>
                                   </Select>
                                 ) : attr.name === "Belegdatum" || attr.type === "7" ? (
-                                  // datepicker for Belegdatum, stored as yyyy-MM-dd
+                                  // Belegdatum: allow both typing and picking via calendar
                                   <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant="outline"
-                                        className="h-8 w-[160px] justify-start text-left text-[12px] px-2"
-                                      >
-                                        {row.values[attr.name]
-                                          ? format(parse(row.values[attr.name], "yyyy-MM-dd", new Date()), "dd.MM.yyyy")
-                                          : "Datum wählen"}
-                                      </Button>
-                                    </PopoverTrigger>
+                                    <div className="relative w-full">
+                                      <Input
+                                        value={toDisplayDate(row.values[attr.name] ?? "")}
+                                        onChange={(e) => {
+                                          const v = e.target.value;
+                                          setRows((prev) =>
+                                            prev.map((r) =>
+                                              r.key === row.key
+                                                ? {
+                                                    ...r,
+                                                    values: { ...r.values, [attr.name]: v },
+                                                  }
+                                                : r
+                                            )
+                                          );
+                                        }}
+                                        onBlur={(e) => {
+                                          const internal = toInternalDateIfPossible(e.target.value);
+                                          if (internal === e.target.value) return;
+                                          setRows((prev) =>
+                                            prev.map((r) =>
+                                              r.key === row.key
+                                                ? {
+                                                    ...r,
+                                                    values: { ...r.values, [attr.name]: internal },
+                                                  }
+                                                : r
+                                            )
+                                          );
+                                        }}
+                                        className="h-8 text-[12px] px-2 w-full pr-9"
+                                        placeholder="TT.MM.JJJJ"
+                                        aria-label={`Attribut ${attr.name}`}
+                                      />
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                                          title="Kalender öffnen"
+                                          aria-label="Kalender öffnen"
+                                        >
+                                          Datum
+                                        </Button>
+                                      </PopoverTrigger>
+                                    </div>
                                     <PopoverContent className="p-0" align="start">
                                       <Calendar
                                         mode="single"
-                                        selected={
-                                          row.values[attr.name]
-                                            ? parse(row.values[attr.name], "yyyy-MM-dd", new Date())
-                                            : undefined
-                                        }
+                                        selected={() => {
+                                          const raw = (row.values[attr.name] ?? "").toString().trim();
+                                          const internal = toInternalDateIfPossible(raw);
+                                          const d = internal && internal.includes("-")
+                                            ? parse(internal, "yyyy-MM-dd", new Date())
+                                            : undefined;
+                                          return d && isValid(d) ? d : undefined;
+                                        }}
                                         onSelect={(date) => {
                                           const v = date ? format(date, "yyyy-MM-dd") : "";
                                           setRows((prev) =>
@@ -846,8 +930,8 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                         </div>
 
                         {/* Attribute cells: only Projekt editable, rest inherited */}
-                        {Array.from({ length: maxAttrCount }).map((_, idx) => {
-                          const attr = row.attrs[idx];
+                        {attrColumns.map((attrName, idx) => {
+                          const attr = row.attrs.find((a) => a.name === attrName);
                           return (
                             <div key={`${row.key}-link-${linkIdx}-attr-${idx}`} className="px-2">
                               {!attr ? (
