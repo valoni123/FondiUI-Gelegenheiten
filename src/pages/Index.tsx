@@ -38,7 +38,7 @@ const Index: React.FC<IndexProps> = ({
   const { opportunityId: paramOpportunityId } = useParams();
   const navigate = useNavigate();
   const urlOpportunityId = searchParams.get("opportunity");
-  const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
+  const effectiveOpportunityId = paramOpportunityId || urlOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -56,6 +56,11 @@ const Index: React.FC<IndexProps> = ({
   // New state for panel sizes
   const [leftPanelSize, setLeftPanelSize] = useState(100);
   const [rightPanelSize, setRightPanelSize] = useState(0);
+
+  // Keep UI selection in sync with the URL (deep-linking / unique URLs)
+  useEffect(() => {
+    setSelectedOpportunityId(effectiveOpportunityId);
+  }, [effectiveOpportunityId]);
 
   const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
     if (!silent) {
@@ -271,7 +276,11 @@ const Index: React.FC<IndexProps> = ({
   };
 
   const handleSelectOpportunity = (opportunityId: string | null) => {
-    setSelectedOpportunityId(opportunityId);
+    if (opportunityId) {
+      navigate(`/${encodeURIComponent(opportunityId)}`);
+    } else {
+      navigate(`/opportunities`);
+    }
   };
 
   if (isAuthLoading) {
@@ -319,7 +328,7 @@ const Index: React.FC<IndexProps> = ({
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={async () => {
-                  setSelectedOpportunityId(null);
+                  handleSelectOpportunity(null);
                   let token = localStorage.getItem("oauthAccessToken") || authToken || "";
                   const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
                   const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
