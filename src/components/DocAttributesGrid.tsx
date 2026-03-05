@@ -963,9 +963,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            disabled={!doc.pid || isLockedByStatus}
+                            disabled={!doc.pid}
                             onClick={() => openNoteEditor(idx)}
-                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Anmerkung bearbeiten"}
+                            title="Anmerkung bearbeiten"
                             aria-label="Anmerkung bearbeiten"
                           >
                             <FileText className="h-3 w-3" />
