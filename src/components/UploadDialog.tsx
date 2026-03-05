@@ -26,6 +26,7 @@ import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
 import { existsIdmItemByEntityFilenameOpportunity } from "@/api/idm";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse, isValid } from "date-fns";
 import {
@@ -34,55 +35,7 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 
-const toDisplayDate = (raw: string) => {
-  const v = (raw || "").toString().trim();
-  if (!v) return "";
-  if (v.includes("-")) {
-    const d = parse(v, "yyyy-MM-dd", new Date());
-    if (isValid(d)) return format(d, "dd.MM.yyyy");
-  }
-  return v;
-};
-
-const toInternalDateIfPossible = (raw: string) => {
-  const v = (raw || "").toString().trim();
-  if (!v) return "";
-  if (v.includes(".")) {
-    const d = parse(v, "dd.MM.yyyy", new Date());
-    if (isValid(d)) return format(d, "yyyy-MM-dd");
-  }
-  return v;
-};
-
-type UploadDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  files: File[];
-  // Keep original names for API values
-  entityNames: string[];
-  // NEW: options with desc for display
-  entityOptions?: { name: string; desc: string }[];
-  authToken: string;
-  cloudEnvironment: CloudEnvironment;
-  onCompleted: () => void;
-  defaultOpportunityNumber?: string; // New prop for pre-filling Gelegenheit
-  defaultProjectName?: string; // New prop for pre-filling Projekt
-};
-
-type RowState = {
-  key: string;
-  file: File;
-  entityName?: string;
-  attrs: IdmAttribute[]; // now includes valueset
-  values: Record<string, string>;
-  projectLinks: string[]; // NEW: additional projects linked to this document (saved into Projekt_Verlinkung)
-  loadingAttrs: boolean;
-  saving: boolean;
-  saved: boolean;
-  duplicateExists?: boolean; // mark if duplicate found
-};
-
-const fileKey = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+import { CalendarDays } from "lucide-react";
 
 const UploadDialog: React.FC<UploadDialogProps> = ({
   open,
@@ -98,6 +51,63 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
   const [bulkSaving, setBulkSaving] = React.useState(false);
+
+  // Same date input behavior as in DocAttributesGrid (detail table):
+  // - text input (TT.MM.JJJJ) with cursor
+  // - popover calendar opens on focus
+  // - validates strictly and stores ISO (yyyy-MM-dd)
+  const [openDateKey, setOpenDateKey] = React.useState<string | null>(null);
+  const [dateInputErrors, setDateInputErrors] = React.useState<Set<string>>(new Set());
+
+  const commitDateInput = React.useCallback(
+    (cellKey: string, rowKey: string, attrName: string, rawInput: string) => {
+      const raw = (rawInput || "").trim();
+      if (!raw) {
+        setRows((prev) =>
+          prev.map((r) =>
+            r.key === rowKey ? { ...r, values: { ...r.values, [attrName]: "" } } : r
+          )
+        );
+        setDateInputErrors((prev) => {
+          const next = new Set(prev);
+          next.delete(cellKey);
+          return next;
+        });
+        return;
+      }
+
+      // Allow dd.MM.yyyy (preferred) or yyyy-MM-dd (internal format)
+      const d = raw.includes(".")
+        ? parse(raw, "dd.MM.yyyy", new Date())
+        : parse(raw, "yyyy-MM-dd", new Date());
+
+      const ok = isValid(d);
+      if (!ok) {
+        setDateInputErrors((prev) => new Set(prev).add(cellKey));
+        return;
+      }
+
+      // Strict format check to avoid partial parses (e.g. 32.13.2024)
+      const normalized = raw.includes(".") ? format(d, "dd.MM.yyyy") : format(d, "yyyy-MM-dd");
+      if (normalized !== raw) {
+        setDateInputErrors((prev) => new Set(prev).add(cellKey));
+        return;
+      }
+
+      const iso = format(d, "yyyy-MM-dd");
+      setRows((prev) =>
+        prev.map((r) =>
+          r.key === rowKey ? { ...r, values: { ...r.values, [attrName]: iso } } : r
+        )
+      );
+      setDateInputErrors((prev) => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
+    },
+    []
+  );
 
   const duplicateRows = React.useMemo(() => {
     return rows.filter((r) => r.duplicateExists && r.entityName);
@@ -786,80 +796,115 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                                     </SelectContent>
                                   </Select>
                                 ) : attr.name === "Belegdatum" || attr.type === "7" ? (
-                                  // Belegdatum: allow both typing and picking via calendar
-                                  <Popover>
-                                    <div className="relative w-full">
-                                      <Input
-                                        value={toDisplayDate(row.values[attr.name] ?? "")}
-                                        onChange={(e) => {
-                                          const v = e.target.value;
-                                          setRows((prev) =>
-                                            prev.map((r) =>
-                                              r.key === row.key
-                                                ? {
-                                                    ...r,
-                                                    values: { ...r.values, [attr.name]: v },
-                                                  }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                        onBlur={(e) => {
-                                          const internal = toInternalDateIfPossible(e.target.value);
-                                          if (internal === e.target.value) return;
-                                          setRows((prev) =>
-                                            prev.map((r) =>
-                                              r.key === row.key
-                                                ? {
-                                                    ...r,
-                                                    values: { ...r.values, [attr.name]: internal },
-                                                  }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                        className="h-8 text-[12px] px-2 w-full pr-9"
-                                        placeholder="TT.MM.JJJJ"
-                                        aria-label={`Attribut ${attr.name}`}
-                                      />
-                                      <PopoverTrigger asChild>
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
-                                          title="Kalender öffnen"
-                                          aria-label="Kalender öffnen"
+                                  (() => {
+                                    const cellKey = `${row.key}__${attr.name}`;
+                                    const isInvalid = dateInputErrors.has(cellKey);
+
+                                    const displayValue = row.values[attr.name]
+                                      ? (() => {
+                                          try {
+                                            return format(
+                                              parse(row.values[attr.name], "yyyy-MM-dd", new Date()),
+                                              "dd.MM.yyyy"
+                                            );
+                                          } catch {
+                                            return "";
+                                          }
+                                        })()
+                                      : "";
+
+                                    return (
+                                      <Popover
+                                        open={openDateKey === cellKey}
+                                        onOpenChange={(open) => setOpenDateKey(open ? cellKey : null)}
+                                      >
+                                        <PopoverPrimitive.Anchor asChild>
+                                          <div className="relative w-full">
+                                            <Input
+                                              key={`${row.key}-${attr.name}-${row.values[attr.name] ?? ""}`}
+                                              defaultValue={displayValue}
+                                              placeholder="TT.MM.JJJJ"
+                                              onFocus={() => {
+                                                // Defer open so the input keeps focus (cursor stays visible)
+                                                requestAnimationFrame(() => setOpenDateKey(cellKey));
+                                              }}
+                                              onBlur={(e) => {
+                                                commitDateInput(cellKey, row.key, attr.name, e.target.value);
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                  commitDateInput(
+                                                    cellKey,
+                                                    row.key,
+                                                    attr.name,
+                                                    (e.target as HTMLInputElement).value
+                                                  );
+                                                  setOpenDateKey(null);
+                                                }
+                                              }}
+                                              className={cn(
+                                                "h-8 w-full min-w-0 text-[12px] px-2 pr-8",
+                                                isInvalid && "border-red-500 ring-2 ring-red-500"
+                                              )}
+                                              aria-label={`Attribut ${attr.name}`}
+                                            />
+
+                                            <button
+                                              type="button"
+                                              className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground"
+                                              onMouseDown={(e) => {
+                                                // Keep focus on the input
+                                                e.preventDefault();
+                                              }}
+                                              onClick={() => {
+                                                setOpenDateKey((prev) => (prev === cellKey ? null : cellKey));
+                                              }}
+                                              aria-label="Kalender öffnen"
+                                              title="Kalender öffnen"
+                                            >
+                                              <CalendarDays className="h-4 w-4" />
+                                            </button>
+                                          </div>
+                                        </PopoverPrimitive.Anchor>
+
+                                        <PopoverContent
+                                          className="p-0"
+                                          align="start"
+                                          onOpenAutoFocus={(e) => e.preventDefault()}
                                         >
-                                          Datum
-                                        </Button>
-                                      </PopoverTrigger>
-                                    </div>
-                                    <PopoverContent className="p-0" align="start">
-                                      <Calendar
-                                        mode="single"
-                                        selected={() => {
-                                          const raw = (row.values[attr.name] ?? "").toString().trim();
-                                          const internal = toInternalDateIfPossible(raw);
-                                          const d = internal && internal.includes("-")
-                                            ? parse(internal, "yyyy-MM-dd", new Date())
-                                            : undefined;
-                                          return d && isValid(d) ? d : undefined;
-                                        }}
-                                        onSelect={(date) => {
-                                          const v = date ? format(date, "yyyy-MM-dd") : "";
-                                          setRows((prev) =>
-                                            prev.map((r) =>
-                                              r.key === row.key
-                                                ? { ...r, values: { ...r.values, [attr.name]: v } }
-                                                : r
-                                            )
-                                          );
-                                        }}
-                                        initialFocus
-                                      />
-                                    </PopoverContent>
-                                  </Popover>
+                                          <Calendar
+                                            mode="single"
+                                            selected={
+                                              row.values[attr.name]
+                                                ? parse(row.values[attr.name], "yyyy-MM-dd", new Date())
+                                                : undefined
+                                            }
+                                            onSelect={(date) => {
+                                              const iso = date ? format(date, "yyyy-MM-dd") : "";
+                                              setRows((prev) =>
+                                                prev.map((r) =>
+                                                  r.key === row.key
+                                                    ? { ...r, values: { ...r.values, [attr.name]: iso } }
+                                                    : r
+                                                )
+                                              );
+                                              setDateInputErrors((prev) => {
+                                                const next = new Set(prev);
+                                                next.delete(cellKey);
+                                                return next;
+                                              });
+                                              setOpenDateKey(null);
+                                            }}
+                                          />
+                                          {isInvalid ? (
+                                            <div className="px-3 py-2 text-xs text-destructive border-t">
+                                              Ungültiges Datum. Bitte im Format TT.MM.JJJJ eingeben.
+                                            </div>
+                                          ) : null}
+                                        </PopoverContent>
+                                      </Popover>
+                                    );
+                                  })()
                                 ) : (
                                   // plain input for other attributes
                                   <Input
