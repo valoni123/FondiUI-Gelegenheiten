@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
@@ -34,6 +34,10 @@ const Index: React.FC<IndexProps> = ({
   onSaveCompanyNumber,
   onSaveCloudEnvironment,
 }) => {
+  const initInFlightRef = useRef(false);
+  const initDoneRef = useRef(false);
+  const needsOverviewReloadRef = useRef(false);
+
   const [searchParams] = useSearchParams();
   const { opportunityId: paramOpportunityId } = useParams();
   const navigate = useNavigate();
@@ -41,6 +45,7 @@ const Index: React.FC<IndexProps> = ({
   const effectiveOpportunityId = paramOpportunityId || urlOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
+  const [opportunitiesLoadError, setOpportunitiesLoadError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
@@ -66,6 +71,7 @@ const Index: React.FC<IndexProps> = ({
     if (!silent) {
       setIsLoadingOpportunities(true);
     }
+    setOpportunitiesLoadError(null);
     const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
     try {
       const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
@@ -75,6 +81,7 @@ const Index: React.FC<IndexProps> = ({
       }
     } catch (error) {
       console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
+      setOpportunitiesLoadError(error instanceof Error ? error.message : String(error));
       if (!silent) {
         toast.error("Failed to load opportunities.", { id: loadingToastId });
       } else {
@@ -89,6 +96,9 @@ const Index: React.FC<IndexProps> = ({
 
   useEffect(() => {
     const initWithLoginToken = async () => {
+      if (initDoneRef.current || initInFlightRef.current) return;
+      initInFlightRef.current = true;
+
       try {
         let token = localStorage.getItem("oauthAccessToken");
         const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
@@ -139,15 +149,58 @@ const Index: React.FC<IndexProps> = ({
           setSelectedOpportunityId(effectiveOpportunityId);
           await loadOpportunities(token, companyNumber, cloudEnvironment, true);
         }
+
+        initDoneRef.current = true;
       } catch (error) {
         console.error("Initial data fetch failed:", error);
         toast.error("Fehler bei der Initialisierung: Daten konnten nicht geladen werden.");
       } finally {
+        initInFlightRef.current = false;
         setIsAuthLoading(false);
       }
     };
     initWithLoginToken();
   }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
+
+  // When coming back from detail view to overview, refresh opportunities once without showing stale content.
+  useEffect(() => {
+    if (!authToken) return;
+    if (effectiveOpportunityId) return;
+    if (!needsOverviewReloadRef.current) return;
+
+    let cancelled = false;
+    const run = async () => {
+      let token = localStorage.getItem("oauthAccessToken") || authToken;
+      const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+      const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+      if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
+        try {
+          token = await refreshAccessToken(cloudEnvironment);
+          setAuthToken(token);
+        } catch (e) {
+          clearAuth();
+          const target = `${window.location.pathname}${window.location.search || ""}`;
+          navigate(
+            `/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`,
+            { replace: true }
+          );
+          if (!cancelled) setIsLoadingOpportunities(false);
+          return;
+        }
+      }
+
+      await loadOpportunities(token, companyNumber, cloudEnvironment, true);
+      if (cancelled) return;
+      needsOverviewReloadRef.current = false;
+      setIsLoadingOpportunities(false);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate]);
 
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
@@ -307,15 +360,25 @@ const Index: React.FC<IndexProps> = ({
             </>
           }
         />
-        
-        {/* REMOVED: Overview 'Neue Gelegenheit' button */}
-        {/* <div className="flex justify-start gap-2 mb-4 flex-shrink-0">
-          {!selectedOpportunityId && (
-            <Button onClick={handleAddItem}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Neue Gelegenheit
-            </Button>
-          )}
-        </div> */}
+
+        {!selectedOpportunityId && opportunitiesLoadError && !isLoadingOpportunities ? (
+          <div className="mt-4 rounded-md border border-red-300 bg-red-50 text-red-900 px-4 py-3">
+            <div className="text-sm font-medium">Gelegenheiten konnten nicht geladen werden.</div>
+            <div className="mt-1 text-xs opacity-90 break-words">{opportunitiesLoadError}</div>
+            <div className="mt-3">
+              <button
+                className="text-xs underline"
+                onClick={() => {
+                  const token = localStorage.getItem("oauthAccessToken") || authToken;
+                  if (!token) return;
+                  loadOpportunities(token, companyNumber, cloudEnvironment, false);
+                }}
+              >
+                Erneut laden
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <ResizablePanelGroup direction="horizontal" className="flex-grow mt-0">
           {selectedOpportunityId ? (
@@ -328,34 +391,10 @@ const Index: React.FC<IndexProps> = ({
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={async () => {
-                  // When going back to overview, hide stale list content and show only the loading state
-                  setOpportunities([]);
+                  // Hide stale list content while returning; the actual reload is triggered by an effect after navigation.
+                  needsOverviewReloadRef.current = true;
                   setIsLoadingOpportunities(true);
                   handleSelectOpportunity(null);
-
-                  let token = localStorage.getItem("oauthAccessToken") || authToken || "";
-                  const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
-                  const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
-
-                  if (expiresAt && Date.now() >= expiresAt && hasRefresh) {
-                    try {
-                      token = await refreshAccessToken(cloudEnvironment);
-                      setAuthToken(token);
-                    } catch (e) {
-                      clearAuth();
-                      const target = `${window.location.pathname}${window.location.search || ""}`;
-                      navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
-                      setIsLoadingOpportunities(false);
-                      return;
-                    }
-                  }
-
-                  if (token) {
-                    // silent fetch (no toast), we control the spinner ourselves
-                    await loadOpportunities(token, companyNumber, cloudEnvironment, true);
-                  }
-
-                  setIsLoadingOpportunities(false);
                 }}
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}
