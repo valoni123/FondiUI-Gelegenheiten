@@ -75,6 +75,8 @@ export type IdmDocPreview = {
   attributes?: { name: string; value: string }[];
   pid?: string;
   resourceUrl?: string;
+  drillbackurl?: string;
+  previewUrl?: string;
   // NEW: system fields for created/modified info
   createdByName?: string;
   createdTS?: string; // ISO string, e.g. 2026-02-20T08:45:29.052Z

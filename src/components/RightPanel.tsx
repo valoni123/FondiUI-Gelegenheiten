@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload, Share2 } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload, Share2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -12,6 +12,7 @@ import {
   updateIdmItemAttributes,
   changeIdmItemDocumentType,
   searchIdmItemsByXQueryJson,
+  getIdmItemByPid,
 } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -493,6 +494,26 @@ const RightPanel: React.FC<RightPanelProps> = ({
       setFullPreviewData(doc);
       setIsFullPreviewDialogOpen(true);
 
+      // Enrich with drillbackurl/resourceUrl for actions (view in IDM / download)
+      // without blocking the UI.
+      if (doc.pid) {
+        getIdmItemByPid(authToken, cloudEnvironment, doc.pid, "de-DE")
+          .then((info) => {
+            setFullPreviewData((prev) => {
+              if (!prev || prev.pid !== doc.pid) return prev;
+              return {
+                ...prev,
+                drillbackurl: prev.drillbackurl ?? info.drillbackurl,
+                resourceUrl: prev.resourceUrl ?? info.resourceUrl,
+                previewUrl: prev.previewUrl ?? info.previewUrl,
+              };
+            });
+          })
+          .catch(() => {
+            // ignore; actions will just stay disabled
+          });
+      }
+
       // compute index in current docPreviews
       const byPid = docPreviews.findIndex((d) => d.pid && d.pid === doc.pid);
       let idx = byPid;
@@ -505,7 +526,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       setFullPreviewIndex(idx >= 0 ? idx : null);
       setIsFullPreviewLoading(false);
     },
-    [docPreviews]
+    [docPreviews, authToken, cloudEnvironment]
   );
 
   // Keep index in sync if the list or doc changes (e.g., after replacements or reloads)
@@ -977,6 +998,34 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       cloudEnvironment={cloudEnvironment}
                       mainPid={fullPreviewData?.pid}
                     />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!fullPreviewData.drillbackurl}
+                      onClick={() => {
+                        if (fullPreviewData.drillbackurl) {
+                          window.open(fullPreviewData.drillbackurl, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                      title="in IDM anzeigen"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      in IDM anzeigen
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!fullPreviewData.resourceUrl}
+                      onClick={() => {
+                        if (fullPreviewData.resourceUrl) {
+                          window.open(fullPreviewData.resourceUrl, "_blank", "noopener,noreferrer");
+                        }
+                      }}
+                      title="Herunterladen"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Herunterladen
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
