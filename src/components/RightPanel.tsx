@@ -441,6 +441,17 @@ const RightPanel: React.FC<RightPanelProps> = ({
     [selectedOpportunityId, authToken, reloadPreviews, fetchDocsForFilter]
   );
 
+  // Initial load for this opportunity when no filter is active.
+  React.useEffect(() => {
+    if (!selectedOpportunityId || !authToken) {
+      setDocPreviews([]);
+      setIsPreviewsLoading(false);
+      return;
+    }
+    if (activeDocFilter) return;
+    reloadPreviews();
+  }, [selectedOpportunityId, authToken, entityNames, activeDocFilter, reloadPreviews]);
+
   // Silent reload every 10 seconds (like overview). If the user has unsaved edits, we skip the reload
   // to avoid overwriting what they're currently editing.
   React.useEffect(() => {
