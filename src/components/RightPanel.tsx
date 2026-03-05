@@ -3,9 +3,9 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { showSuccess } from "@/utils/toast";
+import { showSuccess, showError } from "@/utils/toast";
 import {
   searchIdmItemsByEntityJson,
   type IdmDocPreview,
@@ -53,6 +53,23 @@ const RightPanel: React.FC<RightPanelProps> = ({
   selectedOpportunityProject, // New optional prop
   selectedOpportunityArticle, // New optional prop
 }) => {
+  const handleShare = React.useCallback(async () => {
+    const url = window.location.href;
+    const title = `Gelegenheit ${selectedOpportunityId}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text: title, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      showSuccess("Link kopiert");
+    } catch (e) {
+      showError("Teilen nicht möglich");
+    }
+  }, [selectedOpportunityId]);
+
   const lastInitialLoadKeyRef = React.useRef<string | null>(null);
 
   const [files, setFiles] = React.useState<File[]>([]);
@@ -656,6 +673,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
             >
               <ExternalLink className="mr-2 h-4 w-4" />
               Zu SharePoint
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleShare}
+              title="Link zur Gelegenheit teilen"
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              Teilen
             </Button>
             {/* Upload button with icon; same size and style as others */}
             <Button

@@ -134,8 +134,13 @@ const Index: React.FC<IndexProps> = ({
         }
         setAuthToken(token);
 
-        const options = await getOpportunityStatusOptions(token, cloudEnvironment);
-        setOpportunityStatusOptions(options);
+        try {
+          const options = await getOpportunityStatusOptions(token, cloudEnvironment);
+          setOpportunityStatusOptions(options);
+        } catch (e) {
+          console.warn("[Metadata] OpportunityStatus konnte nicht geladen werden; fahre ohne Status-Optionen fort.", e);
+          setOpportunityStatusOptions([]);
+        }
 
         // Load entity infos and filter by desc starting with "*"
         const infos = await getIdmEntityInfos(token, cloudEnvironment);
