@@ -150,7 +150,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
 
   // Excel-like look: square inputs and full gridlines
-  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-background flex items-center min-h-8";
+  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 flex items-center min-h-8";
   const gridCellClass = "px-1 py-1 min-w-0 border-r border-b border-border bg-background flex items-center min-h-8";
   const iconCellClass = "px-1 py-1 flex items-center border-r border-b border-border bg-background min-h-8";
   const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8";
@@ -875,8 +875,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
       <TooltipProvider>
         <div className="w-full overflow-x-auto">
-          <div className="max-h-[60vh] overflow-y-auto">
-            <div className="grid w-max min-w-full" style={{ gridTemplateColumns: gridTemplate }}>
+          <div
+            className="max-h-[60vh] overflow-y-auto"
+            style={{ gridTemplateColumns: gridTemplate }}
+          >
+            <div
+              className="grid w-max min-w-full border-l border-t border-border"
+              style={{ gridTemplateColumns: gridTemplate }}
+            >
               {/* Header */}
               {/* ADD one more empty header cell for the note editor column */}
               <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
