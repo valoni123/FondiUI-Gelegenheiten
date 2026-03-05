@@ -766,7 +766,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             defaultOpportunityNumber={selectedOpportunityId}
             defaultProjectName={(selectedOpportunityProject ?? "").toString()}
           />
-          <Separator className="mb-4" />
+          {/* REMOVED: Separator above filter section */}
 
           {/* FILTER: Quick filters for document list */}
           <div className="flex flex-wrap items-center gap-2 mb-3">
