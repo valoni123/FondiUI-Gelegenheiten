@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -49,10 +49,17 @@ const GridList: React.FC<GridListProps> = ({
   onSelectOpportunity,
   isLoading,
 }) => {
-  const [filters, setFilters] = useState<Record<string, string>>({});
+  // Keep typing snappy: update input state immediately, apply it to filtering with a small debounce.
+  const [uiFilters, setUiFilters] = useState<Record<string, string>>({});
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setAppliedFilters(uiFilters), 150);
+    return () => window.clearTimeout(t);
+  }, [uiFilters]);
 
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
@@ -65,7 +72,7 @@ const GridList: React.FC<GridListProps> = ({
   };
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+    setUiFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleSort = (key: string) => {
@@ -80,8 +87,8 @@ const GridList: React.FC<GridListProps> = ({
     let currentItems = [...items];
 
     currentItems = currentItems.filter((item) => {
-      for (const key in filters) {
-        const filterValue = filters[key].toLowerCase();
+      for (const key in appliedFilters) {
+        const filterValue = appliedFilters[key].toLowerCase();
         const itemValue = String(item[key] || "").toLowerCase();
         if (filterValue && !itemValue.includes(filterValue)) {
           return false;
@@ -110,7 +117,7 @@ const GridList: React.FC<GridListProps> = ({
       });
     }
     return currentItems;
-  }, [items, filters, sortConfig]);
+  }, [items, appliedFilters, sortConfig]);
 
   const handleOpenBpSelectDialog = (itemId: string) => {
     setCurrentEditingItemId(itemId);
@@ -169,7 +176,7 @@ const GridList: React.FC<GridListProps> = ({
                       )}
                     </Button>
                     <Input
-                      value={filters[key] || ""}
+                      value={uiFilters[key] || ""}
                       onChange={(e) => handleFilterChange(key, e.target.value)}
                       className={filterCellInputClass}
                     />

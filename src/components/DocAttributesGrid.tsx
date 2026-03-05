@@ -243,10 +243,17 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   React.useEffect(() => setEdited(initial), [initial]);
 
   // Column filters (by display column id)
-  const [filters, setFilters] = React.useState<Record<string, string>>({});
+  // Keep typing responsive: update UI filters immediately, apply filtering with a small debounce.
+  const [uiFilters, setUiFilters] = React.useState<Record<string, string>>({});
+  const [appliedFilters, setAppliedFilters] = React.useState<Record<string, string>>({});
+  React.useEffect(() => {
+    const t = window.setTimeout(() => setAppliedFilters(uiFilters), 150);
+    return () => window.clearTimeout(t);
+  }, [uiFilters]);
   React.useEffect(() => {
     // Reset filters when docs set changes (e.g. switching opportunity) to avoid confusing empty results
-    setFilters({});
+    setUiFilters({});
+    setAppliedFilters({});
   }, [docs]);
 
   const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
@@ -373,7 +380,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   );
 
   const filteredDocs = React.useMemo(() => {
-    const activeFilters = Object.entries(filters)
+    const activeFilters = Object.entries(appliedFilters)
       .map(([k, v]) => [k, v.trim().toLowerCase()] as const)
       .filter(([, v]) => v.length > 0);
 
@@ -396,7 +403,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         }
         return true;
       });
-  }, [docs, edited, initial, filters, displayColumns, attrDefsByEntity, getDisplayValueForFilter]);
+  }, [docs, edited, initial, appliedFilters, displayColumns, attrDefsByEntity, getDisplayValueForFilter]);
 
   const statusColumnWidthPx = React.useMemo(() => {
     // Best effort: determine the longest visible label in the Status valueset (across all entities)
@@ -663,13 +670,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   };
 
   // NOTE EDITOR state
+  // Use uncontrolled input via ref to avoid re-rendering the whole grid on every keystroke.
   const [noteEditorRow, setNoteEditorRow] = React.useState<number | null>(null);
-  const [noteEditorValue, setNoteEditorValue] = React.useState<string>("");
+  const noteEditorDraftRef = React.useRef<string>("");
 
   const openNoteEditor = (idx: number) => {
     const current = edited[idx]?.["Anmerkung"] ?? initial[idx]?.["Anmerkung"] ?? "";
     setNoteEditorRow(idx);
-    setNoteEditorValue(String(current));
+    noteEditorDraftRef.current = String(current);
   };
 
   // Columns: (NEW) Note Editor (30) | Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
@@ -759,9 +767,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               {displayColumns.map((col) => (
                 <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}>
                   <Input
-                    value={filters[col.id] || ""}
+                    value={uiFilters[col.id] || ""}
                     onChange={(e) =>
-                      setFilters((prev) => ({
+                      setUiFilters((prev) => ({
                         ...prev,
                         [col.id]: e.target.value,
                       }))
@@ -1180,7 +1188,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         onOpenChange={(open) => {
           if (!open) {
             setNoteEditorRow(null);
-            setNoteEditorValue("");
+            noteEditorDraftRef.current = "";
           }
         }}
       >
@@ -1192,8 +1200,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             </DialogDescription>
           </DialogHeader>
           <Textarea
-            value={noteEditorValue}
-            onChange={(e) => setNoteEditorValue(e.target.value)}
+            key={noteEditorRow ?? "closed"}
+            defaultValue={noteEditorDraftRef.current}
+            onChange={(e) => {
+              noteEditorDraftRef.current = e.target.value;
+            }}
             className="min-h-[200px] rounded-none"
             placeholder="Anmerkung eingeben…"
           />
@@ -1202,7 +1213,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               variant="secondary"
               onClick={() => {
                 setNoteEditorRow(null);
-                setNoteEditorValue("");
+                noteEditorDraftRef.current = "";
               }}
             >
               Abbrechen
@@ -1213,11 +1224,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                 const idx = noteEditorRow;
                 setEdited((prev) => {
                   const row = { ...(prev[idx] ?? {}) };
-                  row["Anmerkung"] = noteEditorValue;
+                  row["Anmerkung"] = noteEditorDraftRef.current;
                   return { ...prev, [idx]: row };
                 });
                 setNoteEditorRow(null);
-                setNoteEditorValue("");
+                noteEditorDraftRef.current = "";
               }}
             >
               Übernehmen
