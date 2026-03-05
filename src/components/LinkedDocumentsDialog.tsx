@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
-import { getExistingLinkedPids, getIdmItemByPid, toIdmProxyUrl } from "@/api/idm";
+import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 import { unlinkIdmItemDocumentBidirectional, unlinkIdmItemDocumentsBidirectional } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -47,14 +47,13 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   trigger,
 }) => {
   const forceDownload = React.useCallback(async (url: string, filename?: string) => {
-    const proxiedUrl = toIdmProxyUrl(cloudEnvironment, url);
     const safeName = (filename || "download")
       .trim()
       .replace(/[\\/?:%*|"<>]/g, "_")
       .slice(0, 180);
 
     try {
-      const res = await fetch(proxiedUrl);
+      const res = await fetch(url);
       if (!res.ok) throw new Error("download failed");
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -66,9 +65,9 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
       a.remove();
       URL.revokeObjectURL(objectUrl);
     } catch {
-      window.open(proxiedUrl, "_blank", "noopener");
+      window.open(url, "_blank", "noopener");
     }
-  }, [cloudEnvironment]);
+  }, []);
 
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);

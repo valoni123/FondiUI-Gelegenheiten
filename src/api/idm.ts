@@ -10,29 +10,6 @@ const buildIdmBase = (environment: CloudEnvironment) => {
   return `${hostBase}/${cfg.ti}/IDM`;
 };
 
-export const toIdmProxyUrl = (environment: CloudEnvironment, url: string): string => {
-  // If it's already a same-origin proxy URL, keep it.
-  if (url.startsWith("/ionapi/")) return url;
-
-  // Relative URLs are already same-origin.
-  if (url.startsWith("/")) return url;
-
-  try {
-    const u = new URL(url);
-    const base = buildIdmBase(environment);
-
-    // Most IDM resource links look like: https://.../ca/api/resources/...?$token=...&$tenant=...
-    if (u.pathname.startsWith("/ca/")) {
-      return `${base}${u.pathname}${u.search}`;
-    }
-
-    // Fallback: still proxy the path as-is.
-    return `${base}${u.pathname}${u.search}`;
-  } catch {
-    return url;
-  }
-};
-
 /**
  * Load all IDM entities and return their names.
  * Only entities that have BOTH attributes 'Projekt' and 'Dokumentenpaket' are returned.
