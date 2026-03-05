@@ -150,7 +150,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const rowHighlightRight = "border-r border-red-400 rounded-r-sm";
 
   // Excel-like look: square inputs and full gridlines
-  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 flex items-center min-h-8";
+  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-background flex items-center min-h-8";
   const gridCellClass = "px-1 py-1 min-w-0 border-r border-b border-border bg-background flex items-center min-h-8";
   const iconCellClass = "px-1 py-1 flex items-center border-r border-b border-border bg-background min-h-8";
   const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8";
