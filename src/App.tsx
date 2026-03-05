@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, useParams, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import React, { useState, useEffect } from "react";
@@ -38,12 +38,6 @@ const FadeTransition: React.FC<{ children: React.ReactNode }> = ({ children }) =
       {displayChildren}
     </div>
   );
-};
-
-const OpportunityRedirect: React.FC = () => {
-  const { opportunityId } = useParams();
-  if (!opportunityId) return <Navigate to="/opportunities" replace />;
-  return <Navigate to={`/opportunities/${encodeURIComponent(opportunityId)}`} replace />;
 };
 
 const App = () => {
@@ -123,9 +117,10 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
-
+              <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
+              {/* Deep-link route to catch opportunity id at root */}
               <Route
-                path="/opportunities/:opportunityId"
+                path="/:opportunityId"
                 element={
                   <ProtectedRoute>
                     <Index
@@ -138,10 +133,6 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
-
-              <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
-              {/* Backwards compatible deep-link: /12345 -> /opportunities/12345 */}
-              <Route path="/:opportunityId" element={<OpportunityRedirect />} />
               <Route path="/callback" element={<OAuthCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

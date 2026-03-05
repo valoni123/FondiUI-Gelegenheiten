@@ -38,14 +38,7 @@ const Index: React.FC<IndexProps> = ({
   const { opportunityId: paramOpportunityId } = useParams();
   const navigate = useNavigate();
   const urlOpportunityId = searchParams.get("opportunity");
-  const effectiveOpportunityId = paramOpportunityId || urlOpportunityId || null;
-
-  // If someone opens /opportunities?opportunity=123, normalize the URL to /opportunities/123
-  useEffect(() => {
-    if (urlOpportunityId && !paramOpportunityId) {
-      navigate(`/opportunities/${encodeURIComponent(urlOpportunityId)}`, { replace: true });
-    }
-  }, [navigate, paramOpportunityId, urlOpportunityId]);
+  const effectiveOpportunityId = urlOpportunityId || paramOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
@@ -190,12 +183,6 @@ const Index: React.FC<IndexProps> = ({
     }
   }, [selectedOpportunityId]);
 
-  // Keep state in sync with the URL (source of truth)
-  useEffect(() => {
-    const next = paramOpportunityId || null;
-    setSelectedOpportunityId(next);
-  }, [paramOpportunityId]);
-
   const handleUpdateItem = async (
     id: string,
     field: string,
@@ -284,11 +271,7 @@ const Index: React.FC<IndexProps> = ({
   };
 
   const handleSelectOpportunity = (opportunityId: string | null) => {
-    if (!opportunityId) {
-      navigate("/opportunities", { replace: false });
-      return;
-    }
-    navigate(`/opportunities/${encodeURIComponent(opportunityId)}`, { replace: false });
+    setSelectedOpportunityId(opportunityId);
   };
 
   if (isAuthLoading) {
@@ -336,7 +319,7 @@ const Index: React.FC<IndexProps> = ({
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={async () => {
-                  navigate("/opportunities", { replace: false });
+                  setSelectedOpportunityId(null);
                   let token = localStorage.getItem("oauthAccessToken") || authToken || "";
                   const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
                   const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
