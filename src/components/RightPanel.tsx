@@ -53,6 +53,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   selectedOpportunityProject, // New optional prop
   selectedOpportunityArticle, // New optional prop
 }) => {
+  const lastInitialLoadKeyRef = React.useRef<string | null>(null);
+
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -214,10 +216,20 @@ const RightPanel: React.FC<RightPanelProps> = ({
       setIsPreviewsLoading(true);
 
       if (!selectedOpportunityId || !authToken || !entityNames?.length) {
+        lastInitialLoadKeyRef.current = null;
         setDocPreviews([]);
         setIsPreviewsLoading(false);
         return;
       }
+
+      // Guard against duplicate effect executions (e.g. React StrictMode or route remounts)
+      // while still allowing explicit reloads via reloadPreviews().
+      const loadKey = `${selectedOpportunityId}__${authToken}__${entityNames.join(",")}`;
+      if (lastInitialLoadKeyRef.current === loadKey) {
+        setIsPreviewsLoading(false);
+        return;
+      }
+      lastInitialLoadKeyRef.current = loadKey;
 
       // Switching opportunity / initial load: clear highlight
       setHighlightedDocKeys([]);
