@@ -37,6 +37,36 @@ import {
 
 import { CalendarDays } from "lucide-react";
 
+type UploadDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  files: File[];
+  // Keep original names for API values
+  entityNames: string[];
+  // options with desc for display
+  entityOptions?: { name: string; desc: string }[];
+  authToken: string;
+  cloudEnvironment: CloudEnvironment;
+  onCompleted: () => void;
+  defaultOpportunityNumber?: string;
+  defaultProjectName?: string;
+};
+
+type RowState = {
+  key: string;
+  file: File;
+  entityName?: string;
+  attrs: IdmAttribute[];
+  values: Record<string, string>;
+  projectLinks: string[];
+  loadingAttrs: boolean;
+  saving: boolean;
+  saved: boolean;
+  duplicateExists?: boolean;
+};
+
+const fileKey = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+
 const UploadDialog: React.FC<UploadDialogProps> = ({
   open,
   onOpenChange,
