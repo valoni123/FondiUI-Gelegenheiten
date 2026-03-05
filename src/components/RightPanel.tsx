@@ -54,6 +54,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
   selectedOpportunityProject, // New optional prop
   selectedOpportunityArticle, // New optional prop
 }) => {
+  const forceDownload = React.useCallback(async (url: string, filename?: string) => {
+    const safeName = (filename || "download")
+      .trim()
+      .replace(/[\\/?:%*|"<>]/g, "_")
+      .slice(0, 180);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("download failed");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      // Fallback: let the browser handle it (may open inline for some types)
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  }, []);
+
   const handleShare = React.useCallback(async () => {
     const url = window.location.href;
     const title = `Gelegenheit ${selectedOpportunityId}`;
@@ -1030,7 +1054,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       disabled={!fullPreviewData.resourceUrl}
                       onClick={() => {
                         if (fullPreviewData.resourceUrl) {
-                          window.open(fullPreviewData.resourceUrl, "_blank", "noopener,noreferrer");
+                          forceDownload(fullPreviewData.resourceUrl, fullPreviewData.filename);
                         }
                       }}
                       title="Herunterladen"

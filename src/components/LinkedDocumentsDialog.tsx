@@ -46,6 +46,29 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
   mainPid,
   trigger,
 }) => {
+  const forceDownload = React.useCallback(async (url: string, filename?: string) => {
+    const safeName = (filename || "download")
+      .trim()
+      .replace(/[\\/?:%*|"<>]/g, "_")
+      .slice(0, 180);
+
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("download failed");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      window.open(url, "_blank", "noopener");
+    }
+  }, []);
+
   const [open, setOpen] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [linkedItems, setLinkedItems] = React.useState<LinkedItem[]>([]);
@@ -252,7 +275,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                                 variant="ghost"
                                 className={it.resourceUrl ? "h-8 w-8 text-blue-600 hover:text-blue-700" : "h-8 w-8 opacity-50 cursor-not-allowed"}
                                 onClick={() => {
-                                  if (it.resourceUrl) window.open(it.resourceUrl, "_blank", "noopener");
+                                  if (it.resourceUrl) forceDownload(it.resourceUrl, it.filename);
                                 }}
                                 aria-label="Herunterladen"
                               >
