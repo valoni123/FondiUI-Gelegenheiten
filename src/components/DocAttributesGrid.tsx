@@ -439,7 +439,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     const maxLen = candidates.reduce((m, s) => Math.max(m, s.length), 0);
     const px = Math.round(maxLen * 7 + 36);
     // Ensure a comfortable minimum width
-    return Math.min(180, Math.max(120, px));
+    return Math.min(180, Math.max(140, px));
   }, []);
 
   // Fehler-Highlights pro Zeile/Spalte (kurzes Blink-Highlight)
@@ -1191,7 +1191,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                         />
                                       </PopoverTrigger>
  
-                                       <PopoverContent className="p-0" align="start">
+                                       <PopoverContent className="p-0" align="start" onOpenAutoFocus={(e) => e.preventDefault()}>
                                          <Calendar
                                            mode="single"
                                            selected={
