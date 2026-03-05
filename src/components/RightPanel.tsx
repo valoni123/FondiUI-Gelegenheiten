@@ -13,6 +13,7 @@ import {
   changeIdmItemDocumentType,
   searchIdmItemsByXQueryJson,
   getIdmItemByPid,
+  toIdmProxyUrl,
 } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -55,13 +56,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
   selectedOpportunityArticle, // New optional prop
 }) => {
   const forceDownload = React.useCallback(async (url: string, filename?: string) => {
+    const proxiedUrl = toIdmProxyUrl(cloudEnvironment, url);
     const safeName = (filename || "download")
       .trim()
       .replace(/[\\/?:%*|"<>]/g, "_")
       .slice(0, 180);
 
     try {
-      const res = await fetch(url);
+      const res = await fetch(proxiedUrl);
       if (!res.ok) throw new Error("download failed");
       const blob = await res.blob();
       const objectUrl = URL.createObjectURL(blob);
@@ -74,9 +76,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
       URL.revokeObjectURL(objectUrl);
     } catch {
       // Fallback: let the browser handle it (may open inline for some types)
-      window.open(url, "_blank", "noopener,noreferrer");
+      window.open(proxiedUrl, "_blank", "noopener,noreferrer");
     }
-  }, []);
+  }, [cloudEnvironment]);
 
   const handleShare = React.useCallback(async () => {
     const url = window.location.href;
@@ -1093,9 +1095,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <div className="flex items-center gap-2">
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
-                    <span className="text-xs text-muted-foreground">
-                      Dokument {(fullPreviewIndex ?? 0) + 1}/{docPreviews.length}
-                    </span>
                     <div className="flex items-center">
                       {fullPreviewIndex > 0 && (
                         <Button
