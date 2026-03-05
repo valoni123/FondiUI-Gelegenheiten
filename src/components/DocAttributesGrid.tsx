@@ -706,7 +706,17 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     // CHANGED ORDER: detail | select | save | replace | linked | note
     const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // detail | select | save | replace | linked | note
     const dataCols = displayColumns.map((c) => {
-      if (maxDataColumnWidthPx) return `minmax(0px, ${maxDataColumnWidthPx}px)`;
+      if (maxDataColumnWidthPx) {
+        const compact: Record<string, number> = {
+          status: 120,
+          belegdatum: 120,
+          createdAt: 160,
+          changedAt: 160,
+          ort: 100,
+        };
+        const w = compact[c.id] ?? maxDataColumnWidthPx;
+        return `minmax(0px, ${w}px)`;
+      }
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
