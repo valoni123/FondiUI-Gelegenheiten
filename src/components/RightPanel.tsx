@@ -913,6 +913,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 title="Dokumentenliste"
                 docs={docPreviews}
                 contextKey={selectedOpportunityId}
+                maxDataColumnWidthPx={200}
                 highlightedDocKeys={highlightedDocKeys}
                 onOpenFullPreview={openFullPreview}
                 onSaveRow={handleSaveRow}

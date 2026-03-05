@@ -40,6 +40,11 @@ type Props = {
    * (e.g. switching to another opportunity), not on silent background refreshes.
    */
   contextKey?: string;
+  /**
+   * Optional max width (in px) for each data column in the grid.
+   * Useful for the document list where column widths should be fixed.
+   */
+  maxDataColumnWidthPx?: number;
   highlightedDocKeys?: string[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
   onSaveRow: (
@@ -68,6 +73,7 @@ export type DocAttributesGridHandle = {
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
   contextKey,
+  maxDataColumnWidthPx,
   highlightedDocKeys,
   onOpenFullPreview,
   onSaveRow,
@@ -700,6 +706,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     // CHANGED ORDER: detail | select | save | replace | linked | note
     const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // detail | select | save | replace | linked | note
     const dataCols = displayColumns.map((c) => {
+      if (maxDataColumnWidthPx) return `minmax(0px, ${maxDataColumnWidthPx}px)`;
       if (c.id === "dokumentname") return "minmax(220px, 2fr)";
       if (c.id === "titel") return "minmax(180px, 2fr)";
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
@@ -709,7 +716,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     });
     const tail = "30px"; // delete
     return [...fixed, ...dataCols, tail].join(" ");
-  }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx]);
+  }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx, maxDataColumnWidthPx]);
 
   const [openDateKey, setOpenDateKey] = React.useState<string | null>(null);
   const [dateInputErrors, setDateInputErrors] = React.useState<Set<string>>(new Set());
