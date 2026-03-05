@@ -71,6 +71,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, [selectedOpportunityId]);
 
   const lastInitialLoadKeyRef = React.useRef<string | null>(null);
+  const silentReloadInFlightRef = React.useRef(false);
 
   const [files, setFiles] = React.useState<File[]>([]);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -415,6 +416,33 @@ const RightPanel: React.FC<RightPanelProps> = ({
     },
     [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews, fetchLinkedProjectDocs, mergeDocs]
   );
+
+  // Silent reload every 10 seconds (like overview). If the user has unsaved edits, we skip the reload
+  // to avoid overwriting what they're currently editing.
+  React.useEffect(() => {
+    if (!selectedOpportunityId || !authToken) return;
+
+    const id = window.setInterval(async () => {
+      if (silentReloadInFlightRef.current) return;
+
+      const hasUnsavedList = !!docListGridRef.current?.hasUnsavedChanges();
+      const hasUnsavedDetail = !!detailGridRef.current?.hasUnsavedChanges();
+      if (hasUnsavedList || hasUnsavedDetail) return;
+
+      silentReloadInFlightRef.current = true;
+      try {
+        if (activeDocFilter) {
+          await applyDocFilter(activeDocFilter);
+        } else {
+          await reloadPreviews();
+        }
+      } finally {
+        silentReloadInFlightRef.current = false;
+      }
+    }, 10000);
+
+    return () => window.clearInterval(id);
+  }, [selectedOpportunityId, authToken, activeDocFilter, applyDocFilter, reloadPreviews]);
 
   // Re-apply active filter if opportunity changes
   React.useEffect(() => {
