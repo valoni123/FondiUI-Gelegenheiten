@@ -243,17 +243,25 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   React.useEffect(() => setEdited(initial), [initial]);
 
   // Column filters (by display column id)
-  // Keep typing responsive: update UI filters immediately, apply filtering with a small debounce.
-  const [uiFilters, setUiFilters] = React.useState<Record<string, string>>({});
+  // Make inputs UNCONTROLLED so keystrokes don't re-render the whole grid.
+  // We only apply filtering (and thus re-render) with a small debounce.
+  const filterDraftRef = React.useRef<Record<string, string>>({});
+  const filterDebounceRef = React.useRef<number | null>(null);
+  const [filterResetKey, setFilterResetKey] = React.useState(0);
   const [appliedFilters, setAppliedFilters] = React.useState<Record<string, string>>({});
-  React.useEffect(() => {
-    const t = window.setTimeout(() => setAppliedFilters(uiFilters), 150);
-    return () => window.clearTimeout(t);
-  }, [uiFilters]);
+
+  const scheduleApplyFilters = React.useCallback(() => {
+    if (filterDebounceRef.current) window.clearTimeout(filterDebounceRef.current);
+    filterDebounceRef.current = window.setTimeout(() => {
+      setAppliedFilters({ ...filterDraftRef.current });
+    }, 150);
+  }, []);
+
   React.useEffect(() => {
     // Reset filters when docs set changes (e.g. switching opportunity) to avoid confusing empty results
-    setUiFilters({});
+    filterDraftRef.current = {};
     setAppliedFilters({});
+    setFilterResetKey((k) => k + 1);
   }, [docs]);
 
   const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
@@ -767,13 +775,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               {displayColumns.map((col) => (
                 <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}>
                   <Input
-                    value={uiFilters[col.id] || ""}
-                    onChange={(e) =>
-                      setUiFilters((prev) => ({
-                        ...prev,
-                        [col.id]: e.target.value,
-                      }))
-                    }
+                    key={`${filterResetKey}-${col.id}`}
+                    defaultValue={filterDraftRef.current[col.id] || ""}
+                    onChange={(e) => {
+                      filterDraftRef.current[col.id] = e.target.value;
+                      scheduleApplyFilters();
+                    }}
                     className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
                   />
                 </div>
