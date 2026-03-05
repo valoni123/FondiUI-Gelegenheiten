@@ -167,6 +167,67 @@ const RightPanel: React.FC<RightPanelProps> = ({
     return Array.from(byKey.values());
   }, [getDocKey]);
 
+  const mergePreservePrevOrder = React.useCallback(
+    (prev: IdmDocPreview[], next: IdmDocPreview[]) => {
+      const nextByKey = new Map(next.map((d) => [getDocKey(d), d] as const));
+      const used = new Set<string>();
+      const ordered: IdmDocPreview[] = [];
+
+      for (const d of prev) {
+        const key = getDocKey(d);
+        const n = nextByKey.get(key);
+        if (n) {
+          ordered.push(n);
+          used.add(key);
+        }
+      }
+
+      for (const d of next) {
+        const key = getDocKey(d);
+        if (used.has(key)) continue;
+        ordered.push(d);
+        used.add(key);
+      }
+
+      return ordered;
+    },
+    [getDocKey]
+  );
+
+  const getDocSig = React.useCallback((doc: IdmDocPreview) => {
+    const attrsSig = (doc.attributes ?? [])
+      .filter((a) => a?.name)
+      .map((a) => `${a.name}=${String(a.value ?? "")}`)
+      .sort()
+      .join("|");
+
+    return [
+      String(doc.pid ?? ""),
+      String(doc.entityName ?? ""),
+      String(doc.filename ?? ""),
+      String(doc.lastChangedTS ?? ""),
+      String(doc.createdTS ?? ""),
+      String(doc.smallUrl ?? ""),
+      String(doc.linkedViaProject ? "1" : "0"),
+      String(doc.linkedProjectValue ?? ""),
+      attrsSig,
+    ].join("||");
+  }, []);
+
+  const areDocListsEqual = React.useCallback(
+    (a: IdmDocPreview[], b: IdmDocPreview[]) => {
+      if (a.length !== b.length) return false;
+      const mapA = new Map(a.map((d) => [getDocKey(d), getDocSig(d)]));
+      for (const d of b) {
+        const key = getDocKey(d);
+        if (!mapA.has(key)) return false;
+        if (mapA.get(key) !== getDocSig(d)) return false;
+      }
+      return true;
+    },
+    [getDocKey, getDocSig]
+  );
+
   const fetchLinkedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
     if (!linkedProjectXQuery || !authToken) return [];
     const project = (selectedOpportunityProject ?? "").toString().trim();
@@ -184,102 +245,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
       linkedProjectValue: project,
     }));
   }, [linkedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
-
-  // ADD: helper to reload previews for the current opportunity
-  const reloadPreviews = React.useCallback(async (opts?: { highlightNewFromKeys?: string[] }) => {
-    if (!selectedOpportunityId || !authToken || !entityNames?.length) return;
-
-    // By default, any action/reload clears the one-time highlight.
-    if (!opts?.highlightNewFromKeys) {
-      setHighlightedDocKeys([]);
-    }
-
-    setIsPreviewsLoading(true);
-    try {
-      const [results, linkedResults] = await Promise.all([
-        Promise.allSettled(
-          entityNames.map((name) =>
-            searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
-          )
-        ),
-        fetchLinkedProjectDocs().catch(() => []),
-      ]);
-
-      const merged: IdmDocPreview[] = [];
-      results.forEach((r) => {
-        if (r.status === "fulfilled" && Array.isArray(r.value)) {
-          merged.push(...r.value);
-        }
-      });
-
-      const combined = mergeDocs(merged, linkedResults);
-
-      if (opts?.highlightNewFromKeys) {
-        const prev = new Set(opts.highlightNewFromKeys);
-        const newKeys = combined.map(getDocKey).filter((k) => !prev.has(k));
-        setHighlightedDocKeys(newKeys);
-      }
-
-      setDocPreviews(combined);
-    } finally {
-      setIsPreviewsLoading(false);
-    }
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, getDocKey, fetchLinkedProjectDocs, mergeDocs]);
-
-  // keep existing useEffect for initial load
-  React.useEffect(() => {
-    let cancelled = false;
-    const loadPreviews = async () => {
-      // Set loading immediately for each opportunity change.
-      setIsPreviewsLoading(true);
-
-      if (!selectedOpportunityId || !authToken || !entityNames?.length) {
-        lastInitialLoadKeyRef.current = null;
-        setDocPreviews([]);
-        setIsPreviewsLoading(false);
-        return;
-      }
-
-      // Guard against duplicate effect executions (e.g. React StrictMode or route remounts)
-      // while still allowing explicit reloads via reloadPreviews().
-      const loadKey = `${selectedOpportunityId}__${authToken}__${entityNames.join(",")}`;
-      if (lastInitialLoadKeyRef.current === loadKey) {
-        setIsPreviewsLoading(false);
-        return;
-      }
-      lastInitialLoadKeyRef.current = loadKey;
-
-      // Switching opportunity / initial load: clear highlight
-      setHighlightedDocKeys([]);
-
-      try {
-        const [results, linkedResults] = await Promise.all([
-          Promise.allSettled(
-            entityNames.map((name) =>
-              searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
-            )
-          ),
-          fetchLinkedProjectDocs().catch(() => []),
-        ]);
-
-        if (cancelled) return;
-        const merged: IdmDocPreview[] = [];
-        results.forEach((r) => {
-          if (r.status === "fulfilled" && Array.isArray(r.value)) {
-            merged.push(...r.value);
-          }
-        });
-
-        setDocPreviews(mergeDocs(merged, linkedResults));
-      } finally {
-        if (!cancelled) setIsPreviewsLoading(false);
-      }
-    };
-    loadPreviews();
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedOpportunityId, authToken, cloudEnvironment, entityNames, fetchLinkedProjectDocs, mergeDocs]);
 
   type DocFilterKey =
     | "FME_GEOM_KUNDE"
@@ -346,6 +311,79 @@ const RightPanel: React.FC<RightPanelProps> = ({
     [selectedOpportunityId]
   );
 
+  const fetchDocsForFilter = React.useCallback(
+    async (filterKey: DocFilterKey | null): Promise<IdmDocPreview[]> => {
+      if (!selectedOpportunityId || !authToken) return [];
+
+      if (!filterKey) {
+        const [results, linkedResults] = await Promise.all([
+          Promise.allSettled(
+            entityNames.map((name) =>
+              searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
+            )
+          ),
+          fetchLinkedProjectDocs().catch(() => []),
+        ]);
+
+        const merged: IdmDocPreview[] = [];
+        results.forEach((r) => {
+          if (r.status === "fulfilled" && Array.isArray(r.value)) {
+            merged.push(...r.value);
+          }
+        });
+        return mergeDocs(merged, linkedResults);
+      }
+
+      const filter = docFilters.find((f) => f.key === filterKey);
+      if (!filter) {
+        return fetchDocsForFilter(null);
+      }
+
+      const [docs, linked] = await Promise.all([
+        searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE"),
+        fetchLinkedProjectDocs().catch(() => []),
+      ]);
+
+      return mergeDocs(docs, linked);
+    },
+    [
+      selectedOpportunityId,
+      authToken,
+      entityNames,
+      cloudEnvironment,
+      docFilters,
+      fetchLinkedProjectDocs,
+      mergeDocs,
+    ]
+  );
+
+  // Reload with visible loader (used for initial load and user-triggered actions)
+  const reloadPreviews = React.useCallback(
+    async (opts?: { highlightNewFromKeys?: string[] }) => {
+      if (!selectedOpportunityId || !authToken || !entityNames?.length) return;
+
+      if (!opts?.highlightNewFromKeys) {
+        setHighlightedDocKeys([]);
+      }
+
+      setIsPreviewsLoading(true);
+      try {
+        const combined = await fetchDocsForFilter(null);
+
+        if (opts?.highlightNewFromKeys) {
+          const prev = new Set(opts.highlightNewFromKeys);
+          const newKeys = combined.map(getDocKey).filter((k) => !prev.has(k));
+          setHighlightedDocKeys(newKeys);
+        }
+
+        setDocPreviews(combined);
+      } finally {
+        setIsPreviewsLoading(false);
+      }
+    },
+    [selectedOpportunityId, authToken, entityNames, fetchDocsForFilter, getDocKey]
+  );
+
   const [activeDocFilter, setActiveDocFilter] = React.useState<DocFilterKey | null>(null);
 
   const applyDocFilter = React.useCallback(
@@ -361,24 +399,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
         return;
       }
 
-      const filter = docFilters.find((f) => f.key === filterKey);
-      if (!filter) {
-        await reloadPreviews();
-        return;
-      }
-
       setIsPreviewsLoading(true);
       try {
-        const docs = await searchIdmItemsByXQueryJson(
-          authToken,
-          cloudEnvironment,
-          filter.xquery,
-          0,
-          200,
-          "de-DE"
-        );
-        const linked = await fetchLinkedProjectDocs().catch(() => []);
-        setDocPreviews(mergeDocs(docs, linked));
+        const combined = await fetchDocsForFilter(filterKey);
+        setDocPreviews(combined);
       } catch (err: any) {
         const raw = String(err?.message ?? err ?? "Unbekannter Fehler");
 
@@ -414,7 +438,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         setIsPreviewsLoading(false);
       }
     },
-    [selectedOpportunityId, authToken, cloudEnvironment, docFilters, reloadPreviews, fetchLinkedProjectDocs, mergeDocs]
+    [selectedOpportunityId, authToken, reloadPreviews, fetchDocsForFilter]
   );
 
   // Silent reload every 10 seconds (like overview). If the user has unsaved edits, we skip the reload
@@ -431,18 +455,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       silentReloadInFlightRef.current = true;
       try {
-        if (activeDocFilter) {
-          await applyDocFilter(activeDocFilter);
-        } else {
-          await reloadPreviews();
-        }
+        const combined = await fetchDocsForFilter(activeDocFilter);
+        setDocPreviews((prev) => {
+          if (areDocListsEqual(prev, combined)) return prev;
+          return mergePreservePrevOrder(prev, combined);
+        });
       } finally {
         silentReloadInFlightRef.current = false;
       }
     }, 10000);
 
     return () => window.clearInterval(id);
-  }, [selectedOpportunityId, authToken, activeDocFilter, applyDocFilter, reloadPreviews]);
+  }, [selectedOpportunityId, authToken, activeDocFilter, fetchDocsForFilter, areDocListsEqual, mergePreservePrevOrder]);
 
   // Re-apply active filter if opportunity changes
   React.useEffect(() => {
@@ -832,6 +856,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 ref={docListGridRef}
                 title="Dokumentenliste"
                 docs={docPreviews}
+                contextKey={selectedOpportunityId}
                 highlightedDocKeys={highlightedDocKeys}
                 onOpenFullPreview={openFullPreview}
                 onSaveRow={handleSaveRow}
@@ -1063,6 +1088,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <DocAttributesGrid
                 ref={detailGridRef}
                 docs={[fullPreviewData]} // Pass the single document as an array
+                contextKey={fullPreviewData?.pid || selectedOpportunityId}
                 onOpenFullPreview={openFullPreview} // Pass the existing handler
                 onSaveRow={handleSaveRow} // Pass the existing handler
                 onReplaceDoc={handleReplaceDoc} // Pass the existing handler

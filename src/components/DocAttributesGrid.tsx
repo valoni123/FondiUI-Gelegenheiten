@@ -35,6 +35,11 @@ import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 
 type Props = {
   docs: IdmDocPreview[];
+  /**
+   * Used to reset internal UI state (filters/selection) only when the dataset context changes
+   * (e.g. switching to another opportunity), not on silent background refreshes.
+   */
+  contextKey?: string;
   highlightedDocKeys?: string[];
   onOpenFullPreview: (doc: IdmDocPreview, onUpdate: (updatedDoc: IdmDocPreview) => void) => void;
   onSaveRow: (
@@ -62,6 +67,7 @@ export type DocAttributesGridHandle = {
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
+  contextKey,
   highlightedDocKeys,
   onOpenFullPreview,
   onSaveRow,
@@ -259,11 +265,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   }, []);
 
   React.useEffect(() => {
-    // Reset filters when docs set changes (e.g. switching opportunity) to avoid confusing empty results
+    // Reset filters only when context changes (e.g. switching opportunity), not on silent data refresh.
     filterDraftRef.current = {};
     setAppliedFilters({});
     setFilterResetKey((k) => k + 1);
-  }, [docs]);
+  }, [contextKey]);
 
   const [syncWithInitial, setSyncWithInitial] = React.useState<Set<number>>(new Set());
 
@@ -650,9 +656,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   // Track selected rows
   const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
   React.useEffect(() => {
-    // Clear selection whenever docs change to avoid index mismatch after reloads
+    // Clear selection only when context changes to avoid flicker on silent background refreshes
     setSelectedRows(new Set());
-  }, [docs]);
+  }, [contextKey]);
 
   const toggleRowSelected = (idx: number) => {
     setSelectedRows((prev) => {
