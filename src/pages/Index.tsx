@@ -277,7 +277,7 @@ const Index: React.FC<IndexProps> = ({
 
   const handleSelectOpportunity = (opportunityId: string | null) => {
     if (opportunityId) {
-      navigate(`/${encodeURIComponent(opportunityId)}`);
+      navigate(`/opportunity/${encodeURIComponent(opportunityId)}`);
     } else {
       navigate(`/opportunities`);
     }
@@ -328,7 +328,11 @@ const Index: React.FC<IndexProps> = ({
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
                 onClose={async () => {
+                  // When going back to overview, hide stale list content and show only the loading state
+                  setOpportunities([]);
+                  setIsLoadingOpportunities(true);
                   handleSelectOpportunity(null);
+
                   let token = localStorage.getItem("oauthAccessToken") || authToken || "";
                   const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
                   const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
@@ -341,13 +345,17 @@ const Index: React.FC<IndexProps> = ({
                       clearAuth();
                       const target = `${window.location.pathname}${window.location.search || ""}`;
                       navigate(`/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`, { replace: true });
+                      setIsLoadingOpportunities(false);
                       return;
                     }
                   }
 
                   if (token) {
+                    // silent fetch (no toast), we control the spinner ourselves
                     await loadOpportunities(token, companyNumber, cloudEnvironment, true);
                   }
+
+                  setIsLoadingOpportunities(false);
                 }}
                 authToken={authToken || ""}
                 cloudEnvironment={cloudEnvironment}

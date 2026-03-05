@@ -118,9 +118,8 @@ const App = () => {
                 }
               />
               <Route path="/login" element={<Login cloudEnvironment={cloudEnvironment} />} />
-              {/* Deep-link route to catch opportunity id at root */}
               <Route
-                path="/:opportunityId"
+                path="/opportunity/:opportunityId"
                 element={
                   <ProtectedRoute>
                     <Index
