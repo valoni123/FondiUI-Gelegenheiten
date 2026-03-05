@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 
 type Props = {
@@ -704,6 +704,59 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     return [...fixed, ...dataCols, tail].join(" ");
   }, [displayColumns, statusColumnWidthPx, belegdatumColumnWidthPx]);
 
+  const [openDateKey, setOpenDateKey] = React.useState<string | null>(null);
+  const [dateInputErrors, setDateInputErrors] = React.useState<Set<string>>(new Set());
+
+  const commitDateInput = React.useCallback(
+    (cellKey: string, idx: number, attrName: string, rawInput: string) => {
+      const raw = (rawInput || "").trim();
+      if (!raw) {
+        setEdited((prev) => {
+          const row = { ...(prev[idx] ?? {}) };
+          row[attrName] = "";
+          return { ...prev, [idx]: row };
+        });
+        setDateInputErrors((prev) => {
+          const next = new Set(prev);
+          next.delete(cellKey);
+          return next;
+        });
+        return;
+      }
+
+      // Allow dd.MM.yyyy (preferred) or yyyy-MM-dd (internal format)
+      const d = raw.includes(".")
+        ? parse(raw, "dd.MM.yyyy", new Date())
+        : parse(raw, "yyyy-MM-dd", new Date());
+
+      const ok = isValid(d);
+      if (!ok) {
+        setDateInputErrors((prev) => new Set(prev).add(cellKey));
+        return;
+      }
+
+      // Strict format check to avoid partial parses (e.g. 32.13.2024)
+      const normalized = raw.includes(".") ? format(d, "dd.MM.yyyy") : format(d, "yyyy-MM-dd");
+      if (normalized !== raw) {
+        setDateInputErrors((prev) => new Set(prev).add(cellKey));
+        return;
+      }
+
+      const iso = format(d, "yyyy-MM-dd");
+      setEdited((prev) => {
+        const row = { ...(prev[idx] ?? {}) };
+        row[attrName] = iso;
+        return { ...prev, [idx]: row };
+      });
+      setDateInputErrors((prev) => {
+        const next = new Set(prev);
+        next.delete(cellKey);
+        return next;
+      });
+    },
+    []
+  );
+
   return (
     <div className="w-full">
       {(title || !hideSaveAllButton) && (
@@ -1085,49 +1138,92 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   </SelectContent>
                                 </Select>
                               ) : isDate ? (
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      disabled={isEditDisabled}
-                                      className={cn(
-                                        "h-6 w-full min-w-0 justify-start text-left text-xs px-1 rounded-none",
-                                        isEditDisabled && "opacity-60",
-                                        hasError &&
-                                          !hasSuccess &&
-                                          "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                        hasSuccess &&
-                                          !hasError &&
-                                          "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                      )}
-                                    >
-                                      {rowEdited[attrName]
-                                        ? format(
-                                            parse(rowEdited[attrName], "yyyy-MM-dd", new Date()),
-                                            "dd.MM.yyyy"
-                                          )
-                                        : "Datum wählen"}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="p-0" align="start">
-                                    <Calendar
-                                      mode="single"
-                                      selected={
-                                        rowEdited[attrName]
-                                          ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
-                                          : undefined
-                                      }
-                                      onSelect={(date) => {
-                                        if (isEditDisabled) return;
-                                        setEdited((prev) => {
-                                          const row = { ...(prev[idx] ?? {}) };
-                                          row[attrName] = date ? format(date, "yyyy-MM-dd") : "";
-                                          return { ...prev, [idx]: row };
-                                        });
-                                      }}
-                                    />
-                                  </PopoverContent>
-                                </Popover>
+                                (() => {
+                                  const cellKey = `${idx}__${attrName}`;
+                                  const isInvalid = dateInputErrors.has(cellKey);
+                                  const displayValue = rowEdited[attrName]
+                                    ? (() => {
+                                        try {
+                                          return format(parse(rowEdited[attrName], "yyyy-MM-dd", new Date()), "dd.MM.yyyy");
+                                        } catch {
+                                          return "";
+                                        }
+                                      })()
+                                    : "";
+
+                                  return (
+                                     <Popover
+                                       open={openDateKey === cellKey}
+                                       onOpenChange={(open) => setOpenDateKey(open ? cellKey : null)}
+                                     >
+                                      <PopoverTrigger asChild>
+                                        <Input
+                                          key={`${idx}-${attrName}-${rowEdited[attrName] ?? ""}`}
+                                          defaultValue={displayValue}
+                                          disabled={isEditDisabled}
+                                          placeholder="TT.MM.JJJJ"
+                                          onFocus={() => {
+                                            if (isEditDisabled) return;
+                                            setOpenDateKey(cellKey);
+                                          }}
+                                          onBlur={(e) => {
+                                            if (isEditDisabled) return;
+                                            commitDateInput(cellKey, idx, attrName, e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (isEditDisabled) return;
+                                            if (e.key === "Enter") {
+                                              commitDateInput(cellKey, idx, attrName, (e.target as HTMLInputElement).value);
+                                              setOpenDateKey(null);
+                                            }
+                                          }}
+                                          className={cn(
+                                            "h-6 w-full min-w-0 text-xs px-1 rounded-none",
+                                            isEditDisabled && "opacity-60",
+                                            isInvalid && "border-red-500 ring-2 ring-red-500",
+                                            hasError &&
+                                              !hasSuccess &&
+                                              "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                            hasSuccess &&
+                                              !hasError &&
+                                              "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                          )}
+                                        />
+                                      </PopoverTrigger>
+ 
+                                       <PopoverContent className="p-0" align="start">
+                                         <Calendar
+                                           mode="single"
+                                           selected={
+                                             rowEdited[attrName]
+                                               ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
+                                               : undefined
+                                           }
+                                           onSelect={(date) => {
+                                             if (isEditDisabled) return;
+                                             const iso = date ? format(date, "yyyy-MM-dd") : "";
+                                             setEdited((prev) => {
+                                               const row = { ...(prev[idx] ?? {}) };
+                                               row[attrName] = iso;
+                                               return { ...prev, [idx]: row };
+                                             });
+                                             setDateInputErrors((prev) => {
+                                               const next = new Set(prev);
+                                               next.delete(cellKey);
+                                               return next;
+                                             });
+                                             setOpenDateKey(null);
+                                           }}
+                                         />
+                                         {isInvalid ? (
+                                           <div className="px-3 py-2 text-xs text-destructive border-t">
+                                             Ungültiges Datum. Bitte im Format TT.MM.JJJJ eingeben.
+                                           </div>
+                                         ) : null}
+                                       </PopoverContent>
+                                     </Popover>
+                                   );
+                                 })()
                               ) : (
                                 <Input
                                   value={rowEdited[attrName] ?? ""}
