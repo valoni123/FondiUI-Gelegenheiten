@@ -997,6 +997,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       authToken={authToken}
                       cloudEnvironment={cloudEnvironment}
                       mainPid={fullPreviewData?.pid}
+                      trigger={({ setOpen }) => (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={!fullPreviewData?.pid}
+                          onClick={() => setOpen(true)}
+                          title={fullPreviewData?.pid ? "Verlinkte Dokumente anzeigen" : "Kein Hauptdokument ausgewählt"}
+                        >
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          Verlinkte Dokumente
+                        </Button>
+                      )}
                     />
                     <Button
                       variant="outline"
@@ -1029,7 +1041,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-blue-600 text-white hover:bg-blue-700"
                       onClick={() => setIsLinkDialogOpen(true)}
                       title="Dokument(e) verlinken"
                     >
@@ -1038,18 +1049,17 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-orange-500 text-white hover:bg-orange-600"
                       onClick={() => setIsReplaceDialogOpen(true)}
                       title="Dokument ersetzen"
                     >
                       <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
                     </Button>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="sm"
                       onClick={() => setIsConfirmDeleteOpen(true)}
                       title="Dokument löschen"
-                      className="text-white"
+                      className="border-destructive/30 text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="mr-2 h-4 w-4" /> Dokument löschen
                     </Button>
@@ -1057,16 +1067,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBackToOverview}
-                  title="Zur Übersicht"
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Zur Übersicht
-                </Button>
-
                 {typeof fullPreviewIndex === "number" && docPreviews.length > 0 && (
                   <>
                     <span className="text-xs text-muted-foreground">
