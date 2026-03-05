@@ -27,11 +27,12 @@ import {
   SelectItem,
   SelectValue,
 } from "@/components/ui/select";
-import { Popover, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse, isValid } from "date-fns";
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
+import { toast } from "@/components/ui/use-toast";
 
 type Props = {
   docs: IdmDocPreview[];
@@ -68,6 +69,56 @@ export type DocAttributesGridHandle = {
   saveAllChanges: () => Promise<{ ok: boolean }>;
   hasUnsavedChanges: () => boolean;
   discardAllChanges: () => void;
+};
+
+const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
+  const [open, setOpen] = React.useState(false);
+  const v = (value ?? "").toString();
+
+  if (!v) {
+    return <div className="truncate text-xs text-foreground">{v}</div>;
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="w-full text-left"
+          title="Klicken, um den ganzen Text zu sehen"
+        >
+          <div className="truncate text-xs text-foreground">{v}</div>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[520px] p-3" align="start">
+        <div className="mb-2 text-xs font-medium text-muted-foreground">Volltext</div>
+        <Textarea
+          value={v}
+          readOnly
+          className="min-h-[140px] resize-none text-sm"
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(v);
+                toast({ title: "Kopiert" });
+              } catch {
+                // ignore
+              }
+            }}
+          >
+            Kopieren
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => setOpen(false)}>
+            Schließen
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
@@ -1067,37 +1118,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         {/* Data columns */}
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
-                            // Render a badge for linked docs inside the Dokumentname cell
-                            if (col.id === "dokumentname") {
-                              const value = col.getValue(doc);
-                              return (
-                                <div
-                                  key={`${idx}-${col.id}`}
-                                  className={cn(gridCellClass, "flex items-center gap-2", isHighlighted && rowHighlightClass)}
-                                >
-                                  <div className="truncate text-xs text-foreground">{value || ""}</div>
-                                  {doc.linkedViaProject ? (
-                                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                                      verlinkt
-                                    </Badge>
-                                  ) : null}
-                                </div>
-                              );
-                            }
-
-                            if (col.id === "dokumenttyp") {
-                              const value = col.getValue(doc);
-                              return (
-                                <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
-                                  <div className="truncate text-xs text-foreground">{value || ""}</div>
-                                </div>
-                              );
-                            }
-
                             const value = col.getValue(doc);
                             return (
                               <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
-                                <div className="truncate text-xs text-foreground">{value || ""}</div>
+                                <TruncatedTextCell value={(value || "").toString()} />
                               </div>
                             );
                           }
@@ -1139,6 +1163,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 >
                                   <SelectTrigger
                                     disabled={isEditDisabled}
+                                    title={
+                                      def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
+                                        ?.desc ?? (rowEdited[attrName] ?? "")
+                                    }
                                     className={cn(
                                       "h-6 w-full min-w-0 text-xs px-1 rounded-none",
                                       statusClass,
@@ -1188,6 +1216,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                             defaultValue={displayValue}
                                             disabled={isEditDisabled}
                                             placeholder="TT.MM.JJJJ"
+                                            title={displayValue}
                                             onFocus={() => {
                                               if (isEditDisabled) return;
                                               // Defer open so the input keeps focus (cursor stays visible)
@@ -1280,6 +1309,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 <Input
                                   value={rowEdited[attrName] ?? ""}
                                   disabled={isEditDisabled}
+                                  title={(rowEdited[attrName] ?? "").toString()}
                                   onChange={(e) =>
                                     setEdited((prev) => {
                                       const row = { ...(prev[idx] ?? {}) };
