@@ -142,9 +142,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
-    // fallback when pid is missing
-    return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.smallUrl ?? ""}`;
+    // fallback when pid is missing (avoid preview URLs because they can be re-signed every poll)
+    return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.createdTS ?? ""}|${doc.lastChangedTS ?? ""}`;
   }, []);
+
+  const sortDocsByCreatedAt = React.useCallback((docs: IdmDocPreview[]) => {
+    const toMs = (v?: string) => {
+      if (!v) return Number.NEGATIVE_INFINITY;
+      const t = new Date(v).getTime();
+      return Number.isFinite(t) ? t : Number.NEGATIVE_INFINITY;
+    };
+
+    // Newest first (descending). Stable tie-breakers for deterministic ordering.
+    return [...docs].sort((a, b) => {
+      const diff = toMs(b.createdTS) - toMs(a.createdTS);
+      if (diff !== 0) return diff;
+
+      const diffChanged = toMs(b.lastChangedTS) - toMs(a.lastChangedTS);
+      if (diffChanged !== 0) return diffChanged;
+
+      const aKey = getDocKey(a);
+      const bKey = getDocKey(b);
+      return aKey.localeCompare(bKey, "de");
+    });
+  }, [getDocKey]);
 
   const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
 
@@ -358,7 +379,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             merged.push(...r.value);
           }
         });
-        return mergeDocs(merged, linkedResults);
+        return sortDocsByCreatedAt(mergeDocs(merged, linkedResults));
       }
 
       const filter = docFilters.find((f) => f.key === filterKey);
@@ -371,7 +392,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         fetchLinkedProjectDocs().catch(() => []),
       ]);
 
-      return mergeDocs(docs, linked);
+      return sortDocsByCreatedAt(mergeDocs(docs, linked));
     },
     [
       selectedOpportunityId,
@@ -381,6 +402,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       docFilters,
       fetchLinkedProjectDocs,
       mergeDocs,
+      sortDocsByCreatedAt,
     ]
   );
 
@@ -496,7 +518,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
         const combined = await fetchDocsForFilter(activeDocFilter);
         setDocPreviews((prev) => {
           if (areDocListsEqual(prev, combined)) return prev;
-          return mergePreservePrevOrder(prev, combined);
+          // Sorting is required: keep the canonical order from the backend data.
+          return combined;
         });
       } finally {
         silentReloadInFlightRef.current = false;
@@ -504,7 +527,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }, 10000);
 
     return () => window.clearInterval(id);
-  }, [selectedOpportunityId, authToken, activeDocFilter, fetchDocsForFilter, areDocListsEqual, mergePreservePrevOrder]);
+  }, [selectedOpportunityId, authToken, activeDocFilter, fetchDocsForFilter, areDocListsEqual]);
 
   // Re-apply active filter if opportunity changes
   React.useEffect(() => {
@@ -948,7 +971,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {docPreviews.map((doc, idx) => (
                     <div
-                      key={`${doc.smallUrl}-${idx}`}
+                      key={getDocKey(doc)}
                       className={cn(
                         "group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer",
                         isDocHighlighted(doc) && "border-red-400 ring-1 ring-red-400"
