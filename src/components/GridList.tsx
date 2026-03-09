@@ -62,12 +62,26 @@ const GridList: React.FC<GridListProps> = ({
   }, [uiFilters]);
 
   // Define the specific keys to be displayed in the grid
-  const visibleKeys = useMemo(() => ["id", "Project", "description", "Status"], []);
+  const visibleKeys = useMemo(
+    () => [
+      "id",
+      "Project",
+      "description",
+      "Artikel",
+      "Customer",
+      "PartNoOriginalRequest",
+      "DrawingNoOriginalRequest",
+    ],
+    []
+  );
 
   const getColumnLabel = (key: string) => {
     if (key === "id") return "Gelegenheit";
     if (key === "Project") return "Projekt";
     if (key === "description") return "Bezeichnung";
+    if (key === "Customer") return "Kunde";
+    if (key === "PartNoOriginalRequest") return "Sachnummer";
+    if (key === "DrawingNoOriginalRequest") return "Zeichnungsnummer";
     return key.replace(/([A-Z])/g, ' $1').trim();
   };
 
@@ -155,7 +169,11 @@ const GridList: React.FC<GridListProps> = ({
                     "min-w-[60px]",
                     key === "id" && "min-w-[120px]",
                     key === "Project" && "min-w-[120px]",
-                    key === "description" && "min-w-[180px]"
+                    key === "description" && "min-w-[180px]",
+                    key === "Artikel" && "min-w-[140px]",
+                    key === "Customer" && "min-w-[160px]",
+                    key === "PartNoOriginalRequest" && "min-w-[160px]",
+                    key === "DrawingNoOriginalRequest" && "min-w-[160px]"
                   )}
                 >
                   <div className="space-y-1">
@@ -240,23 +258,13 @@ const GridList: React.FC<GridListProps> = ({
 
                   {visibleKeys.map((key) => (
                     <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
-                      {key === "Status" && opportunityStatusOptions.length > 0 ? (
-                        <Select
-                          value={String(item[key] ?? "")}
-                          onValueChange={(value) => onUpdateItem(item.id, key, value)}
-                        >
-                          <SelectTrigger className="w-full h-7 text-xs px-1 rounded-none">
-                            <SelectValue placeholder="Status wählen" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {opportunityStatusOptions.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (key === "id" || key === "Project" || key === "description") ? (
+                      {key === "id" ||
+                      key === "Project" ||
+                      key === "description" ||
+                      key === "Artikel" ||
+                      key === "Customer" ||
+                      key === "PartNoOriginalRequest" ||
+                      key === "DrawingNoOriginalRequest" ? (
                         <button
                           className="w-full text-left h-7 text-xs px-1 rounded-none truncate"
                           onClick={(e) => {
