@@ -274,6 +274,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     () => [
       { kind: "attr", id: "serienstatus", header: "Serienstatus", attrNames: ["Serienstatus"] },
       { kind: "attr", id: "versuchsstatus", header: "Versuchsstatus", attrNames: ["Versuchsstatus"] },
+      { kind: "attr", id: "s_k_version", header: "S-K-Version", attrNames: ["S_K_Version"] },
+      { kind: "attr", id: "v_k_version", header: "V-K-Version", attrNames: ["V_K_Version"] },
+      { kind: "attr", id: "lfd_nr", header: "Lfd. Nr.", attrNames: ["Lfd_Nr"] },
+      { kind: "attr", id: "geometrieart", header: "Geometrieart", attrNames: ["Geometrieart"] },
     ],
     []
   );
@@ -1167,7 +1171,13 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
                           const isStatusCol = col.id === "status";
-                          const isGeoSpecificCol = col.id === "serienstatus" || col.id === "versuchsstatus";
+                          const isGeoSpecificCol =
+                            col.id === "serienstatus" ||
+                            col.id === "versuchsstatus" ||
+                            col.id === "s_k_version" ||
+                            col.id === "v_k_version" ||
+                            col.id === "lfd_nr" ||
+                            col.id === "geometrieart";
                           // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
                           const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
 
