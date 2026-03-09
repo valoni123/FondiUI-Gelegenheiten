@@ -1369,6 +1369,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         cloudEnvironment={cloudEnvironment}
         mainPid={fullPreviewData?.pid}
         mainEntityName={fullPreviewData?.entityName}
+        projectName={(selectedOpportunityProject ?? "").toString()}
         onConfirm={async (selected) => {
           toast({
             title: "Verlinkung gestartet",

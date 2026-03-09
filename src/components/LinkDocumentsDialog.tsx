@@ -17,7 +17,7 @@ import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import AttributeValueField from "@/components/AttributeValueField";
-import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview } from "@/api/idm";
+import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItemsByAttributesJson, type IdmDocPreview, searchIdmItemsByXQueryJson } from "@/api/idm";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { linkIdmItemDocumentsBidirectional } from "@/api/idm";
@@ -30,6 +30,7 @@ type LinkDocumentsDialogProps = {
   onConfirm?: (selected: IdmEntityInfo) => void;
   mainPid?: string; // PID des Hauptdokuments
   mainEntityName?: string; // EntityName des Hauptdokuments
+  projectName?: string; // Projektname für zusätzliche Projekt-Verlinkung-Suche
 };
 
 const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
@@ -40,6 +41,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   onConfirm,
   mainPid,
   mainEntityName,
+  projectName,
 }) => {
   const [loading, setLoading] = React.useState(false);
   const [entities, setEntities] = React.useState<IdmEntityInfo[]>([]);
@@ -51,6 +53,69 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [results, setResults] = React.useState<IdmDocPreview[]>([]);
   const [selectedPids, setSelectedPids] = React.useState<Set<string>>(new Set());
   const [linking, setLinking] = React.useState(false);
+
+  const getDocKey = React.useCallback((doc: IdmDocPreview) => {
+    if (doc.pid) return `pid:${doc.pid}`;
+    // fallback when pid is missing (avoid preview URLs because they can be re-signed)
+    return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.createdTS ?? ""}|${doc.lastChangedTS ?? ""}`;
+  }, []);
+
+  const sortDocsByCreatedAt = React.useCallback(
+    (docs: IdmDocPreview[]) => {
+      const toMs = (v?: string) => {
+        if (!v) return Number.NEGATIVE_INFINITY;
+        const t = new Date(v).getTime();
+        return Number.isFinite(t) ? t : Number.NEGATIVE_INFINITY;
+      };
+
+      return [...docs].sort((a, b) => {
+        const diff = toMs(b.createdTS) - toMs(a.createdTS);
+        if (diff !== 0) return diff;
+        const diffChanged = toMs(b.lastChangedTS) - toMs(a.lastChangedTS);
+        if (diffChanged !== 0) return diffChanged;
+        return getDocKey(a).localeCompare(getDocKey(b), "de");
+      });
+    },
+    [getDocKey]
+  );
+
+  const mergeDocs = React.useCallback(
+    (primary: IdmDocPreview[], projectLinked: IdmDocPreview[]) => {
+      const byKey = new Map<string, IdmDocPreview>();
+
+      for (const d of primary) {
+        byKey.set(getDocKey(d), d);
+      }
+
+      for (const d of projectLinked) {
+        const key = getDocKey(d);
+        const existing = byKey.get(key);
+        if (existing) {
+          byKey.set(key, {
+            ...existing,
+            linkedViaProject: existing.linkedViaProject || true,
+            linkedProjectValue: existing.linkedProjectValue || d.linkedProjectValue,
+          });
+        } else {
+          byKey.set(key, d);
+        }
+      }
+
+      return Array.from(byKey.values());
+    },
+    [getDocKey]
+  );
+
+  const linkedProjectXQuery = React.useMemo(() => {
+    const raw = (projectName ?? "").toString().trim();
+    if (!raw) return null;
+    const escaped = raw.replace(/"/g, "\\\"");
+    return (
+      `/Anfrage_Kunde[Projekt_Verlinkung/@Value = "${escaped}"] ` +
+      `UNION /_Anfrage__Lieferant_[Projekt_Verlinkung/@Value = "${escaped}"] ` +
+      `SORTBY(@LASTCHANGEDTS DESCENDING)`
+    );
+  }, [projectName]);
 
   React.useEffect(() => {
     if (!open) {
@@ -343,7 +408,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                     const isSelected = r.pid ? selectedPids.has(r.pid) : false;
                     return (
                       <div
-                        key={`${r.pid ?? r.filename ?? idx}`}
+                        key={getDocKey(r)}
                         className={cn(
                           "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
                           isSelected && "ring-2 ring-blue-600"
@@ -359,11 +424,25 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         <div className="absolute top-2 left-2 z-10">
                           <Checkbox
                             checked={isSelected}
+                            disabled={!r.pid}
                             onCheckedChange={() => togglePid(r.pid)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
                           />
                         </div>
+
+                        {/* Projekt-Verlinkung Badge */}
+                        {r.linkedViaProject ? (
+                          <div className="absolute top-2 right-2 z-10">
+                            <Badge
+                              variant="secondary"
+                              className="bg-background/90 text-foreground border text-[10px] px-2 py-0.5"
+                              title={r.linkedProjectValue ? `Projekt-Verlinkung: ${r.linkedProjectValue}` : "Projekt-verlinkt"}
+                            >
+                              verlinkt
+                            </Badge>
+                          </div>
+                        ) : null}
 
                         <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
                           <img
@@ -440,19 +519,34 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         .map((a) => ({ name: a.name, value: a.value! }))
                     : [];
 
-                const found = await searchIdmItemsByAttributesJson(
-                  authToken,
-                  cloudEnvironment,
-                  selected.name,
-                  filters,
-                  0,
-                  50,
-                  "de-DE"
-                );
-                setResults(found);
+                const [found, projectLinked] = await Promise.all([
+                  searchIdmItemsByAttributesJson(
+                    authToken,
+                    cloudEnvironment,
+                    selected.name,
+                    filters,
+                    0,
+                    50,
+                    "de-DE"
+                  ),
+                  linkedProjectXQuery
+                    ? searchIdmItemsByXQueryJson(authToken, cloudEnvironment, linkedProjectXQuery, 0, 200, "de-DE")
+                        .then((docs) =>
+                          docs.map((d) => ({
+                            ...d,
+                            linkedViaProject: true,
+                            linkedProjectValue: (projectName ?? "").toString().trim(),
+                          }))
+                        )
+                        .catch(() => [])
+                    : Promise.resolve([] as IdmDocPreview[]),
+                ]);
+
+                const merged = sortDocsByCreatedAt(mergeDocs(found, projectLinked));
+                setResults(merged);
                 toast({
                   title: "Suche abgeschlossen",
-                  description: `${found.length} Dokument(e) gefunden.`,
+                  description: `${merged.length} Dokument(e) gefunden.`,
                   variant: "success",
                 });
                 setStep(3);

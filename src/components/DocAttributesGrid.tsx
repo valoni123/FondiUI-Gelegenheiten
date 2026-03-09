@@ -1125,6 +1125,29 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         {displayColumns.map((col) => {
                           if (col.kind === "meta") {
                             const value = col.getValue(doc);
+
+                            if (col.id === "dokumentname") {
+                              return (
+                                <div
+                                  key={`${idx}-${col.id}`}
+                                  className={cn(gridCellClass, "flex items-center gap-2 min-w-0", isHighlighted && rowHighlightClass)}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <TruncatedTextCell value={(value || "").toString()} />
+                                  </div>
+                                  {doc.linkedViaProject ? (
+                                    <Badge
+                                      variant="secondary"
+                                      className="shrink-0 bg-background/90 text-foreground border text-[10px] px-2 py-0.5"
+                                      title={doc.linkedProjectValue ? `Projekt-Verlinkung: ${doc.linkedProjectValue}` : "Projekt-verlinkt"}
+                                    >
+                                      verlinkt
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              );
+                            }
+
                             return (
                               <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
                                 <TruncatedTextCell value={(value || "").toString()} />
