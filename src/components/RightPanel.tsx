@@ -760,7 +760,35 @@ const RightPanel: React.FC<RightPanelProps> = ({
       <div className="mb-3 flex flex-col">
         <div className="flex items-center">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold">Gelegenheit - Anhänge</h3>
+            <div className="text-lg font-semibold">
+              <span className="inline-flex flex-wrap items-center gap-2">
+                <span>Auswahl: {selectedOpportunityId}</span>
+                {(() => {
+                  const projectText = (selectedOpportunityProject ?? "").toString();
+                  if (!projectText.trim()) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span className="max-w-[360px] truncate" title={projectText}>
+                        Projekt: {projectText}
+                      </span>
+                    </>
+                  );
+                })()}
+                {(() => {
+                  const articleText = (selectedOpportunityArticle ?? "").toString();
+                  if (!articleText.trim()) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span className="max-w-[420px] truncate" title={articleText}>
+                        Artikel: {articleText}
+                      </span>
+                    </>
+                  );
+                })()}
+              </span>
+            </div>
           </div>
           <div className="flex items-center justify-end gap-2">
             <Button variant="outline" onClick={handleBackToOverview} size="sm">
@@ -816,36 +844,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
               }}
             />
           </div>
-        </div>
-
-        <div className="mt-1 text-sm font-medium text-muted-foreground">
-          <span className="inline-flex items-center gap-2">
-            <span>Auswahl: {selectedOpportunityId}</span>
-            {(() => {
-              const projectText = (selectedOpportunityProject ?? "").toString();
-              if (!projectText.trim()) return null;
-              return (
-                <>
-                  <span className="text-muted-foreground/60">·</span>
-                  <span className="max-w-[320px] truncate" title={projectText}>
-                    Projekt: {projectText}
-                  </span>
-                </>
-              );
-            })()}
-            {(() => {
-              const articleText = (selectedOpportunityArticle ?? "").toString();
-              if (!articleText.trim()) return null;
-              return (
-                <>
-                  <span className="text-muted-foreground/60">·</span>
-                  <span className="max-w-[320px] truncate" title={articleText}>
-                    Artikel: {articleText}
-                  </span>
-                </>
-              );
-            })()}
-          </span>
         </div>
       </div>
 
