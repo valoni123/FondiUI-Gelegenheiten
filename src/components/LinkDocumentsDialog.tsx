@@ -439,10 +439,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                               className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
                               title={r.linkedProjectValue ? `Projekt-Verlinkung: ${r.linkedProjectValue}` : "Projekt-verlinkt"}
                             >
-                              <span className="inline-flex items-center gap-1">
-                                <LinkIcon className="h-3 w-3" />
-                                verlinkt
-                              </span>
+                              verlinkt
                             </Badge>
                           </div>
                         ) : null}
