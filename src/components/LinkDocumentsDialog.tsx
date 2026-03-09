@@ -165,6 +165,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   const togglePid = (pid?: string) => {
     if (!pid) return;
+    // Never allow selecting the main document for linking
+    if (mainPid && pid === mainPid) return;
     setSelectedPids((prev) => {
       const next = new Set(prev);
       if (next.has(pid)) next.delete(pid);
@@ -175,9 +177,18 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   const handleLink = async () => {
     if (!mainPid || selectedPids.size === 0) return;
+    const newlySelected = Array.from(selectedPids).filter((p) => p !== mainPid);
+    if (newlySelected.length === 0) {
+      toast({
+        title: "Verlinkung nicht möglich",
+        description: "Bitte wählen Sie ein anderes Dokument (nicht das aktuelle Hauptdokument).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLinking(true);
     try {
-      const newlySelected = Array.from(selectedPids);
       const entity = mainEntityName || selected?.name || "";
       await linkIdmItemDocumentsBidirectional(authToken, cloudEnvironment, mainPid, entity, newlySelected, "de-DE");
       toast({
@@ -339,57 +350,59 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {results.map((r, idx) => {
-                    const isSelected = r.pid ? selectedPids.has(r.pid) : false;
-                    return (
-                      <div
-                        key={`${r.pid ?? r.filename ?? idx}`}
-                        className={cn(
-                          "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
-                          isSelected && "ring-2 ring-blue-600"
-                        )}
-                        onClick={() => {
-                          // Kachel-Klick öffnet weiterhin die Originaldatei
-                          if (r.resourceUrl) {
-                            window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
-                          }
-                        }}
-                      >
-                        {/* Auswahl-Checkbox oben links */}
-                        <div className="absolute top-2 left-2 z-10">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => togglePid(r.pid)}
-                            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                            aria-label="Dokument auswählen"
-                          />
-                        </div>
+                  {results
+                    .filter((r) => !(mainPid && r.pid && r.pid === mainPid))
+                    .map((r, idx) => {
+                      const isSelected = r.pid ? selectedPids.has(r.pid) : false;
+                      return (
+                        <div
+                          key={`${r.pid ?? r.filename ?? idx}`}
+                          className={cn(
+                            "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
+                            isSelected && "ring-2 ring-blue-600"
+                          )}
+                          onClick={() => {
+                            // Kachel-Klick öffnet weiterhin die Originaldatei
+                            if (r.resourceUrl) {
+                              window.open(r.resourceUrl, "_blank", "noopener,noreferrer");
+                            }
+                          }}
+                        >
+                          {/* Auswahl-Checkbox oben links */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => togglePid(r.pid)}
+                              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                              aria-label="Dokument auswählen"
+                            />
+                          </div>
 
-                        <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
-                          <img
-                            src={r.fullUrl ?? r.smallUrl}
-                            alt={r.filename ?? "Vorschau"}
-                            className="w-full h-full object-contain"
-                          />
+                          <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                            <img
+                              src={r.fullUrl ?? r.smallUrl}
+                              alt={r.filename ?? "Vorschau"}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          {r.filename ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="mt-2 text-xs text-muted-foreground line-clamp-2"
+                                  title={r.filename}
+                                >
+                                  {r.filename}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start">
+                                <div className="max-w-[300px] break-words">{r.filename}</div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
                         </div>
-                        {r.filename ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className="mt-2 text-xs text-muted-foreground line-clamp-2"
-                                title={r.filename}
-                              >
-                                {r.filename}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="top" align="start">
-                              <div className="max-w-[300px] break-words">{r.filename}</div>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : null}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </TooltipProvider>
             </div>
