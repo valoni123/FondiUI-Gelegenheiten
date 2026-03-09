@@ -534,7 +534,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
     if (!activeDocFilter) return;
     applyDocFilter(activeDocFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOpportunityId]);
+  }, [selectedOpportunityId, authToken]);
 
   const openFullPreview = React.useCallback(
     (doc: IdmDocPreview) => {
@@ -981,10 +981,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
                     >
                       {doc.linkedViaProject ? (
                         <Badge
-                          variant="secondary"
-                          className="absolute left-2 top-2 z-10 bg-background/90 text-foreground border"
+                          variant="default"
+                          className="absolute left-2 top-2 z-10 bg-violet-600 text-white border border-violet-700 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
                         >
-                          verlinkt
+                          <span className="inline-flex items-center gap-1">
+                            <LinkIcon className="h-3 w-3" />
+                            verlinkt
+                          </span>
                         </Badge>
                       ) : null}
                       {doc.smallUrl ? (

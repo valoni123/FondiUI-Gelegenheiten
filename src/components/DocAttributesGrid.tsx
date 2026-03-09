@@ -1137,11 +1137,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   </div>
                                   {doc.linkedViaProject ? (
                                     <Badge
-                                      variant="secondary"
-                                      className="shrink-0 bg-background/90 text-foreground border text-[10px] px-2 py-0.5"
+                                      variant="default"
+                                      className="shrink-0 bg-violet-600 text-white border border-violet-700 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
                                       title={doc.linkedProjectValue ? `Projekt-Verlinkung: ${doc.linkedProjectValue}` : "Projekt-verlinkt"}
                                     >
-                                      verlinkt
+                                      <span className="inline-flex items-center gap-1">
+                                        <LinkIcon className="h-3 w-3" />
+                                        verlinkt
+                                      </span>
                                     </Badge>
                                   ) : null}
                                 </div>
