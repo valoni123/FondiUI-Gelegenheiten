@@ -200,19 +200,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   }, []);
 
   // Fixed column order (always rendered, even if values are missing)
-  const baseDisplayColumns = React.useMemo<DisplayColumn[]>(
-    () => [
+  const baseDisplayColumns = React.useMemo<DisplayColumn[]>(() => {
+    return [
       { kind: "attr", id: "projekt", header: "Projekt", attrNames: ["Projekt"] },
-      {
-        kind: "meta",
-        id: "projektLinks",
-        header: "Projekt-Verlinkung",
-        getValue: (doc) => {
-          const raw = (doc.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "";
-          // Im Fetch-Layer trennt ein Semikolon mehrere Werte – für Anzeige schöner mit Kommas
-          return raw.replace(/;/g, ", ");
-        },
-      },
       {
         kind: "meta",
         id: "dokumenttyp",
@@ -251,7 +241,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "createdAt",
         header: "erstellt am",
-        // Format ISO to 'dd.MM.yyyy, HH:mm:ss'
         getValue: (doc) => {
           const v = doc.createdTS;
           if (!v) return "";
@@ -269,7 +258,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "changedAt",
         header: "geändert am",
-        // Format ISO to 'dd.MM.yyyy, HH:mm:ss'
         getValue: (doc) => {
           const v = doc.lastChangedTS;
           if (!v) return "";
@@ -278,15 +266,32 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         },
       },
       { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
+    ];
+  }, []);
+
+  // Geometriedaten-spezifische Zusatzspalten (werden nur eingeblendet, wenn mind. ein Geometriedaten-Dokument vorhanden ist)
+  const extraGeometriedatenColumns = React.useMemo<DisplayColumn[]>(
+    () => [
+      { kind: "attr", id: "serienstatus", header: "Serienstatus", attrNames: ["Serienstatus"] },
+      { kind: "attr", id: "versuchsstatus", header: "Versuchsstatus", attrNames: ["Versuchsstatus"] },
     ],
     []
   );
 
-  // Fixed column order (always rendered, even if values are missing)
-  const displayColumns = React.useMemo<DisplayColumn[]>(
-    () => (hideProjectColumn ? baseDisplayColumns.filter((c) => c.id !== "projekt") : baseDisplayColumns),
-    [baseDisplayColumns, hideProjectColumn]
+  const hasGeometriedaten = React.useMemo(
+    () =>
+      (docs || []).some((d) => {
+        const en = String(d?.entityName ?? "").toLowerCase();
+        return en.includes("geometriedaten");
+      }),
+    [docs]
   );
+
+  // Fixed column order (always rendered, even if values are missing)
+  const displayColumns = React.useMemo<DisplayColumn[]>(() => {
+    const base = hideProjectColumn ? baseDisplayColumns.filter((c) => c.id !== "projekt") : baseDisplayColumns;
+    return hasGeometriedaten ? [...base, ...extraGeometriedatenColumns] : base;
+  }, [baseDisplayColumns, hideProjectColumn, hasGeometriedaten, extraGeometriedatenColumns]);
 
   // Keep a set of possible attribute names for diff/save logic
   const editableColumns = React.useMemo(() => displayColumns.filter((c) => c.kind === "attr"), [displayColumns]);
@@ -1162,7 +1167,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
                           const isStatusCol = col.id === "status";
-                          const isEditDisabled = isLockedByStatus && !isStatusCol;
+                          const isGeoSpecificCol = col.id === "serienstatus" || col.id === "versuchsstatus";
+                          // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
+                          const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
 
                           const statusLabel = isStatusCol
                             ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
