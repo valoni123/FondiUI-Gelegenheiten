@@ -226,13 +226,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
       .sort()
       .join("|");
 
+    // IMPORTANT: Do NOT include preview URLs in the signature.
+    // IDM often returns freshly signed URLs on each request which would cause unnecessary
+    // state updates and visible thumbnail reload flicker, even when the document did not change.
     return [
       String(doc.pid ?? ""),
       String(doc.entityName ?? ""),
       String(doc.filename ?? ""),
       String(doc.lastChangedTS ?? ""),
       String(doc.createdTS ?? ""),
-      String(doc.smallUrl ?? ""),
       String(doc.linkedViaProject ? "1" : "0"),
       String(doc.linkedProjectValue ?? ""),
       attrsSig,
