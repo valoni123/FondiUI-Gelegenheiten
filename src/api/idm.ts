@@ -1235,10 +1235,6 @@ export const linkIdmItemDocumentsBidirectional = async (
   // Normalize and remove self-links
   const cleanTargets = Array.from(new Set((linkedPids || []).map(String))).filter((p) => p && p !== mainPid);
 
-  // If nothing remains after filtering (e.g. user selected only the main document), do nothing.
-  // This prevents accidentally clearing all links by sending an empty collection.
-  if (cleanTargets.length === 0) return;
-
   // Update main item (A) to include all target PIDs (B...)
   const existingMain = await getExistingLinkedPids(token, environment, mainPid, language);
   const combinedMain = Array.from(new Set([...(existingMain || []), ...cleanTargets]));
