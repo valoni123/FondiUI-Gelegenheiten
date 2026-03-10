@@ -341,8 +341,16 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       return ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
     }
 
-    // Default: base columns + geometry extras when applicable
-    return hasGeometriedaten ? [...base, ...extraGeometriedatenColumns] : base;
+    if (!hasGeometriedaten) return base;
+
+    // In the standard view, keep the "created/changed" + "Ort" columns at the very end.
+    const tailIds = ["createdBy", "createdAt", "changedBy", "changedAt", "ort"];
+    const tail = tailIds
+      .map((id) => byId(id))
+      .filter(Boolean) as DisplayColumn[];
+
+    const main = base.filter((c) => !tailIds.includes(c.id));
+    return [...main, ...extraGeometriedatenColumns, ...tail];
   }, [baseDisplayColumns, hideProjectColumn, hasGeometriedaten, extraGeometriedatenColumns, activeDocFilter]);
 
   // Keep a set of possible attribute names for diff/save logic
