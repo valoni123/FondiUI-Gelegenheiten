@@ -946,8 +946,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
                 cloudEnvironment={cloudEnvironment}
                 entityOptions={entityOptions}
                 hideProjectColumn={true}
-                // ADD: loader flag
                 isLoading={isPreviewsLoading}
+                activeDocFilter={activeDocFilter}
               />
             </div>
           </div>

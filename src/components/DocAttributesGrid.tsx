@@ -63,6 +63,11 @@ type Props = {
   cloudEnvironment: CloudEnvironment;
   entityOptions?: { name: string; desc: string }[];
   isLoading?: boolean;
+  /**
+   * The currently active chip filter key. When set, columns are reordered
+   * according to the filter group (FME vs FSI).
+   */
+  activeDocFilter?: string | null;
 };
 
 export type DocAttributesGridHandle = {
@@ -137,6 +142,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   cloudEnvironment,
   entityOptions,
   isLoading,
+  activeDocFilter,
 }, ref) => {
   const highlightedSet = React.useMemo(() => new Set(highlightedDocKeys ?? []), [highlightedDocKeys]);
 
@@ -294,8 +300,50 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   // Fixed column order (always rendered, even if values are missing)
   const displayColumns = React.useMemo<DisplayColumn[]>(() => {
     const base = hideProjectColumn ? baseDisplayColumns.filter((c) => c.id !== "projekt") : baseDisplayColumns;
+
+    // Helper to find a column by id from either base or extra lists
+    const allCols = [...base, ...extraGeometriedatenColumns];
+    const byId = (id: string) => allCols.find((c) => c.id === id);
+
+    const isFmeFilter =
+      activeDocFilter === "FME_GEOM_KUNDE" ||
+      activeDocFilter === "FME_SERIE_GUELTIG" ||
+      activeDocFilter === "FME_VERSUCH_GUELTIG";
+
+    const isFsiFilter =
+      activeDocFilter === "FSI_GEOM_KUNDE" ||
+      activeDocFilter === "FSI_SERIE_GUELTIG" ||
+      activeDocFilter === "FSI_VERSUCH_GUELTIG";
+
+    if (isFmeFilter) {
+      // FME order: Lfd. Nr. - Dokumententyp - Dokumentenpaket - Dokumentenname - Titel -
+      //            Belegdatum - Geometrieart - Status - Serienstatus - S-K-Version -
+      //            Versuchsstatus - V-K-Version - Belegnummer - erstellt von - erstellt am -
+      //            geändert von - geändert am - Ort
+      const ordered = [
+        "lfd_nr", "dokumenttyp", "dokumentenpaket", "dokumentname", "titel",
+        "belegdatum", "geometrieart", "status", "serienstatus", "s_k_version",
+        "versuchsstatus", "v_k_version", "belegnr",
+        "createdBy", "createdAt", "changedBy", "changedAt", "ort",
+      ];
+      return ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+    }
+
+    if (isFsiFilter) {
+      // FSI order: Lfd. Nr. - Geometrieart - Status - Serienstatus - S-K-Version -
+      //            Dokumentenname - Titel - Belegdatum - Belegnummer -
+      //            Erstellt von - Erstellt am - Geändert von - Geändert am - Ort
+      const ordered = [
+        "lfd_nr", "geometrieart", "status", "serienstatus", "s_k_version",
+        "dokumentname", "titel", "belegdatum", "belegnr",
+        "createdBy", "createdAt", "changedBy", "changedAt", "ort",
+      ];
+      return ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+    }
+
+    // Default: base columns + geometry extras when applicable
     return hasGeometriedaten ? [...base, ...extraGeometriedatenColumns] : base;
-  }, [baseDisplayColumns, hideProjectColumn, hasGeometriedaten, extraGeometriedatenColumns]);
+  }, [baseDisplayColumns, hideProjectColumn, hasGeometriedaten, extraGeometriedatenColumns, activeDocFilter]);
 
   // Keep a set of possible attribute names for diff/save logic
   const editableColumns = React.useMemo(() => displayColumns.filter((c) => c.kind === "attr"), [displayColumns]);
