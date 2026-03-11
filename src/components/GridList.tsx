@@ -133,10 +133,10 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
-  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
-  const dataCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
-  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
+    "text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass = "border-r border-b border-border bg-background h-8 align-middle";
+  const dataCellClass = "border-r border-b border-border bg-background h-8 align-middle";
+  const iconCellClass = "border-r border-b border-border bg-background h-8 align-middle";
 
   return (
     <React.Fragment>
