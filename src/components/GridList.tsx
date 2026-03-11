@@ -9,16 +9,9 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp, Search, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
 import { BusinessPartner } from "@/api/businessPartners";
 import EditableCellInput from "./EditableCellInput";
@@ -37,18 +30,18 @@ interface GridListProps {
   isLoading?: boolean;
 }
 
-const GridList: React.FC<GridListProps> = ({
-  items,
-  onUpdateItem,
-  onViewDetails,
-  opportunityStatusOptions,
-  authToken,
-  companyNumber,
-  cloudEnvironment,
-  selectedOpportunityId,
-  onSelectOpportunity,
-  isLoading,
-}) => {
+const GridList: React.FC<GridListProps> = (props) => {
+  const {
+    items,
+    onUpdateItem,
+    authToken,
+    companyNumber,
+    cloudEnvironment,
+    selectedOpportunityId,
+    onSelectOpportunity,
+    isLoading,
+  } = props;
+
   // Keep typing snappy: update input state immediately, apply it to filtering with a small debounce.
   const [uiFilters, setUiFilters] = useState<Record<string, string>>({});
   const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
@@ -82,7 +75,7 @@ const GridList: React.FC<GridListProps> = ({
     if (key === "Customer") return "Kunde";
     if (key === "PartNoOriginalRequest") return "Sachnummer";
     if (key === "DrawingNoOriginalRequest") return "Zeichnungsnummer";
-    return key.replace(/([A-Z])/g, ' $1').trim();
+    return key.replace(/([A-Z])/g, " $1").trim();
   };
 
   const handleFilterChange = (key: string, value: string) => {
@@ -146,43 +139,45 @@ const GridList: React.FC<GridListProps> = ({
     setCurrentEditingItemId(null);
   };
 
-  // Excel-like classes
+  // Excel-like classes (match Detailansicht)
   const headerCellClass =
-    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 min-h-8 align-middle";
-  const filterCellInputClass = "h-8 text-xs px-1 rounded-none";
+    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 min-h-8 align-middle h-8";
+  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle h-8";
+  const filterCellInputClass = "h-6 w-full text-xs px-1 rounded-none";
   const dataCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
   const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
 
   return (
     <React.Fragment>
       <div className="space-y-4">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-b border-border">
-              <TableHead key="_open" className={cn("w-[40px] text-center", headerCellClass)}>
-                <span className="sr-only">Open</span>
-              </TableHead>
-              {visibleKeys.map((key) => (
-                <TableHead
-                  key={key}
-                  className={cn(
-                    headerCellClass,
-                    "min-w-[60px]",
-                    key === "id" && "min-w-[120px]",
-                    key === "Project" && "min-w-[120px]",
-                    key === "description" && "min-w-[180px]",
-                    key === "Artikel" && "min-w-[140px]",
-                    key === "Customer" && "min-w-[160px]",
-                    key === "PartNoOriginalRequest" && "min-w-[160px]",
-                    key === "DrawingNoOriginalRequest" && "min-w-[160px]"
-                  )}
-                >
-                  <div className="space-y-1">
+        <div className="w-full overflow-x-auto">
+          <Table className="w-max min-w-full border-l border-t border-border">
+            <TableHeader>
+              {/* Header row */}
+              <TableRow className="border-b border-border hover:bg-transparent">
+                <TableHead key="_open" className={cn("w-[40px] text-center", headerCellClass)}>
+                  <span className="sr-only">Open</span>
+                </TableHead>
+                {visibleKeys.map((key) => (
+                  <TableHead
+                    key={key}
+                    className={cn(
+                      headerCellClass,
+                      "min-w-[60px]",
+                      key === "id" && "min-w-[120px]",
+                      key === "Project" && "min-w-[120px]",
+                      key === "description" && "min-w-[180px]",
+                      key === "Artikel" && "min-w-[140px]",
+                      key === "Customer" && "min-w-[160px]",
+                      key === "PartNoOriginalRequest" && "min-w-[160px]",
+                      key === "DrawingNoOriginalRequest" && "min-w-[160px]"
+                    )}
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => handleSort(key)}
-                      className="flex items-center justify-start px-1 font-bold h-6"
+                      className="flex items-center justify-start px-1 font-bold h-6 hover:bg-transparent"
                     >
                       {getColumnLabel(key)}
                       {sortConfig?.key === key && (
@@ -194,132 +189,148 @@ const GridList: React.FC<GridListProps> = ({
                         />
                       )}
                     </Button>
+                  </TableHead>
+                ))}
+              </TableRow>
+
+              {/* Filter row */}
+              <TableRow className="border-b border-border hover:bg-transparent">
+                <TableHead key="_open_filter" className={cn("w-[40px]", filterCellClass)} />
+                {visibleKeys.map((key) => (
+                  <TableHead key={`${key}-filter`} className={filterCellClass}>
                     <Input
                       value={uiFilters[key] || ""}
-                      onChange={(e) => handleFilterChange(key, e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                        handleFilterChange(key, e.target.value)
+                      }
                       className={filterCellInputClass}
                     />
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
 
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
-                  <div className="flex items-center justify-center text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Gelegenheiten werden geladen…
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : filteredAndSortedItems.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
-                  <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredAndSortedItems.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className={cn(
-                    "cursor-pointer border-b border-border",
-                    selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
-                  )}
-                  onClick={() => {
-                    if (selectedOpportunityId === item.id) {
-                      onSelectOpportunity(null);
-                    } else {
-                      onSelectOpportunity(item.id);
-                    }
-                  }}
-                >
-                  <TableCell key={`${item.id}-open`} className={cn("text-center", iconCellClass)}>
-                    <Button
-                      variant="default"
-                      size="icon"
-                      className="h-6 w-6"
-                      onClick={(e) => {
-                        e.stopPropagation();
+            <TableBody>
+              {isLoading ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                    <div className="flex items-center justify-center text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Gelegenheiten werden geladen…
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : filteredAndSortedItems.length === 0 ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                    <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredAndSortedItems.map((item) => {
+                  const isSelected = selectedOpportunityId === item.id;
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className={cn(
+                        "cursor-pointer border-b border-border",
+                        isSelected
+                          ? "bg-blue-100 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900"
+                          : "hover:bg-transparent"
+                      )}
+                      onClick={() => {
                         if (selectedOpportunityId === item.id) {
                           onSelectOpportunity(null);
                         } else {
                           onSelectOpportunity(item.id);
                         }
                       }}
-                      aria-label={`Open opportunity ${item.id}`}
                     >
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-
-                  {visibleKeys.map((key) => (
-                    <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
-                      {key === "id" ||
-                      key === "Project" ||
-                      key === "description" ||
-                      key === "Artikel" ||
-                      key === "Customer" ||
-                      key === "PartNoOriginalRequest" ||
-                      key === "DrawingNoOriginalRequest" ? (
-                        <button
-                          className="w-full text-left h-7 text-xs px-1 rounded-none truncate"
-                          onClick={(e) => {
+                      <TableCell key={`${item.id}-open`} className={cn("text-center", iconCellClass)}>
+                        <Button
+                          variant="default"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
-                            if (selectedOpportunityId !== item.id) {
+                            if (selectedOpportunityId === item.id) {
+                              onSelectOpportunity(null);
+                            } else {
                               onSelectOpportunity(item.id);
                             }
                           }}
+                          aria-label={`Open opportunity ${item.id}`}
                         >
-                          {String(item[key] ?? "")}
-                        </button>
-                      ) : key === "SoldtoBusinessPartner" ? (
-                        <div className="flex items-center gap-2">
-                          <EditableCellInput
-                            itemId={item.id}
-                            fieldKey={key}
-                            initialValue={item[key] || ""}
-                            onUpdateItem={onUpdateItem}
-                            className="pr-10 w-full rounded-none h-7 text-xs"
-                            disabled={false}
-                            hasSearchButton={true}
-                            onSearchButtonClick={handleOpenBpSelectDialog}
-                          />
-                          {item.SoldtoBusinessPartnerName && (
-                            <p className="text-xs text-muted-foreground whitespace-nowrap">
-                              {item.SoldtoBusinessPartnerName}
-                            </p>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+
+                      {visibleKeys.map((key) => (
+                        <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
+                          {key === "id" ||
+                          key === "Project" ||
+                          key === "description" ||
+                          key === "Artikel" ||
+                          key === "Customer" ||
+                          key === "PartNoOriginalRequest" ||
+                          key === "DrawingNoOriginalRequest" ? (
+                            <button
+                              className="w-full text-left h-6 text-xs px-1 rounded-none truncate"
+                              onClick={(e: React.MouseEvent) => {
+                                e.stopPropagation();
+                                if (selectedOpportunityId !== item.id) {
+                                  onSelectOpportunity(item.id);
+                                }
+                              }}
+                            >
+                              {String(item[key] ?? "")}
+                            </button>
+                          ) : key === "SoldtoBusinessPartner" ? (
+                            <div className="flex items-center gap-2">
+                              <EditableCellInput
+                                itemId={item.id}
+                                fieldKey={key}
+                                initialValue={item[key] || ""}
+                                onUpdateItem={onUpdateItem}
+                                className="pr-10 w-full rounded-none h-6 text-xs"
+                                disabled={false}
+                                hasSearchButton={true}
+                                onSearchButtonClick={handleOpenBpSelectDialog}
+                              />
+                              {item.SoldtoBusinessPartnerName && (
+                                <p className="text-xs text-muted-foreground whitespace-nowrap">
+                                  {item.SoldtoBusinessPartnerName}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <EditableCellInput
+                              itemId={item.id}
+                              fieldKey={key}
+                              initialValue={item[key] || ""}
+                              onUpdateItem={onUpdateItem}
+                              type={typeof item[key] === "number" ? "number" : "text"}
+                              className="w-full rounded-none h-6 text-xs px-1"
+                              disabled={
+                                key === "id" ||
+                                key === "Opportunity" ||
+                                key === "Guid" ||
+                                key === "CreationDate" ||
+                                key === "LastTransactionDate" ||
+                                key === "CreatedBy" ||
+                                key === "LastModifiedBy"
+                              }
+                            />
                           )}
-                        </div>
-                      ) : (
-                        <EditableCellInput
-                          itemId={item.id}
-                          fieldKey={key}
-                          initialValue={item[key] || ""}
-                          onUpdateItem={onUpdateItem}
-                          type={typeof item[key] === "number" ? "number" : "text"}
-                          className="w-full rounded-none h-7 text-xs px-1"
-                          disabled={
-                            key === "id" ||
-                            key === "Opportunity" ||
-                            key === "Guid" ||
-                            key === "CreationDate" ||
-                            key === "LastTransactionDate" ||
-                            key === "CreatedBy" ||
-                            key === "LastModifiedBy"
-                          }
-                        />
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         <BusinessPartnerSelectDialog
           isOpen={isBpSelectDialogOpen}
