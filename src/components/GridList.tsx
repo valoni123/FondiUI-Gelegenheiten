@@ -147,10 +147,11 @@ const GridList: React.FC<GridListProps> = ({
   };
 
   // Excel-like classes
-  const headerCellClass = "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-muted/30 min-h-8 align-middle";
+  const headerCellClass =
+    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 min-h-8 align-middle";
   const filterCellInputClass = "h-8 text-xs px-1 rounded-none";
-  const dataCellClass = "px-1 py-1 border-r border-b border-border min-h-8 align-middle";
-  const iconCellClass = "px-1 py-1 border-r border-b border-border min-h-8 align-middle";
+  const dataCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
+  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
 
   return (
     <React.Fragment>
@@ -225,7 +226,7 @@ const GridList: React.FC<GridListProps> = ({
                 <TableRow
                   key={item.id}
                   className={cn(
-                    "hover:bg-muted cursor-pointer border-b border-border",
+                    "cursor-pointer border-b border-border",
                     selectedOpportunityId === item.id && "bg-blue-100 dark:bg-blue-900"
                   )}
                   onClick={() => {
@@ -250,7 +251,6 @@ const GridList: React.FC<GridListProps> = ({
                         }
                       }}
                       aria-label={`Open opportunity ${item.id}`}
-                      title="Öffnen"
                     >
                       <ArrowRight className="h-4 w-4" />
                     </Button>
@@ -273,7 +273,6 @@ const GridList: React.FC<GridListProps> = ({
                               onSelectOpportunity(item.id);
                             }
                           }}
-                          title="Details anzeigen"
                         >
                           {String(item[key] ?? "")}
                         </button>
