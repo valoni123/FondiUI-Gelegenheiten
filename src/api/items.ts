@@ -175,36 +175,52 @@ export const getOpportunities = async (
   options?: GetOpportunitiesOptions
 ): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
+  const desiredTop = options?.top ?? 100;
 
-  const params = new URLSearchParams();
-  params.set("$top", String(options?.top ?? 100));
-  params.set("$select", options?.select ?? "*");
-  if (options?.skip != null) params.set("$skip", String(options.skip));
-  if (options?.filter) params.set("$filter", options.filter);
-  if (options?.orderBy) params.set("$orderby", options.orderBy);
-  if (options?.count) params.set("$count", "true");
+  const baseParams = new URLSearchParams();
+  baseParams.set("$select", options?.select ?? "*");
+  if (options?.filter) baseParams.set("$filter", options.filter);
+  if (options?.orderBy) baseParams.set("$orderby", options.orderBy);
+  if (options?.count) baseParams.set("$count", "true");
 
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?${params.toString()}`;
+  const collected: any[] = [];
+  let skip = options?.skip ?? 0;
 
   try {
-    const response = await fetch(OPPORTUNITIES_FETCH_URL, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-        "Content-Language": "de-DE",
-        "X-Infor-LnCompany": companyNumber,
-        "Authorization": `Bearer ${authToken}`,
-      },
-    });
+    while (collected.length < desiredTop) {
+      const remaining = desiredTop - collected.length;
+      const params = new URLSearchParams(baseParams);
+      params.set("$top", String(remaining));
+      params.set("$skip", String(skip));
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Failed to fetch opportunities: ${response.statusText}`);
+      const url = `${API_BASE_URL}/Opportunities?${params.toString()}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Content-Language": "de-DE",
+          "X-Infor-LnCompany": companyNumber,
+          "Authorization": `Bearer ${authToken}`,
+          // LN often limits page size; request a larger page size explicitly.
+          "Prefer": `odata.maxpagesize=${desiredTop}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Failed to fetch opportunities: ${response.statusText}`);
+      }
+
+      const odataResponse = await response.json();
+      const pageItems: any[] = Array.isArray(odataResponse?.value) ? odataResponse.value : [];
+      if (pageItems.length === 0) break;
+
+      collected.push(...pageItems);
+      skip += pageItems.length;
     }
 
-    const odataResponse = await response.json();
-
-    const opportunities: Item[] = odataResponse.value.map((odataItem: any) => {
+    const opportunities: Item[] = collected.slice(0, desiredTop).map((odataItem: any) => {
       const mappedItem: Item = {
         id: odataItem.Opportunity || String(Math.random() * 100000),
         name: odataItem.Name || odataItem.Opportunity || "N/A",
@@ -229,6 +245,7 @@ export const getOpportunities = async (
       }
       return mappedItem;
     });
+
     return opportunities;
   } catch (error) {
     console.error("API Error: Failed to fetch opportunities", error);

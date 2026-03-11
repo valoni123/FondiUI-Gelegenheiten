@@ -117,6 +117,7 @@ const Index: React.FC<IndexProps> = ({
         const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment, {
           top: 100,
           filter: odataFilter,
+          orderBy: "Opportunity desc",
           select: "*",
         });
         setOpportunities(fetchedOpportunities);
