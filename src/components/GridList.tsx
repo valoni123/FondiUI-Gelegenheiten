@@ -142,7 +142,7 @@ const GridList: React.FC<GridListProps> = (props) => {
     <React.Fragment>
       <div className="space-y-4">
         <div className="w-full overflow-x-auto">
-          <table className="w-max min-w-full caption-bottom text-sm border-l border-t border-border">
+          <table className="w-max min-w-full caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
                 <th className={cn("w-[40px] text-center", headerCellClass)}>
