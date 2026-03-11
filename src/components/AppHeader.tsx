@@ -46,7 +46,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className="w-full mb-0">
-      <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-b-md">
+      <div className="bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-5">
             <div className="flex items-center gap-4 ml-0">
