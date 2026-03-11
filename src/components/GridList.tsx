@@ -141,11 +141,11 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Excel-like classes (match Detailansicht)
   const headerCellClass =
-    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 min-h-8 align-middle h-8";
-  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle h-8";
+    "!h-8 !p-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 align-middle";
+  const filterCellClass = "!h-8 !p-1 border-r border-b border-border bg-background align-middle";
   const filterCellInputClass = "h-6 w-full text-xs px-1 rounded-none";
-  const dataCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
-  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background min-h-8 align-middle";
+  const dataCellClass = "!p-1 border-r border-b border-border bg-background min-h-8 align-middle";
+  const iconCellClass = "!p-1 border-r border-b border-border bg-background min-h-8 align-middle";
 
   return (
     <React.Fragment>
