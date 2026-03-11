@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
@@ -20,6 +20,8 @@ interface GridListProps {
   selectedOpportunityId: string | null;
   onSelectOpportunity: (opportunityId: string | null) => void;
   isLoading?: boolean;
+  filters: Record<string, string>;
+  onCommitFilters: (filters: Record<string, string>) => void;
 }
 
 const GridList: React.FC<GridListProps> = (props) => {
@@ -32,19 +34,15 @@ const GridList: React.FC<GridListProps> = (props) => {
     selectedOpportunityId,
     onSelectOpportunity,
     isLoading,
+    filters,
+    onCommitFilters,
   } = props;
 
-  // Keep typing snappy: update input state immediately, apply it to filtering with a small debounce.
-  const [uiFilters, setUiFilters] = useState<Record<string, string>>({});
-  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
+  // Draft filters: user can type; we only send to LN on blur/Enter.
+  const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const t = window.setTimeout(() => setAppliedFilters(uiFilters), 150);
-    return () => window.clearTimeout(t);
-  }, [uiFilters]);
 
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(
@@ -70,8 +68,12 @@ const GridList: React.FC<GridListProps> = (props) => {
     return key.replace(/([A-Z])/g, " $1").trim();
   };
 
-  const handleFilterChange = (key: string, value: string) => {
-    setUiFilters((prev) => ({ ...prev, [key]: value }));
+  const handleDraftFilterChange = (key: string, value: string) => {
+    setDraftFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const commitFilters = () => {
+    onCommitFilters(draftFilters);
   };
 
   const handleSort = (key: string) => {
@@ -82,41 +84,30 @@ const GridList: React.FC<GridListProps> = (props) => {
     setSortConfig({ key, direction });
   };
 
-  const filteredAndSortedItems = useMemo(() => {
-    let currentItems = [...items];
+  const sortedItems = useMemo(() => {
+    const currentItems = [...items];
+    if (!sortConfig) return currentItems;
 
-    currentItems = currentItems.filter((item) => {
-      for (const key in appliedFilters) {
-        const filterValue = appliedFilters[key].toLowerCase();
-        const itemValue = String(item[key] || "").toLowerCase();
-        if (filterValue && !itemValue.includes(filterValue)) {
-          return false;
-        }
+    currentItems.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue === null || aValue === undefined) return sortConfig.direction === "asc" ? 1 : -1;
+      if (bValue === null || bValue === undefined) return sortConfig.direction === "asc" ? -1 : 1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortConfig.direction === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
       }
-      return true;
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      return 0;
     });
 
-    if (sortConfig) {
-      currentItems.sort((a, b) => {
-        const aValue = a[sortConfig.key];
-        const bValue = b[sortConfig.key];
-
-        if (aValue === null || aValue === undefined) return sortConfig.direction === "asc" ? 1 : -1;
-        if (bValue === null || bValue === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-
-        if (typeof aValue === "string" && typeof bValue === "string") {
-          return sortConfig.direction === "asc"
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
-        }
-        if (typeof aValue === "number" && typeof bValue === "number") {
-          return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
-        }
-        return 0;
-      });
-    }
     return currentItems;
-  }, [items, appliedFilters, sortConfig]);
+  }, [items, sortConfig]);
 
   const handleOpenBpSelectDialog = (itemId: string) => {
     setCurrentEditingItemId(itemId);
@@ -194,10 +185,17 @@ const GridList: React.FC<GridListProps> = (props) => {
                   <th key={`${key}-filter`} className={filterCellClass}>
                     <div className={filterWrapperClass}>
                       <Input
-                        value={uiFilters[key] || ""}
+                        value={draftFilters[key] || ""}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          handleFilterChange(key, e.target.value)
+                          handleDraftFilterChange(key, e.target.value)
                         }
+                        onBlur={commitFilters}
+                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            commitFilters();
+                          }
+                        }}
                         className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
                       />
                     </div>
@@ -216,14 +214,14 @@ const GridList: React.FC<GridListProps> = (props) => {
                     </div>
                   </td>
                 </tr>
-              ) : filteredAndSortedItems.length === 0 ? (
+              ) : sortedItems.length === 0 ? (
                 <tr>
                   <td colSpan={visibleKeys.length + 1} className="text-center py-6">
                     <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
                   </td>
                 </tr>
               ) : (
-                filteredAndSortedItems.map((item) => {
+                sortedItems.map((item) => {
                   const isSelected = selectedOpportunityId === item.id;
                   return (
                     <tr
@@ -336,7 +334,7 @@ const GridList: React.FC<GridListProps> = (props) => {
         />
 
         <p className="text-sm text-muted-foreground text-center py-2">
-          {`${filteredAndSortedItems.length} Gelegenheiten angezeigt`}
+          {`${sortedItems.length} Gelegenheiten angezeigt`}
         </p>
       </div>
     </React.Fragment>

@@ -159,9 +159,32 @@ export const updateItem = async (
   }
 };
 
-export const getOpportunities = async (authToken: string, companyNumber: string, cloudEnvironment: CloudEnvironment): Promise<Item[]> => {
+export type GetOpportunitiesOptions = {
+  top?: number;
+  skip?: number;
+  filter?: string;
+  orderBy?: string;
+  select?: string;
+  count?: boolean;
+};
+
+export const getOpportunities = async (
+  authToken: string,
+  companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
+  options?: GetOpportunitiesOptions
+): Promise<Item[]> => {
   const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
-  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?$top=20&$select=*`;
+
+  const params = new URLSearchParams();
+  params.set("$top", String(options?.top ?? 100));
+  params.set("$select", options?.select ?? "*");
+  if (options?.skip != null) params.set("$skip", String(options.skip));
+  if (options?.filter) params.set("$filter", options.filter);
+  if (options?.orderBy) params.set("$orderby", options.orderBy);
+  if (options?.count) params.set("$count", "true");
+
+  const OPPORTUNITIES_FETCH_URL = `${API_BASE_URL}/Opportunities?${params.toString()}`;
 
   try {
     const response = await fetch(OPPORTUNITIES_FETCH_URL, {

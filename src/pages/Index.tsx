@@ -46,6 +46,9 @@ const Index: React.FC<IndexProps> = ({
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
   const [opportunitiesLoadError, setOpportunitiesLoadError] = useState<string | null>(null);
+  // Server-side filter state (sent as OData $filter)
+  const [opportunityFilters, setOpportunityFilters] = useState<Record<string, string>>({});
+  const [opportunityOdataFilter, setOpportunityOdataFilter] = useState<string | undefined>(undefined);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
@@ -67,32 +70,75 @@ const Index: React.FC<IndexProps> = ({
     setSelectedOpportunityId(effectiveOpportunityId);
   }, [effectiveOpportunityId]);
 
-  const loadOpportunities = useCallback(async (token: string, currentCompanyNumber: string, currentCloudEnvironment: CloudEnvironment, silent: boolean = false) => {
-    if (!silent) {
-      setIsLoadingOpportunities(true);
+  const buildOpportunityODataFilter = useCallback((filters: Record<string, string>): string | undefined => {
+    const escapeODataString = (v: string) => v.replace(/'/g, "''");
+
+    const mapKeyToODataField = (key: string): string | null => {
+      if (key === "id") return "Opportunity";
+      if (key === "description") return "Description";
+      if (key === "Project") return "Project";
+      if (key === "Artikel") return "Artikel";
+      if (key === "Customer") return "Customer";
+      if (key === "PartNoOriginalRequest") return "PartNoOriginalRequest";
+      if (key === "DrawingNoOriginalRequest") return "DrawingNoOriginalRequest";
+      return null;
+    };
+
+    const clauses: string[] = [];
+    for (const [key, raw] of Object.entries(filters)) {
+      const value = (raw || "").trim();
+      if (!value) continue;
+      const field = mapKeyToODataField(key);
+      if (!field) continue;
+
+      const safe = escapeODataString(value.toLowerCase());
+      // OData v3: substringof(search, property)
+      clauses.push(`substringof(tolower('${safe}'), tolower(${field}))`);
     }
-    setOpportunitiesLoadError(null);
-    const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
-    try {
-      const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment);
-      setOpportunities(fetchedOpportunities);
-      if (!silent) {
-        toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
-      }
-    } catch (error) {
-      console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
-      setOpportunitiesLoadError(error instanceof Error ? error.message : String(error));
-      if (!silent) {
-        toast.error("Failed to load opportunities.", { id: loadingToastId });
-      } else {
-        console.warn("Silent refresh failed:", error);
-      }
-    } finally {
-      if (!silent) {
-        setIsLoadingOpportunities(false);
-      }
-    }
+
+    if (clauses.length === 0) return undefined;
+    return clauses.join(" and ");
   }, []);
+
+  const loadOpportunities = useCallback(
+    async (
+      token: string,
+      currentCompanyNumber: string,
+      currentCloudEnvironment: CloudEnvironment,
+      silent: boolean = false,
+      odataFilter?: string
+    ) => {
+      if (!silent) {
+        setIsLoadingOpportunities(true);
+      }
+      setOpportunitiesLoadError(null);
+      const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
+      try {
+        const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment, {
+          top: 100,
+          filter: odataFilter,
+          select: "*",
+        });
+        setOpportunities(fetchedOpportunities);
+        if (!silent) {
+          toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
+        }
+      } catch (error) {
+        console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
+        setOpportunitiesLoadError(error instanceof Error ? error.message : String(error));
+        if (!silent) {
+          toast.error("Failed to load opportunities.", { id: loadingToastId });
+        } else {
+          console.warn("Silent refresh failed:", error);
+        }
+      } finally {
+        if (!silent) {
+          setIsLoadingOpportunities(false);
+        }
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const initWithLoginToken = async () => {
@@ -149,10 +195,10 @@ const Index: React.FC<IndexProps> = ({
         setIdmEntityOptions(filtered.map((i) => ({ name: i.name, desc: i.desc })));
 
         if (!effectiveOpportunityId) {
-          await loadOpportunities(token, companyNumber, cloudEnvironment, false);
+          await loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter);
         } else {
           setSelectedOpportunityId(effectiveOpportunityId);
-          await loadOpportunities(token, companyNumber, cloudEnvironment, true);
+          await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
         }
 
         initDoneRef.current = true;
@@ -165,7 +211,7 @@ const Index: React.FC<IndexProps> = ({
       }
     };
     initWithLoginToken();
-  }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId]);
+  }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, opportunityOdataFilter]);
 
   // When coming back from detail view to overview, refresh opportunities once without showing stale content.
   useEffect(() => {
@@ -195,7 +241,7 @@ const Index: React.FC<IndexProps> = ({
         }
       }
 
-      await loadOpportunities(token, companyNumber, cloudEnvironment, true);
+      await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
       if (cancelled) return;
       needsOverviewReloadRef.current = false;
       setIsLoadingOpportunities(false);
@@ -205,7 +251,7 @@ const Index: React.FC<IndexProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate]);
+  }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate, opportunityOdataFilter]);
 
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
@@ -228,12 +274,12 @@ const Index: React.FC<IndexProps> = ({
           }
         }
 
-        await loadOpportunities(token, companyNumber, cloudEnvironment, true);
+        await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
       }, 10000);
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, navigate]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, navigate, opportunityOdataFilter]);
 
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
@@ -341,6 +387,18 @@ const Index: React.FC<IndexProps> = ({
     }
   };
 
+  const handleCommitOpportunityFilters = useCallback(
+    async (filters: Record<string, string>) => {
+      setOpportunityFilters(filters);
+      const odataFilter = buildOpportunityODataFilter(filters);
+      setOpportunityOdataFilter(odataFilter);
+
+      if (!authToken) return;
+      await loadOpportunities(authToken, companyNumber, cloudEnvironment, false, odataFilter);
+    },
+    [authToken, buildOpportunityODataFilter, loadOpportunities, companyNumber, cloudEnvironment]
+  );
+
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
@@ -376,7 +434,7 @@ const Index: React.FC<IndexProps> = ({
                 onClick={() => {
                   const token = localStorage.getItem("oauthAccessToken") || authToken;
                   if (!token) return;
-                  loadOpportunities(token, companyNumber, cloudEnvironment, false);
+                  loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter);
                 }}
               >
                 Erneut laden
@@ -426,6 +484,8 @@ const Index: React.FC<IndexProps> = ({
                 selectedOpportunityId={selectedOpportunityId}
                 onSelectOpportunity={handleSelectOpportunity}
                 isLoading={isLoadingOpportunities}
+                filters={opportunityFilters}
+                onCommitFilters={handleCommitOpportunityFilters}
               />
             </ResizablePanel>
           )}
