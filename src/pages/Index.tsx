@@ -94,8 +94,8 @@ const Index: React.FC<IndexProps> = ({
       const safe = escapeODataString(value);
 
       // Infor LN does not support substringof() on this endpoint.
-      // Use startswith() instead (OData filter), newest results are already handled via $orderby.
-      clauses.push(`startswith(${field},'${safe}')`);
+      // Try indexof(...) for "contains" semantics. If LN doesn't support it either, we'll need another approach.
+      clauses.push(`indexof(${field},'${safe}') gt -1`);
     }
 
     if (clauses.length === 0) return undefined;
