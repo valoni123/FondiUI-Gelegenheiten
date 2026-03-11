@@ -139,7 +139,7 @@ const GridList: React.FC<GridListProps> = (props) => {
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
   const filterWrapperClass =
-    "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
+    "px-1 py-1 border-r border-border bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
 
   return (
     <React.Fragment>
