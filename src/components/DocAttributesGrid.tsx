@@ -1192,6 +1192,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             const value = col.getValue(doc);
 
                             if (col.id === "dokumentname") {
+                              const mainProject = getAttrValue(doc, ["Projekt"]);
+
                               return (
                                 <div
                                   key={`${idx}-${col.id}`}
@@ -1204,7 +1206,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     <Badge
                                       variant="default"
                                       className="shrink-0 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                                      title={doc.linkedProjectValue ? `Projekt-Verlinkung: ${doc.linkedProjectValue}` : "Projekt-verlinkt"}
+                                      title={mainProject ? `Hauptprojekt: ${mainProject}` : "Hauptprojekt: unbekannt"}
                                     >
                                       verlinkt
                                     </Badge>

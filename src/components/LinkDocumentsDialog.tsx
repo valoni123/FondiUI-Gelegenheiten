@@ -437,7 +437,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                             <Badge
                               variant="default"
                               className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                              title={r.linkedProjectValue ? `Projekt-Verlinkung: ${r.linkedProjectValue}` : "Projekt-verlinkt"}
+                              title={
+                                (r.attributes ?? []).find((a) => a?.name === "Projekt")?.value
+                                  ? `Hauptprojekt: ${(r.attributes ?? []).find((a) => a?.name === "Projekt")?.value}`
+                                  : "Hauptprojekt: unbekannt"
+                              }
                             >
                               verlinkt
                             </Badge>
