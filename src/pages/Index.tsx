@@ -95,7 +95,7 @@ const Index: React.FC<IndexProps> = ({
 
       // Infor LN does not support substringof() on this endpoint.
       // Use startswith() instead (OData filter), newest results are already handled via $orderby.
-      clauses.push(`startswith(${field},'${safe}') eq true`);
+      clauses.push(`startswith(${field},'${safe}')`);
     }
 
     if (clauses.length === 0) return undefined;
