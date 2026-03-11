@@ -1,12 +1,4 @@
 import React, { useEffect, useState, useMemo } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
@@ -139,31 +131,29 @@ const GridList: React.FC<GridListProps> = (props) => {
     setCurrentEditingItemId(null);
   };
 
-  // Excel-like classes (match Detailansicht)
+  // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "!h-8 !p-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 align-middle";
-  const filterCellClass = "!h-8 !p-1 border-r border-b border-border bg-background align-middle";
-  const filterCellInputClass = "h-6 w-full text-xs px-1 rounded-none";
-  const dataCellClass = "!p-1 border-r border-b border-border bg-background min-h-8 align-middle";
-  const iconCellClass = "!p-1 border-r border-b border-border bg-background min-h-8 align-middle";
+    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
+  const dataCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
+  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background h-8 align-middle";
 
   return (
     <React.Fragment>
       <div className="space-y-4">
         <div className="w-full overflow-x-auto">
-          <Table className="w-max min-w-full border-l border-t border-border">
-            <TableHeader>
-              {/* Header row */}
-              <TableRow className="border-b border-border hover:bg-transparent">
-                <TableHead key="_open" className={cn("w-[40px] text-center", headerCellClass)}>
+          <table className="w-max min-w-full caption-bottom text-sm border-l border-t border-border">
+            <thead className="[&_tr]:border-b">
+              <tr className="border-b border-border">
+                <th className={cn("w-[40px] text-center", headerCellClass)}>
                   <span className="sr-only">Open</span>
-                </TableHead>
+                </th>
                 {visibleKeys.map((key) => (
-                  <TableHead
+                  <th
                     key={key}
                     className={cn(
                       headerCellClass,
-                      "min-w-[60px]",
+                      "min-w-[60px] text-left",
                       key === "id" && "min-w-[120px]",
                       key === "Project" && "min-w-[120px]",
                       key === "description" && "min-w-[180px]",
@@ -189,54 +179,51 @@ const GridList: React.FC<GridListProps> = (props) => {
                         />
                       )}
                     </Button>
-                  </TableHead>
+                  </th>
                 ))}
-              </TableRow>
+              </tr>
 
-              {/* Filter row */}
-              <TableRow className="border-b border-border hover:bg-transparent">
-                <TableHead key="_open_filter" className={cn("w-[40px]", filterCellClass)} />
+              <tr className="border-b border-border">
+                <th className={cn("w-[40px]", filterCellClass)} />
                 {visibleKeys.map((key) => (
-                  <TableHead key={`${key}-filter`} className={filterCellClass}>
+                  <th key={`${key}-filter`} className={filterCellClass}>
                     <Input
                       value={uiFilters[key] || ""}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         handleFilterChange(key, e.target.value)
                       }
-                      className={filterCellInputClass}
+                      className="h-6 w-full text-xs px-1 rounded-none"
                     />
-                  </TableHead>
+                  </th>
                 ))}
-              </TableRow>
-            </TableHeader>
+              </tr>
+            </thead>
 
-            <TableBody>
+            <tbody className="[&_tr:last-child]:border-0">
               {isLoading ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                <tr>
+                  <td colSpan={visibleKeys.length + 1} className="text-center py-6">
                     <div className="flex items-center justify-center text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       Gelegenheiten werden geladen…
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : filteredAndSortedItems.length === 0 ? (
-                <TableRow className="hover:bg-transparent">
-                  <TableCell colSpan={visibleKeys.length + 1} className="text-center py-6">
+                <tr>
+                  <td colSpan={visibleKeys.length + 1} className="text-center py-6">
                     <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : (
                 filteredAndSortedItems.map((item) => {
                   const isSelected = selectedOpportunityId === item.id;
                   return (
-                    <TableRow
+                    <tr
                       key={item.id}
                       className={cn(
                         "cursor-pointer border-b border-border",
-                        isSelected
-                          ? "bg-blue-100 dark:bg-blue-900 hover:bg-blue-100 dark:hover:bg-blue-900"
-                          : "hover:bg-transparent"
+                        isSelected && "bg-blue-100 dark:bg-blue-900"
                       )}
                       onClick={() => {
                         if (selectedOpportunityId === item.id) {
@@ -246,7 +233,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                         }
                       }}
                     >
-                      <TableCell key={`${item.id}-open`} className={cn("text-center", iconCellClass)}>
+                      <td className={cn("text-center", iconCellClass)}>
                         <Button
                           variant="default"
                           size="icon"
@@ -263,10 +250,10 @@ const GridList: React.FC<GridListProps> = (props) => {
                         >
                           <ArrowRight className="h-4 w-4" />
                         </Button>
-                      </TableCell>
+                      </td>
 
                       {visibleKeys.map((key) => (
-                        <TableCell key={`${item.id}-${key}`} className={dataCellClass}>
+                        <td key={`${item.id}-${key}`} className={dataCellClass}>
                           {key === "id" ||
                           key === "Project" ||
                           key === "description" ||
@@ -322,14 +309,14 @@ const GridList: React.FC<GridListProps> = (props) => {
                               }
                             />
                           )}
-                        </TableCell>
+                        </td>
                       ))}
-                    </TableRow>
+                    </tr>
                   );
                 })
               )}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
 
         <BusinessPartnerSelectDialog
