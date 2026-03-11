@@ -134,18 +134,18 @@ const GridList: React.FC<GridListProps> = (props) => {
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
     "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
-  const filterCellClass = "p-0 bg-background align-middle";
+  const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
   const filterWrapperClass =
-    "px-1 py-1 border-r border-border bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
+    "px-1 py-1 bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
 
   return (
     <React.Fragment>
       <div className="space-y-4">
         <div className="w-full overflow-x-auto">
-          <table className="w-max min-w-full caption-bottom text-sm border-l border-border">
+          <table className="w-max min-w-full border-collapse caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
                 <th className={cn("w-[40px] text-center", headerCellClass)}>
