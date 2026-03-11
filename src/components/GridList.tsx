@@ -133,10 +133,13 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
-  const filterCellClass = "border-r border-b border-border bg-background h-8 align-middle";
-  const dataCellClass = "border-r border-b border-border bg-background h-8 align-middle";
-  const iconCellClass = "border-r border-b border-border bg-background h-8 align-middle";
+    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass = "p-0 bg-background align-middle";
+  const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+  const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+
+  const filterWrapperClass =
+    "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
 
   return (
     <React.Fragment>
@@ -184,16 +187,20 @@ const GridList: React.FC<GridListProps> = (props) => {
               </tr>
 
               <tr className="border-b border-border">
-                <th className={cn("w-[40px]", filterCellClass)} />
+                <th className={cn("w-[40px]", filterCellClass)}>
+                  <div className={filterWrapperClass} />
+                </th>
                 {visibleKeys.map((key) => (
                   <th key={`${key}-filter`} className={filterCellClass}>
-                    <Input
-                      value={uiFilters[key] || ""}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        handleFilterChange(key, e.target.value)
-                      }
-                      className="h-6 w-full text-xs px-1 rounded-none"
-                    />
+                    <div className={filterWrapperClass}>
+                      <Input
+                        value={uiFilters[key] || ""}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                          handleFilterChange(key, e.target.value)
+                        }
+                        className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                      />
+                    </div>
                   </th>
                 ))}
               </tr>
