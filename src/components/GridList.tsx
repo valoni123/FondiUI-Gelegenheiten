@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
@@ -44,6 +44,31 @@ const GridList: React.FC<GridListProps> = (props) => {
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setDraftFilters(filters);
+  }, [filters]);
+
+  const normalizeFilters = (f: Record<string, string>) => {
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(f)) {
+      const trimmed = (v ?? "").trim();
+      if (trimmed) out[k] = trimmed;
+    }
+    return out;
+  };
+
+  const isSameFilters = (a: Record<string, string>, b: Record<string, string>) => {
+    const na = normalizeFilters(a);
+    const nb = normalizeFilters(b);
+    const aKeys = Object.keys(na);
+    const bKeys = Object.keys(nb);
+    if (aKeys.length !== bKeys.length) return false;
+    for (const k of aKeys) {
+      if (na[k] !== nb[k]) return false;
+    }
+    return true;
+  };
+
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(
     () => [
@@ -73,6 +98,8 @@ const GridList: React.FC<GridListProps> = (props) => {
   };
 
   const commitFilters = () => {
+    // Avoid reloading when the user just moves focus between filter inputs without changing anything.
+    if (isSameFilters(draftFilters, filters)) return;
     onCommitFilters(draftFilters);
   };
 

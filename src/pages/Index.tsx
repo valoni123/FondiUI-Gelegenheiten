@@ -91,9 +91,11 @@ const Index: React.FC<IndexProps> = ({
       const field = mapKeyToODataField(key);
       if (!field) continue;
 
-      const safe = escapeODataString(value.toLowerCase());
-      // OData v3: substringof(search, property)
-      clauses.push(`substringof(tolower('${safe}'), tolower(${field}))`);
+      const safe = escapeODataString(value);
+
+      // Infor LN does not support substringof() on this endpoint.
+      // Use startswith() instead (OData filter), newest results are already handled via $orderby.
+      clauses.push(`startswith(${field},'${safe}') eq true`);
     }
 
     if (clauses.length === 0) return undefined;
