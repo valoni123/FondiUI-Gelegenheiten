@@ -1249,11 +1249,18 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             size="icon"
                             className={cn(
                               "h-6 w-6",
-                              hasProjectLinks(doc) ? "text-amber-700 hover:text-amber-800" : "text-muted-foreground/60 hover:text-muted-foreground"
+                              hasProjectLinks(doc)
+                                ? "text-amber-700 hover:text-amber-800"
+                                : "text-muted-foreground/60 hover:text-muted-foreground"
                             )}
                             disabled={!doc.pid || isLockedByStatus}
                             onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
-                            title={doc.pid ? "Projekt-Verknüpfungen bearbeiten" : "PID fehlt"}
+                            title={(() => {
+                              if (!doc.pid) return "PID fehlt";
+                              const links = getProjectLinksForDoc(doc);
+                              if (!links.length) return "Keine Projekt-Verknüpfung";
+                              return `Projekt-Verknüpfungen: ${links.join(", ")}`;
+                            })()}
                             aria-label="Projekt-Verknüpfungen bearbeiten"
                           >
                             <Link2 className="h-3 w-3" />
