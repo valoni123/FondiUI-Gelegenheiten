@@ -316,40 +316,92 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     const allCols = [...base, ...extraGeometriedatenColumns];
     const byId = (id: string) => allCols.find((c) => c.id === id);
 
-    const isFmeFilter =
-      activeDocFilter === "FME_GEOM_KUNDE" ||
-      activeDocFilter === "FME_SERIE_GUELTIG" ||
-      activeDocFilter === "FME_VERSUCH_GUELTIG";
+    const headerOverrides: Record<string, string> = {
+      geometrieart: "Geometrie Art",
+      dokumentname: "Name",
+      belegnr: "Belegnummer",
+      createdAt: "Erstellt",
+      createdBy: "Erstellt von",
+      changedAt: "Geändert",
+      changedBy: "Geändert von",
+    };
 
-    const isFsiFilter =
-      activeDocFilter === "FSI_GEOM_KUNDE" ||
-      activeDocFilter === "FSI_SERIE_GUELTIG" ||
-      activeDocFilter === "FSI_VERSUCH_GUELTIG";
+    const applyHeaderOverrides = (cols: DisplayColumn[]) =>
+      cols.map((c) => {
+        const nextHeader = headerOverrides[c.id];
+        return nextHeader ? ({ ...c, header: nextHeader } as DisplayColumn) : c;
+      });
 
-    if (isFmeFilter) {
-      // FME order: Lfd. Nr. - Dokumententyp - Dokumentenpaket - Dokumentenname - Titel -
-      //            Belegdatum - Geometrieart - Status - Serienstatus - S-K-Version -
-      //            Versuchsstatus - V-K-Version - Belegnummer - erstellt von - erstellt am -
-      //            geändert von - geändert am - Ort
+    const isGeomKundeFilter =
+      activeDocFilter === "FME_GEOM_KUNDE" || activeDocFilter === "FSI_GEOM_KUNDE";
+    const isSerieGueltigFilter =
+      activeDocFilter === "FME_SERIE_GUELTIG" || activeDocFilter === "FSI_SERIE_GUELTIG";
+    const isVersuchGueltigFilter =
+      activeDocFilter === "FME_VERSUCH_GUELTIG" || activeDocFilter === "FSI_VERSUCH_GUELTIG";
+
+    if (isGeomKundeFilter) {
+      // Geometrien Kunde (FME/FSI)
       const ordered = [
-        "lfd_nr", "dokumenttyp", "dokumentenpaket", "dokumentname", "titel",
-        "belegdatum", "geometrieart", "status", "serienstatus", "s_k_version",
-        "versuchsstatus", "v_k_version", "belegnr",
-        "createdBy", "createdAt", "changedBy", "changedAt", "ort",
+        "lfd_nr",
+        "geometrieart",
+        "status",
+        "serienstatus",
+        "s_k_version",
+        "versuchsstatus",
+        "v_k_version",
+        "titel",
+        "dokumentname",
+        "belegdatum",
+        "belegnr",
+        "createdAt",
+        "createdBy",
+        "changedAt",
+        "changedBy",
       ];
-      return ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+      const cols = ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+      return applyHeaderOverrides(cols);
     }
 
-    if (isFsiFilter) {
-      // FSI order: Lfd. Nr. - Geometrieart - Status - Serienstatus - S-K-Version -
-      //            Dokumentenname - Titel - Belegdatum - Belegnummer -
-      //            Erstellt von - Erstellt am - Geändert von - Geändert am - Ort
+    if (isSerieGueltigFilter) {
+      // Serie gültig (FME/FSI)
       const ordered = [
-        "lfd_nr", "geometrieart", "status", "serienstatus", "s_k_version",
-        "dokumentname", "titel", "belegdatum", "belegnr",
-        "createdBy", "createdAt", "changedBy", "changedAt", "ort",
+        "lfd_nr",
+        "geometrieart",
+        "status",
+        "serienstatus",
+        "s_k_version",
+        "titel",
+        "dokumentname",
+        "belegdatum",
+        "belegnr",
+        "createdAt",
+        "createdBy",
+        "changedAt",
+        "changedBy",
       ];
-      return ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+      const cols = ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+      return applyHeaderOverrides(cols);
+    }
+
+    if (isVersuchGueltigFilter) {
+      // Versuch gültig (FME/FSI)
+      const ordered = [
+        "lfd_nr",
+        "geometrieart",
+        "status",
+        "versuchsstatus",
+        "v_k_version",
+        "titel",
+        "dokumentname",
+        "belegdatum",
+        "belegnr",
+        "createdAt",
+        "createdBy",
+        "changedAt",
+        "changedBy",
+      ];
+      const cols = ordered.map((id) => byId(id)).filter(Boolean) as DisplayColumn[];
+      return applyHeaderOverrides(cols);
     }
 
     if (!hasGeometriedaten) return base;
