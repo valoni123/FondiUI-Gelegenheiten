@@ -58,6 +58,37 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   const normalizePid = React.useCallback((pid?: string) => String(pid ?? "").trim(), []);
 
+  const pidVariants = React.useCallback(
+    (pid: string) => {
+      const p = normalizePid(pid);
+      if (!p) return [] as string[];
+      const vars: string[] = [p];
+      if (/-latest$/i.test(p)) vars.push(p.replace(/-latest$/i, ""));
+      const dash = p.indexOf("-");
+      if (dash > 0) {
+        const tail = p.slice(dash + 1);
+        if (tail) {
+          vars.push(tail);
+          if (/-latest$/i.test(tail)) vars.push(tail.replace(/-latest$/i, ""));
+        }
+      }
+      return Array.from(new Set(vars.map((v) => v.trim()).filter(Boolean)));
+    },
+    [normalizePid]
+  );
+
+  const isAlreadyLinkedPid = React.useCallback(
+    (pid?: string) => {
+      const p = normalizePid(pid);
+      if (!p) return false;
+      for (const v of pidVariants(p)) {
+        if (existingLinkedPids.has(v)) return true;
+      }
+      return false;
+    },
+    [existingLinkedPids, normalizePid, pidVariants]
+  );
+
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
     // fallback when pid is missing (avoid preview URLs because they can be re-signed)
@@ -166,8 +197,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       try {
         const pids = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
         if (!cancelled) {
-          const normalized = (pids || []).map(normalizePid).filter(Boolean);
-          setExistingLinkedPids(new Set(normalized));
+          const next = new Set<string>();
+          for (const raw of pids || []) {
+            for (const v of pidVariants(String(raw))) next.add(v);
+          }
+          setExistingLinkedPids(next);
         }
       } catch (err: any) {
         if (!cancelled) setExistingLinkedPids(new Set());
@@ -182,7 +216,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [open, mainPid, authToken, cloudEnvironment, normalizePid]);
+  }, [open, mainPid, authToken, cloudEnvironment, pidVariants]);
 
   // If the user searched/selected quickly before the existing links finished loading,
   // ensure already linked PIDs are removed from the current selection.
@@ -192,14 +226,14 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       const next = new Set(prev);
       let changed = false;
       for (const pid of Array.from(next)) {
-        if (existingLinkedPids.has(normalizePid(pid))) {
+        if (isAlreadyLinkedPid(pid)) {
           next.delete(pid);
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-  }, [existingLinkedPids, normalizePid]);
+  }, [existingLinkedPids, isAlreadyLinkedPid]);
 
   const preparedEntities = React.useMemo(() => {
     // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
@@ -279,7 +313,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const togglePid = (pid?: string) => {
     const p = normalizePid(pid);
     if (!p) return;
-    if (existingLinkedPids.has(p)) return;
+    if (isAlreadyLinkedPid(p)) return;
     setSelectedPids((prev) => {
       const next = new Set(prev);
       if (next.has(p)) next.delete(p);
@@ -456,7 +490,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r) => {
                     const pidStr = normalizePid(r.pid);
-                    const alreadyLinked = !!pidStr && existingLinkedPids.has(pidStr);
+                    const alreadyLinked = !!pidStr && isAlreadyLinkedPid(pidStr);
                     const isSelected = !!pidStr ? selectedPids.has(pidStr) : false;
                     return (
                       <div
