@@ -1376,17 +1376,51 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
                           const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
 
+                          const isGeometriedatenFilter =
+                            activeDocFilter === "FME_GEOM_KUNDE" ||
+                            activeDocFilter === "FME_SERIE_GUELTIG" ||
+                            activeDocFilter === "FME_VERSUCH_GUELTIG" ||
+                            activeDocFilter === "FSI_GEOM_KUNDE" ||
+                            activeDocFilter === "FSI_SERIE_GUELTIG" ||
+                            activeDocFilter === "FSI_VERSUCH_GUELTIG";
+
                           const statusLabel = isStatusCol
-                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
-                                ?.desc ?? 
+                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
                                 (rowEdited[attrName] ?? ""))
                             : "";
-                          const statusClass =
-                            isStatusCol && (rowEdited[attrName] ?? "")
-                              ? statusLabel === "Freigegeben"
-                                ? "bg-green-600 text-white border-green-600 hover:bg-green-600"
-                                : "bg-red-600 text-white border-red-600 hover:bg-red-600"
-                              : "";
+
+                          const geometriedatenStatusStyles: Record<
+                            string,
+                            { triggerClass: string; indicatorClass: string }
+                          > = {
+                            "In Änderung": {
+                              triggerClass:
+                                "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
+                              indicatorClass: "bg-[#CAF0CC] border-[#8fd595]",
+                            },
+                            Freigegeben: {
+                              triggerClass:
+                                "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                              indicatorClass: "bg-[#498205] border-[#498205]",
+                            },
+                            Registriert: {
+                              triggerClass:
+                                "bg-[#757575] text-white border-[#757575] hover:bg-[#757575]",
+                              indicatorClass: "bg-[#757575] border-[#757575]",
+                            },
+                            Ungültig: {
+                              triggerClass:
+                                "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                              indicatorClass: "bg-[#D13438] border-[#D13438]",
+                            },
+                          };
+
+                          const statusStyle =
+                            isStatusCol && isGeometriedatenFilter
+                              ? geometriedatenStatusStyles[statusLabel]
+                              : undefined;
+
+                          const statusClass = isStatusCol && (rowEdited[attrName] ?? "") ? statusStyle?.triggerClass ?? "" : "";
 
                           return (
                             <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
@@ -1405,8 +1439,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   <SelectTrigger
                                     disabled={isEditDisabled}
                                     title={
-                                      def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))
-                                        ?.desc ?? (rowEdited[attrName] ?? "")
+                                      def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                                      (rowEdited[attrName] ?? "")
                                     }
                                     className={cn(
                                       "h-6 w-full min-w-0 text-xs px-1 rounded-none",
@@ -1423,11 +1457,31 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     <SelectValue placeholder="Wählen…" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {def.valueset.map((vs) => (
-                                      <SelectItem key={vs.name} value={vs.name}>
-                                        {vs.desc || vs.name}
-                                      </SelectItem>
-                                    ))}
+                                    {def.valueset.map((vs) => {
+                                      const label = (vs.desc || vs.name || "").trim();
+                                      const itemStyle =
+                                        isStatusCol && isGeometriedatenFilter
+                                          ? geometriedatenStatusStyles[label]
+                                          : undefined;
+
+                                      return (
+                                        <SelectItem key={vs.name} value={vs.name}>
+                                          {itemStyle ? (
+                                            <div className="flex items-center gap-2">
+                                              <span
+                                                className={cn(
+                                                  "h-3 w-3 rounded-sm border",
+                                                  itemStyle.indicatorClass
+                                                )}
+                                              />
+                                              <span>{label}</span>
+                                            </div>
+                                          ) : (
+                                            label
+                                          )}
+                                        </SelectItem>
+                                      );
+                                    })}
                                   </SelectContent>
                                 </Select>
                               ) : isDate ? (
