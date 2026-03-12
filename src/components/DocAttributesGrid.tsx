@@ -621,8 +621,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
     // Approximate: 7px per character + padding/icons.
     // Clamp so it doesn't get ridiculously wide.
-    const px = Math.round(maxLen * 7 + 44);
-    return Math.min(220, Math.max(96, px));
+    const px = Math.round(maxLen * 7 + 60);
+    return Math.min(260, Math.max(140, px));
   }, [attrDefsByEntity]);
 
   const belegdatumColumnWidthPx = React.useMemo(() => {
@@ -945,7 +945,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     const dataCols = displayColumns.map((c) => {
       if (maxDataColumnWidthPx) {
         const compact: Record<string, number> = {
-          status: 120,
+          status: 140,
           belegdatum: 120,
           createdAt: 160,
           changedAt: 160,
@@ -1391,27 +1391,31 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                           const geometriedatenStatusStyles: Record<
                             string,
-                            { triggerClass: string; indicatorClass: string }
+                            { triggerClass: string; itemClass: string }
                           > = {
                             "In Änderung": {
                               triggerClass:
                                 "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
-                              indicatorClass: "bg-[#CAF0CC] border-[#8fd595]",
+                              itemClass:
+                                "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
                             },
                             Freigegeben: {
                               triggerClass:
                                 "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
-                              indicatorClass: "bg-[#498205] border-[#498205]",
+                              itemClass:
+                                "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
                             },
                             Registriert: {
                               triggerClass:
                                 "bg-[#757575] text-white border-[#757575] hover:bg-[#757575]",
-                              indicatorClass: "bg-[#757575] border-[#757575]",
+                              itemClass:
+                                "bg-[#757575] text-white data-[highlighted]:bg-[#757575] data-[highlighted]:text-white data-[state=checked]:bg-[#757575] data-[state=checked]:text-white",
                             },
                             Ungültig: {
                               triggerClass:
                                 "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
-                              indicatorClass: "bg-[#D13438] border-[#D13438]",
+                              itemClass:
+                                "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
                             },
                           };
 
@@ -1420,7 +1424,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               ? geometriedatenStatusStyles[statusLabel]
                               : undefined;
 
-                          const statusClass = isStatusCol && (rowEdited[attrName] ?? "") ? statusStyle?.triggerClass ?? "" : "";
+                          const statusClass =
+                            isStatusCol && (rowEdited[attrName] ?? "") ? statusStyle?.triggerClass ?? "" : "";
 
                           return (
                             <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
@@ -1443,7 +1448,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                       (rowEdited[attrName] ?? "")
                                     }
                                     className={cn(
-                                      "h-6 w-full min-w-0 text-xs px-1 rounded-none",
+                                      "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap",
                                       statusClass,
                                       isEditDisabled && "opacity-60",
                                       hasError &&
@@ -1465,20 +1470,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                           : undefined;
 
                                       return (
-                                        <SelectItem key={vs.name} value={vs.name}>
-                                          {itemStyle ? (
-                                            <div className="flex items-center gap-2">
-                                              <span
-                                                className={cn(
-                                                  "h-3 w-3 rounded-sm border",
-                                                  itemStyle.indicatorClass
-                                                )}
-                                              />
-                                              <span>{label}</span>
-                                            </div>
-                                          ) : (
-                                            label
-                                          )}
+                                        <SelectItem
+                                          key={vs.name}
+                                          value={vs.name}
+                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap")}
+                                        >
+                                          {label}
                                         </SelectItem>
                                       );
                                     })}
