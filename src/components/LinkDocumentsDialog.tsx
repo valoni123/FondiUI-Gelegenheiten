@@ -21,7 +21,7 @@ import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItem
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { linkIdmItemDocumentsBidirectional } from "@/api/idm";
-import { getExistingLinkedPids } from "@/api/idm";
+import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -55,6 +55,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [selectedPids, setSelectedPids] = React.useState<Set<string>>(new Set());
   const [linking, setLinking] = React.useState(false);
   const [existingLinkedPids, setExistingLinkedPids] = React.useState<Set<string>>(new Set());
+  const [existingLinkedMdsIds, setExistingLinkedMdsIds] = React.useState<Set<string>>(new Set());
+  const [mainMdsId, setMainMdsId] = React.useState<string | null>(null);
 
   const normalizePid = React.useCallback((pid?: string) => String(pid ?? "").trim(), []);
 
@@ -214,6 +216,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       setQuery("");
       setSelectedPids(new Set());
       setExistingLinkedPids(new Set());
+      setExistingLinkedMdsIds(new Set());
+      setMainMdsId(null);
     }
   }, [open]);
 
@@ -247,22 +251,37 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
     (async () => {
       try {
-        const pids = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
-        if (!cancelled) {
-          const next = new Set<string>();
-          for (const raw of pids || []) {
-            for (const v of pidVariants(String(raw))) next.add(v);
-          }
-          setExistingLinkedPids(next);
-          console.log("[LinkDocumentsDialog] loaded existing links", {
-            mainPid,
-            count: pids?.length ?? 0,
-            raw: pids,
-            normalizedVariantsCount: next.size,
-          });
+        const [pids, mainInfo] = await Promise.all([
+          getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE"),
+          getIdmItemByPid(authToken, cloudEnvironment, mainPid, "de-DE").catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        const nextPids = new Set<string>();
+        for (const raw of pids || []) {
+          for (const v of pidVariants(String(raw))) nextPids.add(v);
         }
+        setExistingLinkedPids(nextPids);
+
+        const linkedInfos = await Promise.all(
+          (pids || []).map((pid) => getIdmItemByPid(authToken, cloudEnvironment, String(pid), "de-DE").catch(() => null))
+        );
+
+        if (cancelled) return;
+
+        const nextMds = new Set<string>();
+        for (const info of linkedInfos) {
+          if (info?.mdsId) nextMds.add(String(info.mdsId));
+        }
+        setExistingLinkedMdsIds(nextMds);
+        setMainMdsId(mainInfo?.mdsId ? String(mainInfo.mdsId) : null);
       } catch (err: any) {
-        if (!cancelled) setExistingLinkedPids(new Set());
+        if (!cancelled) {
+          setExistingLinkedPids(new Set());
+          setExistingLinkedMdsIds(new Set());
+          setMainMdsId(null);
+        }
         toast({
           title: "Verlinkungen konnten nicht geladen werden",
           description: String(err?.message ?? "Unbekannter Fehler"),
@@ -276,38 +295,40 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     };
   }, [open, mainPid, authToken, cloudEnvironment, pidVariants]);
 
+  const getMdsIdForDoc = React.useCallback((doc: IdmDocPreview) => {
+    const raw = (doc.attributes ?? []).find((a) => a?.name === "MDS_ID")?.value ?? "";
+    const v = String(raw).trim();
+    return v || null;
+  }, []);
+
   const debugLoggedRef = React.useRef<string>("");
   React.useEffect(() => {
     if (!open || step !== 3) return;
-    const key = `${mainPid ?? ""}|${existingLinkedPids.size}|${results.length}`;
+    const key = `${mainPid ?? ""}|${existingLinkedPids.size}|${existingLinkedMdsIds.size}|${results.length}`;
     if (debugLoggedRef.current === key) return;
     debugLoggedRef.current = key;
-
-    const sample = results.slice(0, 12).map((r) => ({
-      pid: r.pid,
-      dokumentVerlinkung:
-        (r.attributes ?? []).find((a) => a?.name === "Dokument_Verlinkung")?.value ?? "",
-    }));
 
     const linked = results
       .map((r) => {
         const pidStr = normalizePid(r.pid);
-        const already = !!pidStr && (isAlreadyLinkedPid(pidStr) || isAlreadyLinkedByBackReference(r));
-        return { pid: r.pid, already };
+        const mds = getMdsIdForDoc(r);
+        const already =
+          (!!pidStr && isAlreadyLinkedPid(pidStr)) ||
+          (!!mds && existingLinkedMdsIds.has(mds)) ||
+          isAlreadyLinkedByBackReference(r);
+        return { pid: r.pid, mdsId: mds, already };
       })
       .filter((x) => x.already);
 
     console.log("[LinkDocumentsDialog] link-detection debug", {
       mainPid,
-      mainPidVariants: Array.from(mainPidVariants),
+      mainMdsId,
       existingLinkedPidsSize: existingLinkedPids.size,
-      existingLinkedPidsSample: Array.from(existingLinkedPids).slice(0, 15),
-      resultsCount: results.length,
-      resultsSample: sample,
+      existingLinkedMdsIdsSize: existingLinkedMdsIds.size,
       alreadyLinkedCount: linked.length,
       alreadyLinkedSample: linked.slice(0, 15),
     });
-  }, [open, step, mainPid, results, existingLinkedPids, normalizePid, isAlreadyLinkedPid, isAlreadyLinkedByBackReference, mainPidVariants]);
+  }, [open, step, mainPid, results, existingLinkedPids, existingLinkedMdsIds, mainMdsId, normalizePid, isAlreadyLinkedPid, isAlreadyLinkedByBackReference, getMdsIdForDoc]);
 
   // If the user searched/selected quickly before the existing links finished loading,
   // ensure already linked PIDs are removed from the current selection.
@@ -582,9 +603,14 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r) => {
                     const pidStr = normalizePid(r.pid);
+                    const mds = getMdsIdForDoc(r);
                     const alreadyLinked =
-                      !!pidStr && (isAlreadyLinkedPid(pidStr) || isAlreadyLinkedByBackReference(r));
-                    const isSelf = !!pidStr && isSameAsMainPid(pidStr);
+                      (!!pidStr && isAlreadyLinkedPid(pidStr)) ||
+                      (!!mds && existingLinkedMdsIds.has(mds)) ||
+                      isAlreadyLinkedByBackReference(r);
+                    const isSelf =
+                      (!!pidStr && isSameAsMainPid(pidStr)) ||
+                      (!!mds && !!mainMdsId && mds === mainMdsId);
                     const isSelected = !!pidStr ? selectedPids.has(pidStr) : false;
                     const checkboxDisabled = !pidStr || alreadyLinked || isSelf;
                     const checkboxTitle = alreadyLinked

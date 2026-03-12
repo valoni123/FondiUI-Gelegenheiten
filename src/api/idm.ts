@@ -1301,6 +1301,8 @@ export const getIdmItemByPid = async (
   resourceUrl?: string;
   previewUrl?: string;
   aclName?: string;
+  /** Stable UUID across versions (from attribute MDS_ID), if available. */
+  mdsId?: string;
 }> => {
   const base = buildIdmBase(environment);
   const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
@@ -1338,7 +1340,12 @@ export const getIdmItemByPid = async (
   const resourceUrl = mainRes?.url ? String(mainRes.url) : undefined;
   const previewUrl = previewRes?.url ? String(previewRes.url) : undefined;
 
-  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName };
+  const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
+  const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+  const mdsAttr = attrsList.find((a) => (a?.name ?? a?.n ?? a?.key) === "MDS_ID");
+  const mdsId = (mdsAttr?.value ?? mdsAttr?.val ?? mdsAttr?.v ?? mdsAttr?._) ? String(mdsAttr?.value ?? mdsAttr?.val ?? mdsAttr?.v ?? mdsAttr?._) : undefined;
+
+  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName, mdsId };
 };
 
 /**
