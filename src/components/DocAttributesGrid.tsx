@@ -6,7 +6,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type IdmDocPreview } from "@/api/idm";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Link2, Loader2, FileText, CalendarDays } from "lucide-react";
+import {
+  ArrowLeftRight,
+  ChevronRight,
+  Save,
+  Trash2,
+  Link as LinkIcon,
+  Link2,
+  Loader2,
+  FileText,
+  CalendarDays,
+  Plus,
+  X,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -18,7 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import ReplacementDropzone from "@/components/ReplacementDropzone";
 import { type CloudEnvironment } from "@/authorization/configLoader";
-import { getIdmEntityAttributes } from "@/api/idm";
+import { getIdmEntityAttributes, getExistingProjectLinks, setIdmItemProjectLinks } from "@/api/idm";
 import {
   Select,
   SelectTrigger,
@@ -810,6 +822,64 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const [noteEditorRow, setNoteEditorRow] = React.useState<number | null>(null);
   const noteEditorDraftRef = React.useRef<string>("");
 
+  const [projectLinksRow, setProjectLinksRow] = React.useState<number | null>(null);
+  const [projectLinksDraft, setProjectLinksDraft] = React.useState<string[]>([]);
+  const [projectLinksLoading, setProjectLinksLoading] = React.useState(false);
+  const [projectLinksSaving, setProjectLinksSaving] = React.useState(false);
+  const projectLinksByPidRef = React.useRef<Record<string, string[]>>({});
+
+  const parseProjektVerlinkungAttr = React.useCallback((doc: IdmDocPreview): string[] => {
+    const raw = (doc.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "";
+    const text = String(raw ?? "").trim();
+    if (!text) return [];
+    return Array.from(
+      new Set(
+        text
+          .split(/[;,\n\r\t ]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+  }, []);
+
+  const getProjectLinksForDoc = React.useCallback(
+    (doc: IdmDocPreview): string[] => {
+      const pid = doc.pid ? String(doc.pid) : "";
+      if (pid && projectLinksByPidRef.current[pid]) return projectLinksByPidRef.current[pid];
+      return parseProjektVerlinkungAttr(doc);
+    },
+    [parseProjektVerlinkungAttr]
+  );
+
+  const openProjectLinksEditor = React.useCallback(
+    async (idx: number) => {
+      const doc = docs[idx];
+      if (!doc?.pid) return;
+      const pid = String(doc.pid);
+      setProjectLinksRow(idx);
+      setProjectLinksLoading(true);
+      try {
+        const existing = await getExistingProjectLinks(authToken, cloudEnvironment, pid, "de-DE");
+        projectLinksByPidRef.current[pid] = existing;
+        setProjectLinksDraft(existing.length ? existing : [""]);
+      } catch {
+        const fallback = getProjectLinksForDoc(doc);
+        setProjectLinksDraft(fallback.length ? fallback : [""]);
+      } finally {
+        setProjectLinksLoading(false);
+      }
+    },
+    [authToken, cloudEnvironment, docs, getProjectLinksForDoc]
+  );
+
+  const hasProjectLinks = React.useCallback(
+    (doc: IdmDocPreview) => {
+      const list = getProjectLinksForDoc(doc);
+      return list.length > 0;
+    },
+    [getProjectLinksForDoc]
+  );
+
   const openNoteEditor = (idx: number) => {
     const current = edited[idx]?.["Anmerkung"] ?? initial[idx]?.["Anmerkung"] ?? "";
     setNoteEditorRow(idx);
@@ -1172,23 +1242,22 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           )}
                         </div>
 
-                        {/* Project Link Indicator */}
+                        {/* Project Link Indicator (click to edit Projekt_Verlinkung) */}
                         <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          {doc.linkedViaProject ? (
-                            <div
-                              className="h-6 w-6 flex items-center justify-center text-amber-700"
-                              title={`Hauptprojekt: ${getAttrValue(doc, ["Projekt"]) || "unbekannt"}`}
-                            >
-                              <Link2 className="h-3 w-3" />
-                            </div>
-                          ) : (
-                            <div
-                              className="h-6 w-6 flex items-center justify-center text-muted-foreground/60"
-                              title="Keine Projekt-Verknüpfung"
-                            >
-                              <Link2 className="h-3 w-3" />
-                            </div>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-6 w-6",
+                              hasProjectLinks(doc) ? "text-amber-700 hover:text-amber-800" : "text-muted-foreground/60 hover:text-muted-foreground"
+                            )}
+                            disabled={!doc.pid || isLockedByStatus}
+                            onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
+                            title={doc.pid ? "Projekt-Verknüpfungen bearbeiten" : "PID fehlt"}
+                            aria-label="Projekt-Verknüpfungen bearbeiten"
+                          >
+                            <Link2 className="h-3 w-3" />
+                          </Button>
                         </div>
 
                         {/* MOVED: Note Editor Button (now after Linked Docs) */}
@@ -1535,6 +1604,120 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         </DialogContent>
       </Dialog>
 
+      {/* Project Links Dialog */}
+      <Dialog
+        open={projectLinksRow !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProjectLinksRow(null);
+            setProjectLinksDraft([]);
+            setProjectLinksLoading(false);
+            setProjectLinksSaving(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Projekt-Verknüpfungen</DialogTitle>
+            <DialogDescription>
+              Verwalten Sie die Werte in <span className="font-mono">Projekt_Verlinkung</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          {projectLinksLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Lade…
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {projectLinksDraft.map((val, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={val}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setProjectLinksDraft((prev) => prev.map((p, idx) => (idx === i ? v : p)));
+                    }}
+                    placeholder="Projekt-Nr. hinzufügen"
+                    className="h-8"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setProjectLinksDraft((prev) => prev.filter((_, idx) => idx !== i))}
+                    title="Entfernen"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => setProjectLinksDraft((prev) => [...prev, ""])}
+              >
+                <Plus className="mr-2 h-4 w-4" /> Projekt hinzufügen
+              </Button>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              disabled={projectLinksSaving}
+              onClick={() => {
+                setProjectLinksRow(null);
+                setProjectLinksDraft([]);
+              }}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              disabled={projectLinksSaving || projectLinksLoading}
+              onClick={async () => {
+                if (projectLinksRow == null) return;
+                const doc = docs[projectLinksRow];
+                if (!doc?.pid) return;
+                const pid = String(doc.pid);
+
+                const cleaned = Array.from(
+                  new Set(
+                    (projectLinksDraft || [])
+                      .map((v) => String(v).trim())
+                      .filter(Boolean)
+                  )
+                );
+
+                setProjectLinksSaving(true);
+                try {
+                  await setIdmItemProjectLinks(authToken, cloudEnvironment, pid, cleaned, "de-DE");
+                  projectLinksByPidRef.current[pid] = cleaned;
+                  toast({ title: "Projekt-Verknüpfungen gespeichert", variant: "success" });
+                  setProjectLinksRow(null);
+                  setProjectLinksDraft([]);
+                } catch (err: any) {
+                  toast({
+                    title: "Speichern fehlgeschlagen",
+                    description: String(err?.message ?? "Unbekannter Fehler"),
+                    variant: "destructive",
+                  });
+                } finally {
+                  setProjectLinksSaving(false);
+                }
+              }}
+            >
+              {projectLinksSaving ? "Speichern…" : "Speichern"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirm Delete Dialog */}
       <Dialog
         open={confirmDeleteRow !== null}
@@ -1546,6 +1729,19 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           <DialogHeader className="pr-10">
             <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
             <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            {(() => {
+              const row = confirmDeleteRow;
+              if (row == null) return null;
+              const doc = docs[row];
+              if (!doc?.pid) return null;
+              const links = getProjectLinksForDoc(doc);
+              if (!links.length) return null;
+              return (
+                <div className="mt-2 text-xs text-amber-700">
+                  Achtung: In <span className="font-mono">Projekt_Verlinkung</span> sind Werte hinterlegt. Beim Löschen gehen diese Verknüpfungen verloren.
+                </div>
+              );
+            })()}
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setConfirmDeleteRow(null)}>
@@ -1577,6 +1773,18 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           <DialogHeader className="pr-10">
             <DialogTitle>Sollen die ausgewählten Dokumente wirklich gelöscht werden?</DialogTitle>
             <DialogDescription className="whitespace-nowrap">Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            {(() => {
+              const selectedDocs = Array.from(selectedRows)
+                .map((i) => docs[i])
+                .filter((d) => d && d.pid) as IdmDocPreview[];
+              const withLinks = selectedDocs.filter((d) => getProjectLinksForDoc(d).length > 0);
+              if (withLinks.length === 0) return null;
+              return (
+                <div className="mt-2 text-xs text-amber-700">
+                  Achtung: {withLinks.length} Dokument(e) haben Einträge in <span className="font-mono">Projekt_Verlinkung</span>. Beim Löschen gehen diese Verknüpfungen verloren.
+                </div>
+              );
+            })()}
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setConfirmBatchDelete(false)}>

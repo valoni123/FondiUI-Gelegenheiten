@@ -1260,7 +1260,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Soll das Dokument wirklich gelöscht werden?</DialogTitle>
-            <DialogDescription>Diese Aktion kann nicht rückgängig gemacht werden.</DialogDescription>
+            <DialogDescription>
+              Diese Aktion kann nicht rückgängig gemacht werden.
+              {(() => {
+                const raw =
+                  (fullPreviewData?.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "";
+                if (!String(raw ?? "").trim()) return null;
+                return (
+                  <div className="mt-2 text-xs text-amber-700">
+                    Achtung: In <span className="font-mono">Projekt_Verlinkung</span> sind Werte hinterlegt. Beim Löschen gehen diese Verknüpfungen verloren.
+                  </div>
+                );
+              })()}
+            </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setIsConfirmDeleteOpen(false)}>

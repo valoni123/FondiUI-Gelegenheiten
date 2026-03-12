@@ -343,7 +343,7 @@ export const searchIdmItemsByEntityJson = async (
     // Prefer SmallPreview; fallback to Preview
     const small = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
-    const mainRes = resList[0] ?? resList.find((r) => (r?.name ?? r?.["name"]) === ""); // erstes echtes Resource-Objekt
+    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0]; // erstes echtes Resource-Objekt
 
     // Extract attributes robustly
     const attrsRaw =
@@ -401,7 +401,6 @@ export const searchIdmItemsByEntityJson = async (
     const lastChangedTS: string | undefined =
       item?.lastChangedTS ?? item?.LastChangedTS ?? item?.modifiedAt ?? item?.ModifiedAt;
 
-    const chosen = small || preview;
     const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid; // capture PID
 
     const aclRaw = (item as any)?.acl;
@@ -412,13 +411,13 @@ export const searchIdmItemsByEntityJson = async (
         }
       : undefined;
 
-    if (chosen?.url) {
+    if (small?.url) {
       previews.push({
-        smallUrl: String(chosen.url),
+        smallUrl: String(small.url),
         fullUrl: preview?.url ? String(preview.url) : undefined,
-        contentType: String(chosen.mimetype || preview?.mimetype || item?.mimetype || ""),
+        contentType: String(small.mimetype || preview?.mimetype || item?.mimetype || ""),
         // USE the real filename from first res if present
-        filename: String((mainRes?.filename ?? item?.filename ?? chosen.filename ?? "")),
+        filename: String((mainRes?.filename ?? item?.filename ?? small.filename ?? "")),
         entityName: String(entityName),
         attributes,
         pid: pidRaw ? String(pidRaw) : undefined,
@@ -837,11 +836,8 @@ export const searchIdmItemsByAttributesJson = async (
     // Wähle Vorschaubilder für die Anzeige
     const smallPreview = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0]; // erstes echtes res
 
-    // ECHTE Ressource: bevorzugt explizit name == "", ansonsten erste Ressource als Fallback
-    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
-
-    // Attribute extrahieren (wie gehabt)
     const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
     const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
     const attributes =
@@ -853,8 +849,44 @@ export const searchIdmItemsByAttributesJson = async (
         })
         .filter((a) => a.name || a.value) as { name: string; value: string }[];
 
-    // Für die Kachel-Anzeige nutzen wir SmallPreview/Preview, aber zum Öffnen liefern wir resourceUrl vom ersten res
-    const chosenPreview = smallPreview ?? preview;
+    // NEW: Also extract Projekt_Verlinkung from collections (colls) and expose it as a synthetic attribute.
+    const collsRaw = (item as any)?.colls?.coll ?? (item as any)?.colls ?? [];
+    const colls: any[] = Array.isArray(collsRaw) ? collsRaw : collsRaw ? [collsRaw] : [];
+    const projektVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Projekt_Verlinkung");
+    const projektEntriesRaw = (projektVerlinkungGroup?.coll ?? projektVerlinkungGroup?.item ?? []) as any;
+    const projektEntries: any[] = Array.isArray(projektEntriesRaw)
+      ? projektEntriesRaw
+      : projektEntriesRaw
+        ? [projektEntriesRaw]
+        : [];
+
+    const projektVerlinkungValues: string[] = [];
+    for (const entry of projektEntries) {
+      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+      if (value) projektVerlinkungValues.push(String(value));
+    }
+
+    const uniqProjektVerlinkungValues = Array.from(new Set(projektVerlinkungValues.filter(Boolean)));
+    if (uniqProjektVerlinkungValues.length) {
+      const existingIdx = attributes.findIndex((a) => a.name === "Projekt_Verlinkung");
+      const joined = uniqProjektVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
+      else attributes.push({ name: "Projekt_Verlinkung", value: joined });
+    }
+
+    const createdByName: string | undefined =
+      item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
+    const createdTS: string | undefined =
+      item?.createdTS ?? item?.CreatedTS ?? item?.createdAt ?? item?.CreatedAt;
+    const lastChangedByName: string | undefined =
+      item?.lastChangedByName ?? item?.LastChangedByName ?? item?.modifiedBy ?? item?.ModifiedBy;
+    const lastChangedTS: string | undefined =
+      item?.lastChangedTS ?? item?.LastChangedTS ?? item?.modifiedAt ?? item?.ModifiedAt;
+
+    const pidRaw = (item as any)?.pid ?? (item as any)?.PID ?? (item as any)?.Pid;
 
     const aclRaw = (item as any)?.acl;
     const acl = aclRaw
@@ -864,6 +896,8 @@ export const searchIdmItemsByAttributesJson = async (
         }
       : undefined;
 
+    const chosenPreview = smallPreview ?? preview;
+
     if (chosenPreview?.url || mainRes?.url) {
       previews.push({
         smallUrl: String((chosenPreview?.url ?? preview?.url ?? "")),
@@ -871,13 +905,15 @@ export const searchIdmItemsByAttributesJson = async (
         contentType: String(
           chosenPreview?.mimetype || preview?.mimetype || mainRes?.mimetype || item?.mimetype || ""
         ),
-        // WICHTIG: Dateiname von der echten Ressource (erstes res/name == "")
         filename: String((mainRes?.filename ?? item?.filename ?? chosenPreview?.filename ?? "")),
-        entityName: String(item?.entityName || entityName),
+        entityName: String(item?.entityName ?? item?.name ?? ""),
         attributes,
-        pid: item?.pid ? String(item.pid) : undefined,
-        // WICHTIG: URL der echten Datei
+        pid: pidRaw ? String(pidRaw) : undefined,
         resourceUrl: mainRes?.url ? String(mainRes.url) : undefined,
+        createdByName: createdByName ? String(createdByName) : undefined,
+        createdTS: createdTS ? String(createdTS) : undefined,
+        lastChangedByName: lastChangedByName ? String(lastChangedByName) : undefined,
+        lastChangedTS: lastChangedTS ? String(lastChangedTS) : undefined,
         acl,
       });
     }
@@ -928,7 +964,7 @@ export const searchIdmItemsByXQueryJson = async (
 
     const smallPreview = resList.find((r) => (r?.name ?? r?.["name"]) === "SmallPreview");
     const preview = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
-    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
+    const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0]; // erstes echtes res
 
     const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
     const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
@@ -1061,6 +1097,120 @@ export const getExistingLinkedPids = async (
   return Array.from(new Set(pids.filter(Boolean)));
 };
 
+export const getExistingProjectLinks = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  language: string = "de-DE"
+): Promise<string[]> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] get Projekt_Verlinkung failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  const root = (json as any)?.item ?? json;
+
+  const collsContainer = root?.colls ?? {};
+  const groupsRaw = (collsContainer?.coll ?? collsContainer) as any;
+  const groups: any[] = Array.isArray(groupsRaw) ? groupsRaw : groupsRaw ? [groupsRaw] : [];
+
+  const group = groups.find((g) => (g?.name ?? g?.["name"]) === "Projekt_Verlinkung");
+  if (!group) return [];
+
+  const entriesRaw = (group?.coll ?? group?.item ?? []) as any;
+  const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
+
+  const values: string[] = [];
+  for (const entry of entries) {
+    const attrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+    const attrs: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
+    const valueAttr = attrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+    const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+    if (value) values.push(String(value));
+  }
+
+  return Array.from(new Set(values.map((v) => String(v).trim()).filter(Boolean)));
+};
+
+export const setIdmItemProjectLinks = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  projectLinks: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  const info = await getIdmItemByPid(token, environment, pid, language);
+  const entityName = String(info?.entityName ?? "");
+  if (!entityName) {
+    throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when updating Projekt_Verlinkung.`);
+  }
+
+  const base = buildIdmBase(environment);
+  const url =
+    `${base}/api/items/${encodeURIComponent(pid)}?` +
+    `%24checkout=true&%24checkin=true&%24merge=true&%24language=${encodeURIComponent(language)}`;
+
+  const clean = Array.from(new Set((projectLinks || []).map((v) => String(v).trim()).filter(Boolean)));
+
+  const collItems = clean.map((value) => ({
+    entityName: "Projekt_Verlinkung",
+    attrs: {
+      attr: [
+        {
+          name: "Value",
+          type: "1",
+          qual: "Projekt_Verlinkung/Value",
+          value: String(value),
+        },
+      ],
+    },
+  }));
+
+  const body: any = {
+    item: {
+      colls: [
+        {
+          name: "Projekt_Verlinkung",
+          coll: collItems,
+        },
+      ],
+      entityName,
+      pid,
+    },
+  };
+
+  if (info?.aclName) {
+    body.item.acl = { name: info.aclName };
+  }
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      "Content-Type": "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] update Projekt_Verlinkung failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
+  }
+};
+
 export const linkIdmItemDocuments = async (
   token: string,
   environment: CloudEnvironment,
@@ -1120,71 +1270,6 @@ export const linkIdmItemDocuments = async (
     const errorText = await res.text();
     throw new Error(`[IDM] link documents failed for PID '${mainPid}': ${res.status} ${res.statusText} - ${errorText}`);
   }
-};
-
-export const getIdmItemByPid = async (
-  token: string,
-  environment: CloudEnvironment,
-  pid: string,
-  language: string = "de-DE"
-): Promise<{ pid: string; filename?: string; entityName?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string; aclName?: string }> => {
-  const base = buildIdmBase(environment);
-  const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
-
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/json;charset=utf-8",
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`[IDM] get item by PID failed: ${res.status} ${res.statusText} - ${errorText}`);
-  }
-
-  const json = await res.json();
-  const item = (json as any)?.item ?? json;
-  const filename =
-    item?.filename ?? 
-    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ?? 
-    undefined;
-  const entityName = item?.entityName ?? undefined;
-  const drillbackurl = item?.drillbackurl ?? undefined;
-
-  const aclName: string | undefined = item?.acl?.name != null ? String(item.acl.name) : undefined;
-
-  // Extract main resource and preview URLs
-  const resNodeRaw = item?.resrs?.res;
-  const resList: any[] = Array.isArray(resNodeRaw) ? resNodeRaw : resNodeRaw ? [resNodeRaw] : [];
-  const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
-  const previewRes = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
-  const resourceUrl = mainRes?.url ? String(mainRes.url) : undefined;
-  const previewUrl = previewRes?.url ? String(previewRes.url) : undefined;
-
-  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName };
-};
-
-/**
- * INTERNAL: Updates ONLY the 'Dokument_Verlinkung' collection for a PID.
- * This is intentionally narrow because some entity types have other collections that we must not PUT back.
- */
-const setIdmItemLinkedPids = async (
-  token: string,
-  environment: CloudEnvironment,
-  pid: string,
-  linkedPids: string[],
-  language: string = "de-DE"
-): Promise<void> => {
-  const info = await getIdmItemByPid(token, environment, pid, language);
-  const entityName = String(info?.entityName ?? "");
-  if (!entityName) {
-    throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when updating links.`);
-  }
-  await linkIdmItemDocuments(token, environment, pid, entityName, linkedPids, language, {
-    aclName: info?.aclName,
-  });
 };
 
 export const unlinkIdmItemDocument = async (
