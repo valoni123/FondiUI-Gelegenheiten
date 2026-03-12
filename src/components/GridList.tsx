@@ -22,6 +22,10 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
+  /**
+   * Reserved: previous attempt used viewport-sticky headers. Now the table scrolls inside the left panel,
+   * so sticky is relative to the scroll container and doesn't need an external offset.
+   */
   stickyOffsetTop?: number;
 }
 
@@ -37,7 +41,6 @@ const GridList: React.FC<GridListProps> = (props) => {
     isLoading,
     filters,
     onCommitFilters,
-    stickyOffsetTop = 0,
   } = props;
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
@@ -153,8 +156,9 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   const headerRowHeightPx = 32; // h-8
 
-  const headerStickyStyle: React.CSSProperties = { top: stickyOffsetTop };
-  const filterStickyStyle: React.CSSProperties = { top: stickyOffsetTop + headerRowHeightPx };
+  // Sticky is relative to the table's scroll container.
+  const headerStickyStyle: React.CSSProperties = { top: 0 };
+  const filterStickyStyle: React.CSSProperties = { top: headerRowHeightPx };
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
@@ -168,8 +172,8 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   return (
     <React.Fragment>
-      <div className="space-y-4">
-        <div className="w-full overflow-x-auto">
+      <div className="h-full min-h-0 flex flex-col gap-3">
+        <div className="flex-1 min-h-0 w-full overflow-auto">
           <table className="w-max min-w-full border-collapse caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
@@ -359,19 +363,19 @@ const GridList: React.FC<GridListProps> = (props) => {
           </table>
         </div>
 
-        <BusinessPartnerSelectDialog
-          isOpen={isBpSelectDialogOpen}
-          onClose={() => setIsBpSelectDialogOpen(false)}
-          onSelect={handleSelectBusinessPartnerFromGrid}
-          authToken={authToken}
-          companyNumber={companyNumber}
-          cloudEnvironment={cloudEnvironment}
-        />
-
-        <p className="text-sm text-muted-foreground text-center py-2">
+        <p className="shrink-0 text-sm text-muted-foreground text-center py-2">
           {`${sortedItems.length} Gelegenheiten angezeigt`}
         </p>
       </div>
+
+      <BusinessPartnerSelectDialog
+        isOpen={isBpSelectDialogOpen}
+        onClose={() => setIsBpSelectDialogOpen(false)}
+        onSelect={handleSelectBusinessPartnerFromGrid}
+        authToken={authToken}
+        companyNumber={companyNumber}
+        cloudEnvironment={cloudEnvironment}
+      />
     </React.Fragment>
   );
 };

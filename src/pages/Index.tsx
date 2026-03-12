@@ -426,7 +426,7 @@ const Index: React.FC<IndexProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 flex flex-col flex-grow">
+      <div className="w-full px-4 flex flex-col flex-grow min-h-0">
         <div
           ref={appHeaderRef}
           className={!selectedOpportunityId ? "sticky top-0 z-50" : undefined}
@@ -465,13 +465,14 @@ const Index: React.FC<IndexProps> = ({
           </div>
         ) : null}
 
-        <ResizablePanelGroup direction="horizontal" className="flex-grow mt-0">
+        <ResizablePanelGroup direction="horizontal" className="flex-grow mt-0 min-h-0">
           {selectedOpportunityId ? (
-            <ResizablePanel 
+            <ResizablePanel
               size={rightPanelSize}
               minSize={0}
               collapsible={true}
               collapsedSize={0}
+              className="min-h-0"
             >
               <RightPanel
                 selectedOpportunityId={selectedOpportunityId}
@@ -494,7 +495,7 @@ const Index: React.FC<IndexProps> = ({
               />
             </ResizablePanel>
           ) : (
-            <ResizablePanel size={leftPanelSize} minSize={10}>
+            <ResizablePanel size={leftPanelSize} minSize={10} className="min-h-0">
               <GridList
                 items={effectiveOpportunityId ? [] : opportunities}
                 onUpdateItem={handleUpdateItem}
