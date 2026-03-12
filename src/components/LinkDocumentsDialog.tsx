@@ -251,6 +251,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
   const togglePid = (pid?: string) => {
     if (!pid) return;
+    if (existingLinkedPids.has(String(pid))) return;
     setSelectedPids((prev) => {
       const next = new Set(prev);
       if (next.has(pid)) next.delete(pid);
@@ -426,8 +427,9 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r) => {
-                    const alreadyLinked = !!r.pid && existingLinkedPids.has(String(r.pid));
-                    const isSelected = r.pid ? selectedPids.has(r.pid) : false;
+                    const pidStr = r.pid ? String(r.pid) : "";
+                    const alreadyLinked = !!pidStr && existingLinkedPids.has(pidStr);
+                    const isSelected = !!pidStr ? selectedPids.has(pidStr) : false;
                     return (
                       <div
                         key={getDocKey(r)}
@@ -446,9 +448,9 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         {/* Auswahl-Checkbox oben links */}
                         <div className="absolute top-2 left-2 z-10">
                           <Checkbox
-                            checked={isSelected}
-                            disabled={!r.pid || alreadyLinked}
-                            onCheckedChange={() => togglePid(r.pid)}
+                            checked={alreadyLinked || isSelected}
+                            disabled={!pidStr || alreadyLinked}
+                            onCheckedChange={() => togglePid(pidStr)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
                             title={alreadyLinked ? "Dieses Dokument ist bereits verlinkt" : undefined}
