@@ -22,6 +22,8 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
+  /** Offset for sticky table header rows (e.g. height of the AppHeader). */
+  stickyTopOffsetPx?: number;
 }
 
 const GridList: React.FC<GridListProps> = (props) => {
@@ -36,6 +38,7 @@ const GridList: React.FC<GridListProps> = (props) => {
     isLoading,
     filters,
     onCommitFilters,
+    stickyTopOffsetPx = 0,
   } = props;
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
@@ -151,9 +154,10 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   const headerRowHeightPx = 32; // h-8
 
-  // Sticky is relative to the table's scroll container.
-  const headerStickyStyle: React.CSSProperties = { top: 0 };
-  const filterStickyStyle: React.CSSProperties = { top: headerRowHeightPx };
+  // Sticky is relative to the page scroll container.
+  // We offset by the AppHeader height so the table header doesn't get hidden behind it.
+  const headerStickyStyle: React.CSSProperties = { top: stickyTopOffsetPx };
+  const filterStickyStyle: React.CSSProperties = { top: stickyTopOffsetPx + headerRowHeightPx };
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
@@ -168,7 +172,7 @@ const GridList: React.FC<GridListProps> = (props) => {
   return (
     <React.Fragment>
       <div className="h-full min-h-0 flex flex-col gap-3">
-        <div className="flex-1 min-h-0 w-full overflow-auto">
+        <div className="flex-1 min-h-0 w-full overflow-x-auto overflow-y-visible">
           <table className="w-max min-w-full border-separate border-spacing-0 caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
