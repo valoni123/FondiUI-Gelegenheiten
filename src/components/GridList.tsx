@@ -74,9 +74,9 @@ const GridList: React.FC<GridListProps> = (props) => {
     () => [
       "id",
       "Project",
-      "description",
       "Artikel",
       "Customer",
+      "description",
       "PartNoOriginalRequest",
       "DrawingNoOriginalRequest",
     ],
@@ -151,13 +151,13 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
-  const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+    "sticky top-0 z-30 p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass =
+    "sticky top-8 z-20 p-0 border-r border-b border-border bg-background h-8 align-middle";
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
-  const filterWrapperClass =
-    "px-1 py-1 bg-background flex items-center min-h-8 min-w-0 sticky top-8 z-20";
+  const filterWrapperClass = "px-1 py-1 bg-background flex items-center min-h-8 min-w-0";
 
   return (
     <React.Fragment>
