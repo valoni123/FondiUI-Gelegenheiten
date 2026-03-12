@@ -3,7 +3,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload, Share2, Download } from "lucide-react";
+import { ChevronLeft, FileWarning, Loader2, Check, X, ArrowLeftRight, ChevronRight, Trash2, Link as LinkIcon, ExternalLink, Upload, Share2, Download, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showSuccess, showError } from "@/utils/toast";
 import {
@@ -31,7 +31,6 @@ import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import Li
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -980,12 +979,16 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       title={doc.filename || "Vorschau öffnen"}
                     >
                       {doc.linkedViaProject ? (
-                        <Badge
-                          variant="default"
-                          className="absolute left-2 top-2 z-10 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                        <div
+                          className="absolute left-2 top-2 z-10 text-amber-700"
+                          title={`Verknüpfte Projekte: ${
+                            (doc.linkedProjectValue ?? "").toString().trim() ||
+                            String((doc.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "").trim() ||
+                            "unbekannt"
+                          }`}
                         >
-                          verlinkt
-                        </Badge>
+                          <Folder className="h-4 w-4" />
+                        </div>
                       ) : null}
                       {doc.smallUrl ? (
                         <img
