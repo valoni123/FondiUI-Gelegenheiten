@@ -90,7 +90,7 @@ const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
         <button
           type="button"
           className="w-full text-left"
-          title="Klicken, um den ganzen Text zu sehen"
+          title={v}
         >
           <div className="truncate text-xs text-foreground">{v}</div>
         </button>
