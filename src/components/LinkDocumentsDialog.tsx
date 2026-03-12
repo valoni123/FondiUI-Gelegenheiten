@@ -87,24 +87,6 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
         }
       }
 
-      // Additionally, add stable "entity-id" keys so links remain recognized across versions.
-      // Example: Anfrage_Kunde-2913-7-LATEST and Anfrage_Kunde-2913-8-LATEST => both map to Anfrage_Kunde-2913
-      const addBaseKey = (candidate: string) => {
-        const noLatest = candidate.replace(/-latest$/i, "");
-        const parts = noLatest.split("-").filter(Boolean);
-        if (parts.length < 3) return; // need at least entity-id-version
-        const version = parts[parts.length - 1];
-        const id = parts[parts.length - 2];
-        const entityName = parts.slice(0, -2).join("-");
-        // Ignore tail-only variants like "2913-7" where entityName is numeric.
-        if (!entityName || /^\d+$/.test(entityName)) return;
-        if (!id || !version) return;
-        vars.push(`${entityName}-${id}`);
-      };
-
-      // Create base keys for the common representations we added above.
-      for (const cand of [...vars]) addBaseKey(cand);
-
       return Array.from(new Set(vars.map((v) => v.trim()).filter(Boolean)));
     },
     [normalizePid]
