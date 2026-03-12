@@ -465,7 +465,7 @@ const Index: React.FC<IndexProps> = ({
           </div>
         ) : null}
 
-        <ResizablePanelGroup direction="horizontal" className="flex-grow mt-0 min-h-0">
+        <ResizablePanelGroup direction="horizontal" className="flex-1 mt-0 min-h-0">
           {selectedOpportunityId ? (
             <ResizablePanel
               size={rightPanelSize}
@@ -509,7 +509,6 @@ const Index: React.FC<IndexProps> = ({
                 isLoading={isLoadingOpportunities}
                 filters={opportunityFilters}
                 onCommitFilters={handleCommitOpportunityFilters}
-                stickyOffsetTop={appHeaderHeight}
               />
             </ResizablePanel>
           )}
