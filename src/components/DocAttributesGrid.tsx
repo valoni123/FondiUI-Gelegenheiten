@@ -1366,6 +1366,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
                           const isStatusCol = col.id === "status";
+                          const isSerienstatusCol = col.id === "serienstatus";
                           const isGeoSpecificCol =
                             col.id === "serienstatus" ||
                             col.id === "versuchsstatus" ||
@@ -1385,6 +1386,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             activeDocFilter === "FSI_VERSUCH_GUELTIG";
 
                           const statusLabel = isStatusCol
+                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                                (rowEdited[attrName] ?? ""))
+                            : "";
+
+                          const serienstatusLabel = isSerienstatusCol
                             ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
                                 (rowEdited[attrName] ?? ""))
                             : "";
@@ -1419,13 +1425,47 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             },
                           };
 
-                          const statusStyle =
-                            isStatusCol && isGeometriedatenFilter
-                              ? geometriedatenStatusStyles[statusLabel]
-                              : undefined;
+                          const geometriedatenSerienstatusStyles: Record<
+                            string,
+                            { triggerClass: string; itemClass: string }
+                          > = {
+                            "Serie führend": {
+                              triggerClass:
+                                "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                              itemClass:
+                                "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
+                            },
+                            "Serie ungültig": {
+                              triggerClass:
+                                "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                              itemClass:
+                                "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
+                            },
+                            "Serie normal": {
+                              triggerClass:
+                                "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
+                              itemClass:
+                                "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
+                            },
+                            "Serie eingeschränkt": {
+                              triggerClass:
+                                "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                              itemClass:
+                                "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                            },
+                          };
 
-                          const statusClass =
-                            isStatusCol && (rowEdited[attrName] ?? "") ? statusStyle?.triggerClass ?? "" : "";
+                          const selectStyle =
+                            isGeometriedatenFilter && isStatusCol
+                              ? geometriedatenStatusStyles[statusLabel]
+                              : isGeometriedatenFilter && isSerienstatusCol
+                                ? geometriedatenSerienstatusStyles[serienstatusLabel]
+                                : undefined;
+
+                          const selectColorClass =
+                            (isStatusCol || isSerienstatusCol) && (rowEdited[attrName] ?? "")
+                              ? selectStyle?.triggerClass ?? ""
+                              : "";
 
                           return (
                             <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
@@ -1449,7 +1489,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     }
                                     className={cn(
                                       "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap",
-                                      statusClass,
+                                      selectColorClass,
                                       isEditDisabled && "opacity-60",
                                       hasError &&
                                         !hasSuccess &&
@@ -1465,9 +1505,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     {def.valueset.map((vs) => {
                                       const label = (vs.desc || vs.name || "").trim();
                                       const itemStyle =
-                                        isStatusCol && isGeometriedatenFilter
+                                        isGeometriedatenFilter && isStatusCol
                                           ? geometriedatenStatusStyles[label]
-                                          : undefined;
+                                          : isGeometriedatenFilter && isSerienstatusCol
+                                            ? geometriedatenSerienstatusStyles[label]
+                                            : undefined;
 
                                       return (
                                         <SelectItem
