@@ -21,6 +21,7 @@ import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItem
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { linkIdmItemDocumentsBidirectional } from "@/api/idm";
+import { getExistingLinkedPids } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -53,6 +54,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [results, setResults] = React.useState<IdmDocPreview[]>([]);
   const [selectedPids, setSelectedPids] = React.useState<Set<string>>(new Set());
   const [linking, setLinking] = React.useState(false);
+  const [existingLinkedPids, setExistingLinkedPids] = React.useState<Set<string>>(new Set());
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
@@ -126,32 +128,27 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       setAttrQuery("");
       setQuery("");
       setSelectedPids(new Set());
+      setExistingLinkedPids(new Set());
     }
   }, [open]);
 
   React.useEffect(() => {
-    if (!open) return;
+    if (!open || !mainPid) return;
     let cancelled = false;
-    const load = async () => {
-      setLoading(true);
+
+    (async () => {
       try {
-        const list = await getIdmEntityInfos(authToken, cloudEnvironment, "de-DE");
-        if (!cancelled) setEntities(list);
-      } catch (err: any) {
-        toast({
-          title: "Laden der Dokumententypen fehlgeschlagen",
-          description: String(err?.message ?? "Unbekannter Fehler"),
-          variant: "destructive",
-        });
-      } finally {
-        if (!cancelled) setLoading(false);
+        const pids = await getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE");
+        if (!cancelled) setExistingLinkedPids(new Set((pids || []).map(String)));
+      } catch {
+        if (!cancelled) setExistingLinkedPids(new Set());
       }
-    };
-    load();
+    })();
+
     return () => {
       cancelled = true;
     };
-  }, [open, authToken, cloudEnvironment]);
+  }, [open, mainPid, authToken, cloudEnvironment]);
 
   const preparedEntities = React.useMemo(() => {
     // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
@@ -405,13 +402,15 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r, idx) => {
+                    const alreadyLinked = !!r.pid && existingLinkedPids.has(String(r.pid));
                     const isSelected = r.pid ? selectedPids.has(r.pid) : false;
                     return (
                       <div
                         key={getDocKey(r)}
                         className={cn(
                           "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
-                          isSelected && "ring-2 ring-blue-600"
+                          isSelected && "ring-2 ring-blue-600",
+                          alreadyLinked && "opacity-70"
                         )}
                         onClick={() => {
                           // Kachel-Klick öffnet weiterhin die Originaldatei
@@ -424,12 +423,26 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         <div className="absolute top-2 left-2 z-10">
                           <Checkbox
                             checked={isSelected}
-                            disabled={!r.pid}
+                            disabled={!r.pid || alreadyLinked}
                             onCheckedChange={() => togglePid(r.pid)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
+                            title={alreadyLinked ? "Dieses Dokument ist bereits verlinkt" : undefined}
                           />
                         </div>
+
+                        {/* Bereits verlinkt Badge */}
+                        {alreadyLinked ? (
+                          <div className="absolute bottom-2 left-2 z-10">
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-900 border border-amber-200"
+                              title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
+                            >
+                              bereits verlinkt
+                            </Badge>
+                          </div>
+                        ) : null}
 
                         {/* Projekt-Verlinkung Badge */}
                         {r.linkedViaProject ? (
