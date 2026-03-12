@@ -1176,17 +1176,17 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           {doc.linkedViaProject ? (
                             <div
-                              className="h-7 w-7 flex items-center justify-center text-amber-700"
+                              className="h-6 w-6 flex items-center justify-center text-amber-700"
                               title={`Hauptprojekt: ${getAttrValue(doc, ["Projekt"]) || "unbekannt"}`}
                             >
-                              <Link2 className="h-4 w-4" />
+                              <Link2 className="h-3 w-3" />
                             </div>
                           ) : (
                             <div
-                              className="h-7 w-7 flex items-center justify-center text-muted-foreground/60"
+                              className="h-6 w-6 flex items-center justify-center text-muted-foreground/60"
                               title="Keine Projekt-Verknüpfung"
                             >
-                              <Link2 className="h-4 w-4" />
+                              <Link2 className="h-3 w-3" />
                             </div>
                           )}
                         </div>
