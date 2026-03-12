@@ -89,6 +89,43 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     [existingLinkedPids, normalizePid, pidVariants]
   );
 
+  const mainPidVariants = React.useMemo(() => {
+    const set = new Set<string>();
+    if (!mainPid) return set;
+    for (const v of pidVariants(mainPid)) set.add(v);
+    return set;
+  }, [mainPid, pidVariants]);
+
+  const isSameAsMainPid = React.useCallback(
+    (pid?: string) => {
+      const p = normalizePid(pid);
+      if (!p || !mainPidVariants.size) return false;
+      for (const v of pidVariants(p)) {
+        if (mainPidVariants.has(v)) return true;
+      }
+      return false;
+    },
+    [mainPidVariants, normalizePid, pidVariants]
+  );
+
+  const isAlreadyLinkedByBackReference = React.useCallback(
+    (doc: IdmDocPreview) => {
+      if (!mainPidVariants.size) return false;
+      const raw = (doc.attributes ?? []).find((a) => a?.name === "Dokument_Verlinkung")?.value ?? "";
+      const values = String(raw)
+        .split(";")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      for (const val of values) {
+        for (const v of pidVariants(val)) {
+          if (mainPidVariants.has(v)) return true;
+        }
+      }
+      return false;
+    },
+    [mainPidVariants, pidVariants]
+  );
+
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
     // fallback when pid is missing (avoid preview URLs because they can be re-signed)
@@ -313,6 +350,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const togglePid = (pid?: string) => {
     const p = normalizePid(pid);
     if (!p) return;
+    if (isSameAsMainPid(p)) return;
     if (isAlreadyLinkedPid(p)) return;
     setSelectedPids((prev) => {
       const next = new Set(prev);
@@ -490,15 +528,24 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r) => {
                     const pidStr = normalizePid(r.pid);
-                    const alreadyLinked = !!pidStr && isAlreadyLinkedPid(pidStr);
+                    const alreadyLinked =
+                      !!pidStr && (isAlreadyLinkedPid(pidStr) || isAlreadyLinkedByBackReference(r));
+                    const isSelf = !!pidStr && isSameAsMainPid(pidStr);
                     const isSelected = !!pidStr ? selectedPids.has(pidStr) : false;
+                    const checkboxDisabled = !pidStr || alreadyLinked || isSelf;
+                    const checkboxTitle = alreadyLinked
+                      ? "Dieses Dokument ist bereits verlinkt"
+                      : isSelf
+                        ? "Das Hauptdokument kann nicht mit sich selbst verlinkt werden"
+                        : undefined;
+
                     return (
                       <div
                         key={getDocKey(r)}
                         className={cn(
                           "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
                           isSelected && "ring-2 ring-blue-600",
-                          alreadyLinked && "opacity-70"
+                          (alreadyLinked || isSelf) && "opacity-70"
                         )}
                         onClick={() => {
                           // Kachel-Klick öffnet weiterhin die Originaldatei
@@ -511,11 +558,11 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         <div className="absolute top-2 left-2 z-10">
                           <Checkbox
                             checked={alreadyLinked || isSelected}
-                            disabled={!pidStr || alreadyLinked}
+                            disabled={checkboxDisabled}
                             onCheckedChange={() => togglePid(pidStr)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
-                            title={alreadyLinked ? "Dieses Dokument ist bereits verlinkt" : undefined}
+                            title={checkboxTitle}
                           />
                         </div>
 

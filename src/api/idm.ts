@@ -852,29 +852,37 @@ export const searchIdmItemsByAttributesJson = async (
     // NEW: Also extract Projekt_Verlinkung from collections (colls) and expose it as a synthetic attribute.
     const collsRaw = (item as any)?.colls?.coll ?? (item as any)?.colls ?? [];
     const colls: any[] = Array.isArray(collsRaw) ? collsRaw : collsRaw ? [collsRaw] : [];
-    const projektVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Projekt_Verlinkung");
-    const projektEntriesRaw = (projektVerlinkungGroup?.coll ?? projektVerlinkungGroup?.item ?? []) as any;
-    const projektEntries: any[] = Array.isArray(projektEntriesRaw)
-      ? projektEntriesRaw
-      : projektEntriesRaw
-        ? [projektEntriesRaw]
-        : [];
 
-    const projektVerlinkungValues: string[] = [];
-    for (const entry of projektEntries) {
-      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
-      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
-      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
-      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
-      if (value) projektVerlinkungValues.push(String(value));
-    }
+    const readCollectionValues = (collectionName: string) => {
+      const group = colls.find((c) => (c?.name ?? c?.["name"]) === collectionName);
+      const entriesRaw = (group?.coll ?? group?.item ?? []) as any;
+      const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
 
-    const uniqProjektVerlinkungValues = Array.from(new Set(projektVerlinkungValues.filter(Boolean)));
+      const values: string[] = [];
+      for (const entry of entries) {
+        const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+        const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+        const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+        const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+        if (value) values.push(String(value));
+      }
+      return Array.from(new Set(values.filter(Boolean)));
+    };
+
+    const uniqProjektVerlinkungValues = readCollectionValues("Projekt_Verlinkung");
     if (uniqProjektVerlinkungValues.length) {
       const existingIdx = attributes.findIndex((a) => a.name === "Projekt_Verlinkung");
       const joined = uniqProjektVerlinkungValues.join(";");
       if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
       else attributes.push({ name: "Projekt_Verlinkung", value: joined });
+    }
+
+    const uniqDokumentVerlinkungValues = readCollectionValues("Dokument_Verlinkung");
+    if (uniqDokumentVerlinkungValues.length) {
+      const existingIdx = attributes.findIndex((a) => a.name === "Dokument_Verlinkung");
+      const joined = uniqDokumentVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Dokument_Verlinkung", value: joined };
+      else attributes.push({ name: "Dokument_Verlinkung", value: joined });
     }
 
     const createdByName: string | undefined =
@@ -980,29 +988,37 @@ export const searchIdmItemsByXQueryJson = async (
     // NEW: Also extract Projekt_Verlinkung from collections (colls) and expose it as a synthetic attribute.
     const collsRaw = (item as any)?.colls?.coll ?? (item as any)?.colls ?? [];
     const colls: any[] = Array.isArray(collsRaw) ? collsRaw : collsRaw ? [collsRaw] : [];
-    const projektVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Projekt_Verlinkung");
-    const projektEntriesRaw = (projektVerlinkungGroup?.coll ?? projektVerlinkungGroup?.item ?? []) as any;
-    const projektEntries: any[] = Array.isArray(projektEntriesRaw)
-      ? projektEntriesRaw
-      : projektEntriesRaw
-        ? [projektEntriesRaw]
-        : [];
 
-    const projektVerlinkungValues: string[] = [];
-    for (const entry of projektEntries) {
-      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
-      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
-      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
-      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
-      if (value) projektVerlinkungValues.push(String(value));
-    }
+    const readCollectionValues = (collectionName: string) => {
+      const group = colls.find((c) => (c?.name ?? c?.["name"]) === collectionName);
+      const entriesRaw = (group?.coll ?? group?.item ?? []) as any;
+      const entries: any[] = Array.isArray(entriesRaw) ? entriesRaw : entriesRaw ? [entriesRaw] : [];
 
-    const uniqProjektVerlinkungValues = Array.from(new Set(projektVerlinkungValues.filter(Boolean)));
+      const values: string[] = [];
+      for (const entry of entries) {
+        const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+        const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+        const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+        const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+        if (value) values.push(String(value));
+      }
+      return Array.from(new Set(values.filter(Boolean)));
+    };
+
+    const uniqProjektVerlinkungValues = readCollectionValues("Projekt_Verlinkung");
     if (uniqProjektVerlinkungValues.length) {
       const existingIdx = attributes.findIndex((a) => a.name === "Projekt_Verlinkung");
       const joined = uniqProjektVerlinkungValues.join(";");
       if (existingIdx >= 0) attributes[existingIdx] = { name: "Projekt_Verlinkung", value: joined };
       else attributes.push({ name: "Projekt_Verlinkung", value: joined });
+    }
+
+    const uniqDokumentVerlinkungValues = readCollectionValues("Dokument_Verlinkung");
+    if (uniqDokumentVerlinkungValues.length) {
+      const existingIdx = attributes.findIndex((a) => a.name === "Dokument_Verlinkung");
+      const joined = uniqDokumentVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Dokument_Verlinkung", value: joined };
+      else attributes.push({ name: "Dokument_Verlinkung", value: joined });
     }
 
     const createdByName: string | undefined =
