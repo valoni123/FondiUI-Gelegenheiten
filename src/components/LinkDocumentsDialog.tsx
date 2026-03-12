@@ -638,33 +638,32 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                           />
                         </div>
 
-                        {/* Bereits verlinkt Badge */}
-                        {alreadyLinked ? (
-                          <div className="absolute bottom-2 left-2 z-10">
-                            <Badge
-                              variant="secondary"
-                              className="bg-amber-100 text-amber-900 border border-amber-200"
-                              title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
-                            >
-                              verlinkt
-                            </Badge>
-                          </div>
-                        ) : null}
+                        {/* Status/Info Badges oben rechts */}
+                        {alreadyLinked || r.linkedViaProject ? (
+                          <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
+                            {alreadyLinked ? (
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-100 text-amber-900 border border-amber-200 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                                title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
+                              >
+                                verlinkt
+                              </Badge>
+                            ) : null}
 
-                        {/* Projekt-Verlinkung Badge */}
-                        {r.linkedViaProject ? (
-                          <div className="absolute top-2 right-2 z-10">
-                            <Badge
-                              variant="default"
-                              className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                              title={
-                                (r.attributes ?? []).find((a) => a?.name === "Projekt")?.value
-                                  ? `Hauptprojekt: ${(r.attributes ?? []).find((a) => a?.name === "Projekt")?.value}`
-                                  : "Hauptprojekt: unbekannt"
-                              }
-                            >
-                              verknüpft
-                            </Badge>
+                            {r.linkedViaProject ? (
+                              <Badge
+                                variant="default"
+                                className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                                title={
+                                  (r.attributes ?? []).find((a) => a?.name === "Projekt")?.value
+                                    ? `Hauptprojekt: ${(r.attributes ?? []).find((a) => a?.name === "Projekt")?.value}`
+                                    : "Hauptprojekt: unbekannt"
+                                }
+                              >
+                                verknüpft
+                              </Badge>
+                            ) : null}
                           </div>
                         ) : null}
 
