@@ -1041,6 +1041,39 @@ const RightPanel: React.FC<RightPanelProps> = ({
               <div className="flex items-center gap-2">
                 {fullPreviewData && (
                   <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!fullPreviewData.resourceUrl}
+                      onClick={() => {
+                        if (fullPreviewData.resourceUrl) {
+                          forceDownload(fullPreviewData.resourceUrl, fullPreviewData.filename);
+                        }
+                      }}
+                      title="Herunterladen"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Herunterladen
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsReplaceDialogOpen(true)}
+                      title="Dokument ersetzen"
+                    >
+                      <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsLinkDialogOpen(true)}
+                      title="Dokument(e) verlinken"
+                    >
+                      <LinkIcon className="mr-2 h-4 w-4" /> Dokument(e) verlinken
+                    </Button>
+
                     <LinkedDocumentsDialog
                       authToken={authToken}
                       cloudEnvironment={cloudEnvironment}
@@ -1058,6 +1091,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                         </Button>
                       )}
                     />
+
                     <Button
                       variant="outline"
                       size="sm"
@@ -1072,36 +1106,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       <ExternalLink className="mr-2 h-4 w-4" />
                       in IDM anzeigen
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={!fullPreviewData.resourceUrl}
-                      onClick={() => {
-                        if (fullPreviewData.resourceUrl) {
-                          forceDownload(fullPreviewData.resourceUrl, fullPreviewData.filename);
-                        }
-                      }}
-                      title="Herunterladen"
-                    >
-                      <Download className="mr-2 h-4 w-4" />
-                      Herunterladen
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsLinkDialogOpen(true)}
-                      title="Dokument(e) verlinken"
-                    >
-                      <LinkIcon className="mr-2 h-4 w-4" /> Dokument(e) verlinken
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsReplaceDialogOpen(true)}
-                      title="Dokument ersetzen"
-                    >
-                      <ArrowLeftRight className="mr-2 h-4 w-4" /> Dokument ersetzen
-                    </Button>
+
                     <Button
                       variant="outline"
                       size="sm"
