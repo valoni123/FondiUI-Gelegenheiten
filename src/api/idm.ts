@@ -1272,6 +1272,80 @@ export const linkIdmItemDocuments = async (
   }
 };
 
+export const getIdmItemByPid = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  language: string = "de-DE"
+): Promise<{
+  pid: string;
+  filename?: string;
+  entityName?: string;
+  drillbackurl?: string;
+  resourceUrl?: string;
+  previewUrl?: string;
+  aclName?: string;
+}> => {
+  const base = buildIdmBase(environment);
+  const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json;charset=utf-8",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`[IDM] get item by PID failed: ${res.status} ${res.statusText} - ${errorText}`);
+  }
+
+  const json = await res.json();
+  const item = (json as any)?.item ?? json;
+
+  const filename =
+    item?.filename ??
+    (Array.isArray(item?.resrs?.res) ? item?.resrs?.res?.[0]?.filename : item?.resrs?.res?.filename) ??
+    undefined;
+
+  const entityName = item?.entityName ?? undefined;
+  const drillbackurl = item?.drillbackurl ?? undefined;
+  const aclName: string | undefined = item?.acl?.name != null ? String(item.acl.name) : undefined;
+
+  const resNodeRaw = item?.resrs?.res;
+  const resList: any[] = Array.isArray(resNodeRaw) ? resNodeRaw : resNodeRaw ? [resNodeRaw] : [];
+  const mainRes = resList.find((r) => (r?.name ?? r?.["name"]) === "") ?? resList[0];
+  const previewRes = resList.find((r) => (r?.name ?? r?.["name"]) === "Preview");
+
+  const resourceUrl = mainRes?.url ? String(mainRes.url) : undefined;
+  const previewUrl = previewRes?.url ? String(previewRes.url) : undefined;
+
+  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName };
+};
+
+/**
+ * INTERNAL: Updates ONLY the 'Dokument_Verlinkung' collection for a PID.
+ * This is intentionally narrow because some entity types have other collections that we must not PUT back.
+ */
+const setIdmItemLinkedPids = async (
+  token: string,
+  environment: CloudEnvironment,
+  pid: string,
+  linkedPids: string[],
+  language: string = "de-DE"
+): Promise<void> => {
+  const info = await getIdmItemByPid(token, environment, pid, language);
+  const entityName = String(info?.entityName ?? "");
+  if (!entityName) {
+    throw new Error(`[IDM] Cannot determine entityName for PID '${pid}' when updating links.`);
+  }
+  await linkIdmItemDocuments(token, environment, pid, entityName, linkedPids, language, {
+    aclName: info?.aclName,
+  });
+};
+
 export const unlinkIdmItemDocument = async (
   token: string,
   environment: CloudEnvironment,
