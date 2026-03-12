@@ -3,7 +3,7 @@ import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
 import { toast } from "sonner";
-import { createItem, getOpportunities, updateItem } from "@/api/items";
+import { createItem, getOpportunities, updateItem, getOpportunityById } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getBusinessPartnerById } from "@/api/businessPartners";
 import { CloudEnvironment } from "@/authorization/configLoader";
@@ -71,6 +71,7 @@ const Index: React.FC<IndexProps> = ({
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId);
+  const [selectedOpportunityMeta, setSelectedOpportunityMeta] = useState<{ project?: string; artikel?: string } | null>(null);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
   // NEW: store name+desc for dropdown display
   const [idmEntityOptions, setIdmEntityOptions] = useState<{ name: string; desc: string }[]>([]);
@@ -83,6 +84,43 @@ const Index: React.FC<IndexProps> = ({
   useEffect(() => {
     setSelectedOpportunityId(effectiveOpportunityId);
   }, [effectiveOpportunityId]);
+
+  // Ensure Project/Artikel are available even when the selected opportunity isn't part of the currently loaded list.
+  useEffect(() => {
+    if (!selectedOpportunityId) {
+      setSelectedOpportunityMeta(null);
+      return;
+    }
+
+    const fromList = opportunities.find((i) => i.id === selectedOpportunityId);
+    const projectFromList = (fromList?.Project ?? "").toString().trim();
+    const artikelFromList = (fromList?.Artikel ?? "").toString().trim();
+
+    if (projectFromList || artikelFromList) {
+      setSelectedOpportunityMeta({ project: fromList?.Project, artikel: fromList?.Artikel });
+      return;
+    }
+
+    if (!authToken) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const full = await getOpportunityById(authToken, companyNumber, cloudEnvironment, selectedOpportunityId);
+        if (cancelled) return;
+        setSelectedOpportunityMeta({
+          project: (full as any)?.Project != null ? String((full as any).Project) : undefined,
+          artikel: (full as any)?.Artikel != null ? String((full as any).Artikel) : undefined,
+        });
+      } catch {
+        if (!cancelled) setSelectedOpportunityMeta({ project: undefined, artikel: undefined });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOpportunityId, opportunities, authToken, companyNumber, cloudEnvironment]);
 
   const buildOpportunityODataFilter = useCallback((filters: Record<string, string>): string | undefined => {
     const escapeODataString = (v: string) => v.replace(/'/g, "''");
@@ -487,10 +525,10 @@ const Index: React.FC<IndexProps> = ({
                 entityNames={idmEntityNames}
                 entityOptions={idmEntityOptions}
                 selectedOpportunityProject={
-                  opportunities.find((i) => i.id === selectedOpportunityId)?.Project
+                  opportunities.find((i) => i.id === selectedOpportunityId)?.Project ?? selectedOpportunityMeta?.project
                 }
                 selectedOpportunityArticle={
-                  opportunities.find((i) => i.id === selectedOpportunityId)?.Artikel
+                  opportunities.find((i) => i.id === selectedOpportunityId)?.Artikel ?? selectedOpportunityMeta?.artikel
                 }
               />
             </ResizablePanel>

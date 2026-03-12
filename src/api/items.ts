@@ -159,6 +159,71 @@ export const updateItem = async (
   }
 };
 
+export const getOpportunityById = async (
+  authToken: string,
+  companyNumber: string,
+  cloudEnvironment: CloudEnvironment,
+  opportunityId: string
+): Promise<Item> => {
+  const API_BASE_URL = getApiBaseUrl(cloudEnvironment);
+  const safeId = String(opportunityId).replace(/'/g, "''");
+  const params = new URLSearchParams();
+  // Keep it broad: different LN tenants sometimes differ in available fields.
+  params.set("$select", "*");
+
+  const response = await fetch(`${API_BASE_URL}/Opportunities('${safeId}')?${params.toString()}`, {
+    method: "GET",
+    headers: {
+      "Accept": "application/json",
+      "Content-Language": "de-DE",
+      "X-Infor-LnCompany": companyNumber,
+      "Authorization": `Bearer ${authToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      (errorData as any)?.message || `Failed to fetch opportunity '${opportunityId}': ${response.statusText}`
+    );
+  }
+
+  const odataItem: any = await response.json();
+
+  const mappedItem: Item = {
+    id: odataItem.Opportunity || opportunityId,
+    name: odataItem.Name || odataItem.Opportunity || "N/A",
+    description: odataItem.Description || "No description",
+    opportunityText:
+      odataItem.OpportunityText || odataItem["tdsmi110.text"] || "No Allgemeine Daten text",
+    "tdsmi110.text": odataItem["tdsmi110.text"] || "No Allgemeine Daten text (raw)",
+    DateOfFirstContact: odataItem.DateOfFirstContact,
+    ExpectedCloseDate: odataItem.ExpectedCloseDate,
+    ActualCloseDate: odataItem.ActualCloseDate,
+  };
+
+  const keysToExcludeFromNewItem = new Set([
+    "Opportunity",
+    "Name",
+    "Description",
+    "OpportunityText",
+    "@odata.etag",
+    "@odata.context",
+    "DateOfFirstContact",
+    "ExpectedCloseDate",
+    "ActualCloseDate",
+    "tdsmi110.text",
+  ]);
+
+  for (const key in odataItem) {
+    if (!keysToExcludeFromNewItem.has(key)) {
+      mappedItem[key] = odataItem[key];
+    }
+  }
+
+  return mappedItem;
+};
+
 export type GetOpportunitiesOptions = {
   top?: number;
   skip?: number;
