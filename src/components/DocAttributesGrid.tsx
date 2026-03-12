@@ -6,10 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type IdmDocPreview } from "@/api/idm";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Loader2, FileText, CalendarDays } from "lucide-react";
+import { ArrowLeftRight, ChevronRight, Save, Trash2, Link as LinkIcon, Link2, Loader2, FileText, CalendarDays } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -817,10 +816,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     noteEditorDraftRef.current = String(current);
   };
 
-  // Columns: (NEW) Note Editor (30) | Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Data Columns | Delete (30)
+  // Columns: Details (30) | Select (30) | Save (30) | Replace (30) | Linked Docs (30) | Project Link (30) | Note (30) | Data Columns | Delete (30)
   const gridTemplate = React.useMemo(() => {
-    // CHANGED ORDER: detail | select | save | replace | linked | note
-    const fixed = ["30px", "30px", "30px", "30px", "30px", "30px"]; // detail | select | save | replace | linked | note
+    // CHANGED ORDER: detail | select | save | replace | linked | project-link | note
+    const fixed = ["30px", "30px", "30px", "30px", "30px", "30px", "30px"]; // detail | select | save | replace | linked | project-link | note
     const dataCols = displayColumns.map((c) => {
       if (maxDataColumnWidthPx) {
         const compact: Record<string, number> = {
@@ -949,7 +948,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               style={{ gridTemplateColumns: gridTemplate }}
             >
               {/* Header */}
-              {/* ADD one more empty header cell for the note editor column */}
+              {/* ADD one more empty header cell for the project-link column */}
+              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
               <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
               <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
               <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
@@ -964,7 +964,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
               <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
 
               {/* Filters */}
-              {/* ADD one more empty filter cell for the note editor column */}
+              {/* ADD one more empty filter cell for the project-link column */}
+              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
               <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
               <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
               <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
@@ -1171,6 +1172,20 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           )}
                         </div>
 
+                        {/* Project Link Indicator */}
+                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                          {doc.linkedViaProject ? (
+                            <div
+                              className="h-6 w-6 flex items-center justify-center text-amber-700"
+                              title={`Verknüpfte Projekte: ${String(doc.linkedProjectValue ?? getAttrValue(doc, ["Projekt"])) || "unbekannt"}`}
+                            >
+                              <Link2 className="h-3 w-3" />
+                            </div>
+                          ) : (
+                            <div className="h-6 w-6" />
+                          )}
+                        </div>
+
                         {/* MOVED: Note Editor Button (now after Linked Docs) */}
                         <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           <Button
@@ -1192,8 +1207,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             const value = col.getValue(doc);
 
                             if (col.id === "dokumentname") {
-                              const mainProject = getAttrValue(doc, ["Projekt"]);
-
                               return (
                                 <div
                                   key={`${idx}-${col.id}`}
@@ -1202,15 +1215,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   <div className="min-w-0 flex-1">
                                     <TruncatedTextCell value={(value || "").toString()} />
                                   </div>
-                                  {doc.linkedViaProject ? (
-                                    <Badge
-                                      variant="default"
-                                      className="shrink-0 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                                      title={mainProject ? `Hauptprojekt: ${mainProject}` : "Hauptprojekt: unbekannt"}
-                                    >
-                                      verlinkt
-                                    </Badge>
-                                  ) : null}
                                 </div>
                               );
                             }
@@ -1432,7 +1436,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                       "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                   )}
                                 />
-                              )}
+                              )}{" "}
                             </div>
                           );
                         })}

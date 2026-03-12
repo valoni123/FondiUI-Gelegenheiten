@@ -984,7 +984,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
                           variant="default"
                           className="absolute left-2 top-2 z-10 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
                         >
-                          verlinkt
+                          verknüpft
                         </Badge>
                       ) : null}
                       {doc.smallUrl ? (

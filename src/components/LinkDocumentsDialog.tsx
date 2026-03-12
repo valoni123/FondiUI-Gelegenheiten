@@ -453,19 +453,19 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                             onCheckedChange={() => togglePid(pidStr)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
-                            title={alreadyLinked ? "Dieses Dokument ist bereits verlinkt" : undefined}
+                            title={alreadyLinked ? "Dieses Dokument ist bereits verknüpft" : undefined}
                           />
                         </div>
 
-                        {/* Bereits verlinkt Badge */}
+                        {/* Bereits verknüpft Badge */}
                         {alreadyLinked ? (
                           <div className="absolute bottom-2 left-2 z-10">
                             <Badge
                               variant="secondary"
                               className="bg-amber-100 text-amber-900 border border-amber-200"
-                              title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
+                              title="Dieses Dokument ist bereits mit dem Hauptdokument verknüpft"
                             >
-                              bereits verlinkt
+                              bereits verknüpft
                             </Badge>
                           </div>
                         ) : null}
@@ -482,7 +482,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                                   : "Hauptprojekt: unbekannt"
                               }
                             >
-                              verlinkt
+                              verknüpft
                             </Badge>
                           </div>
                         ) : null}
