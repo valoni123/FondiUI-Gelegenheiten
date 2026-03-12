@@ -63,15 +63,30 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       const p = normalizePid(pid);
       if (!p) return [] as string[];
       const vars: string[] = [p];
+
+      // Some entity names are returned with a leading underscore in certain IDM APIs.
+      // Create variants without leading underscores so matching works across endpoints.
+      if (/^_+/.test(p)) vars.push(p.replace(/^_+/, ""));
+
       if (/-latest$/i.test(p)) vars.push(p.replace(/-latest$/i, ""));
+
       const dash = p.indexOf("-");
       if (dash > 0) {
+        const entity = p.slice(0, dash);
         const tail = p.slice(dash + 1);
         if (tail) {
           vars.push(tail);
           if (/-latest$/i.test(tail)) vars.push(tail.replace(/-latest$/i, ""));
+
+          const entityNoUnderscore = entity.replace(/^_+/, "");
+          if (entityNoUnderscore && entityNoUnderscore !== entity) {
+            const rebuilt = `${entityNoUnderscore}-${tail}`;
+            vars.push(rebuilt);
+            if (/-latest$/i.test(rebuilt)) vars.push(rebuilt.replace(/-latest$/i, ""));
+          }
         }
       }
+
       return Array.from(new Set(vars.map((v) => v.trim()).filter(Boolean)));
     },
     [normalizePid]
