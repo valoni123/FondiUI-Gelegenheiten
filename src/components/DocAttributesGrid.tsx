@@ -1175,23 +1175,16 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         {/* Project link indicator */}
                         <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                           {doc.linkedViaProject ? (
-                            <button
-                              type="button"
-                              className="h-6 w-6 inline-flex items-center justify-center text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                            <div
+                              className="h-6 w-6 flex items-center justify-center text-amber-700"
                               title={`Verknüpfte Projekte: ${
                                 (doc.linkedProjectValue ?? "").toString().trim() ||
                                 getAttrValue(doc, ["Projekt_Verlinkung"]) ||
                                 "unbekannt"
                               }`}
-                              aria-label="Verknüpfte Projekte"
-                              onClick={(e) => {
-                                // Indicator only
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
                             >
                               <Folder className="h-3 w-3" />
-                            </button>
+                            </div>
                           ) : (
                             <div className="h-6 w-6" />
                           )}
