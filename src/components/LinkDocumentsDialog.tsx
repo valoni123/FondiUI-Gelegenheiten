@@ -21,7 +21,6 @@ import { getIdmEntityInfos, type IdmEntityInfo, type IdmAttribute, searchIdmItem
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { linkIdmItemDocumentsBidirectional } from "@/api/idm";
-import { getExistingLinkedPids } from "@/api/idm";
 
 type LinkDocumentsDialogProps = {
   open: boolean;
@@ -54,7 +53,6 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
   const [results, setResults] = React.useState<IdmDocPreview[]>([]);
   const [selectedPids, setSelectedPids] = React.useState<Set<string>>(new Set());
   const [linking, setLinking] = React.useState(false);
-  const [existingLinkedPids, setExistingLinkedPids] = React.useState<Set<string>>(new Set());
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
@@ -128,26 +126,32 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       setAttrQuery("");
       setQuery("");
       setSelectedPids(new Set());
-      setExistingLinkedPids(new Set());
     }
   }, [open]);
 
   React.useEffect(() => {
-    if (!open || !mainPid) return;
+    if (!open) return;
     let cancelled = false;
-
-    getExistingLinkedPids(authToken, cloudEnvironment, mainPid, "de-DE")
-      .then((pids) => {
-        if (!cancelled) setExistingLinkedPids(new Set((pids || []).map(String)));
-      })
-      .catch(() => {
-        // ignore
-      });
-
+    const load = async () => {
+      setLoading(true);
+      try {
+        const list = await getIdmEntityInfos(authToken, cloudEnvironment, "de-DE");
+        if (!cancelled) setEntities(list);
+      } catch (err: any) {
+        toast({
+          title: "Laden der Dokumententypen fehlgeschlagen",
+          description: String(err?.message ?? "Unbekannter Fehler"),
+          variant: "destructive",
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
     return () => {
       cancelled = true;
     };
-  }, [open, mainPid, authToken, cloudEnvironment]);
+  }, [open, authToken, cloudEnvironment]);
 
   const preparedEntities = React.useMemo(() => {
     // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
@@ -401,15 +405,13 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {results.map((r, idx) => {
-                    const alreadyLinked = !!r.pid && existingLinkedPids.has(String(r.pid));
                     const isSelected = r.pid ? selectedPids.has(r.pid) : false;
                     return (
                       <div
                         key={getDocKey(r)}
                         className={cn(
                           "relative border rounded-md p-2 hover:bg-muted cursor-pointer",
-                          isSelected && "ring-2 ring-blue-600",
-                          alreadyLinked && "opacity-80"
+                          isSelected && "ring-2 ring-blue-600"
                         )}
                         onClick={() => {
                           // Kachel-Klick öffnet weiterhin die Originaldatei
@@ -421,28 +423,17 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                         {/* Auswahl-Checkbox oben links */}
                         <div className="absolute top-2 left-2 z-10">
                           <Checkbox
-                            checked={alreadyLinked ? true : isSelected}
-                            disabled={!r.pid || alreadyLinked}
+                            checked={isSelected}
+                            disabled={!r.pid}
                             onCheckedChange={() => togglePid(r.pid)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                            aria-label={alreadyLinked ? "Dokument ist bereits verlinkt" : "Dokument auswählen"}
+                            aria-label="Dokument auswählen"
                           />
                         </div>
 
-                        {/* Badges oben rechts */}
-                        <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
-                          {alreadyLinked ? (
-                            <Badge
-                              variant="secondary"
-                              className="bg-amber-100 text-amber-800 border border-amber-300 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                              title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
-                            >
-                              bereits verlinkt
-                            </Badge>
-                          ) : null}
-
-                          {/* Projekt-Verlinkung Badge */}
-                          {r.linkedViaProject ? (
+                        {/* Projekt-Verlinkung Badge */}
+                        {r.linkedViaProject ? (
+                          <div className="absolute top-2 right-2 z-10">
                             <Badge
                               variant="default"
                               className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
@@ -454,8 +445,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                             >
                               verlinkt
                             </Badge>
-                          ) : null}
-                        </div>
+                          </div>
+                        ) : null}
 
                         <div className="aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
                           <img
