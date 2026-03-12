@@ -174,6 +174,23 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     };
   }, [open, mainPid, authToken, cloudEnvironment]);
 
+  // If the user searched/selected quickly before the existing links finished loading,
+  // ensure already linked PIDs are removed from the current selection.
+  React.useEffect(() => {
+    if (existingLinkedPids.size === 0) return;
+    setSelectedPids((prev) => {
+      const next = new Set(prev);
+      let changed = false;
+      for (const pid of Array.from(next)) {
+        if (existingLinkedPids.has(String(pid))) {
+          next.delete(pid);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [existingLinkedPids]);
+
   const preparedEntities = React.useMemo(() => {
     // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
     return entities
@@ -453,19 +470,19 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                             onCheckedChange={() => togglePid(pidStr)}
                             onClick={(e: React.MouseEvent) => e.stopPropagation()}
                             aria-label="Dokument auswählen"
-                            title={alreadyLinked ? "Dieses Dokument ist bereits verknüpft" : undefined}
+                            title={alreadyLinked ? "Dieses Dokument ist bereits verlinkt" : undefined}
                           />
                         </div>
 
-                        {/* Bereits verknüpft Badge */}
+                        {/* Bereits verlinkt Badge */}
                         {alreadyLinked ? (
                           <div className="absolute bottom-2 left-2 z-10">
                             <Badge
                               variant="secondary"
                               className="bg-amber-100 text-amber-900 border border-amber-200"
-                              title="Dieses Dokument ist bereits mit dem Hauptdokument verknüpft"
+                              title="Dieses Dokument ist bereits mit dem Hauptdokument verlinkt"
                             >
-                              bereits verknüpft
+                              verlinkt
                             </Badge>
                           </div>
                         ) : null}
