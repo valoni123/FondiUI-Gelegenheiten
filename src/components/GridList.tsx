@@ -169,7 +169,7 @@ const GridList: React.FC<GridListProps> = (props) => {
     <React.Fragment>
       <div className="h-full min-h-0 flex flex-col gap-3">
         <div className="flex-1 min-h-0 w-full overflow-auto">
-          <table className="w-max min-w-full border-collapse caption-bottom text-sm border-l border-border">
+          <table className="w-max min-w-full border-separate border-spacing-0 caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
                 <th style={headerStickyStyle} className={cn("w-[40px] text-center", headerCellClass)}>
