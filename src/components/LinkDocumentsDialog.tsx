@@ -150,30 +150,6 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
     };
   }, [open, mainPid, authToken, cloudEnvironment]);
 
-  React.useEffect(() => {
-    if (!open) return;
-    let cancelled = false;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const list = await getIdmEntityInfos(authToken, cloudEnvironment, "de-DE");
-        if (!cancelled) setEntities(list);
-      } catch (err: any) {
-        toast({
-          title: "Laden der Dokumententypen fehlgeschlagen",
-          description: String(err?.message ?? "Unbekannter Fehler"),
-          variant: "destructive",
-        });
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, authToken, cloudEnvironment]);
-
   const preparedEntities = React.useMemo(() => {
     // Match UploadDialog behavior: only show entries whose desc starts with '*', strip '*', and sort by label.
     return entities
@@ -425,7 +401,7 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
 
               <TooltipProvider>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                  {results.map((r) => {
+                  {results.map((r, idx) => {
                     const alreadyLinked = !!r.pid && existingLinkedPids.has(String(r.pid));
                     const isSelected = r.pid ? selectedPids.has(r.pid) : false;
                     return (
