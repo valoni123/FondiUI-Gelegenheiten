@@ -558,8 +558,8 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                 const filters =
                   selectedAttributes.length > 0
                     ? selectedAttributes
-                        .filter((a) => typeof a.value === "string" && a.value.length > 0)
-                        .map((a) => ({ name: a.name, value: a.value! }))
+                        .map((a) => ({ name: a.name, value: String(a.value ?? "").trim() }))
+                        .filter((a) => a.value.length > 0)
                     : [];
 
                 const [found, projectLinked] = await Promise.all([
