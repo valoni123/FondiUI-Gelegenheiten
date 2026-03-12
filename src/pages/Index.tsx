@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
@@ -37,6 +37,20 @@ const Index: React.FC<IndexProps> = ({
   const initInFlightRef = useRef(false);
   const initDoneRef = useRef(false);
   const needsOverviewReloadRef = useRef(false);
+
+  const appHeaderRef = useRef<HTMLDivElement | null>(null);
+  const [appHeaderHeight, setAppHeaderHeight] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = appHeaderRef.current;
+    if (!el) return;
+
+    const measure = () => setAppHeaderHeight(el.offsetHeight);
+    measure();
+
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   const [searchParams] = useSearchParams();
   const { opportunityId: paramOpportunityId } = useParams();
@@ -413,19 +427,24 @@ const Index: React.FC<IndexProps> = ({
   return (
     <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
       <div className="w-full px-4 flex flex-col flex-grow">
-        <AppHeader
-          rightContent={
-            <>
-              <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
-              <SettingsButton
-                currentCompanyNumber={companyNumber}
-                onSaveCompanyNumber={onSaveCompanyNumber}
-                currentCloudEnvironment={cloudEnvironment}
-                onSaveCloudEnvironment={onSaveCloudEnvironment}
-              />
-            </>
-          }
-        />
+        <div
+          ref={appHeaderRef}
+          className={!selectedOpportunityId ? "sticky top-0 z-50" : undefined}
+        >
+          <AppHeader
+            rightContent={
+              <>
+                <UserStatus isAuthenticated={isAuthenticated} cloudEnvironment={cloudEnvironment} />
+                <SettingsButton
+                  currentCompanyNumber={companyNumber}
+                  onSaveCompanyNumber={onSaveCompanyNumber}
+                  currentCloudEnvironment={cloudEnvironment}
+                  onSaveCloudEnvironment={onSaveCloudEnvironment}
+                />
+              </>
+            }
+          />
+        </div>
 
         {!selectedOpportunityId && opportunitiesLoadError && !isLoadingOpportunities ? (
           <div className="mt-4 rounded-md border border-red-300 bg-red-50 text-red-900 px-4 py-3">
@@ -489,6 +508,7 @@ const Index: React.FC<IndexProps> = ({
                 isLoading={isLoadingOpportunities}
                 filters={opportunityFilters}
                 onCommitFilters={handleCommitOpportunityFilters}
+                stickyOffsetTop={appHeaderHeight}
               />
             </ResizablePanel>
           )}

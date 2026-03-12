@@ -22,6 +22,7 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
+  stickyOffsetTop?: number;
 }
 
 const GridList: React.FC<GridListProps> = (props) => {
@@ -36,6 +37,7 @@ const GridList: React.FC<GridListProps> = (props) => {
     isLoading,
     filters,
     onCommitFilters,
+    stickyOffsetTop = 0,
   } = props;
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
@@ -149,11 +151,16 @@ const GridList: React.FC<GridListProps> = (props) => {
     setCurrentEditingItemId(null);
   };
 
+  const headerRowHeightPx = 32; // h-8
+
+  const headerStickyStyle: React.CSSProperties = { top: stickyOffsetTop };
+  const filterStickyStyle: React.CSSProperties = { top: stickyOffsetTop + headerRowHeightPx };
+
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "sticky top-0 z-30 p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+    "sticky z-30 p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
   const filterCellClass =
-    "sticky top-8 z-20 p-0 border-r border-b border-border bg-background h-8 align-middle";
+    "sticky z-20 p-0 border-r border-b border-border bg-background h-8 align-middle";
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
@@ -166,12 +173,13 @@ const GridList: React.FC<GridListProps> = (props) => {
           <table className="w-max min-w-full border-collapse caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
-                <th className={cn("w-[40px] text-center", headerCellClass)}>
+                <th style={headerStickyStyle} className={cn("w-[40px] text-center", headerCellClass)}>
                   <span className="sr-only">Open</span>
                 </th>
                 {visibleKeys.map((key) => (
                   <th
                     key={key}
+                    style={headerStickyStyle}
                     className={cn(
                       headerCellClass,
                       "min-w-[60px] text-left",
@@ -205,11 +213,11 @@ const GridList: React.FC<GridListProps> = (props) => {
               </tr>
 
               <tr className="border-b border-border">
-                <th className={cn("w-[40px]", filterCellClass)}>
+                <th style={filterStickyStyle} className={cn("w-[40px]", filterCellClass)}>
                   <div className={filterWrapperClass} />
                 </th>
                 {visibleKeys.map((key) => (
-                  <th key={`${key}-filter`} className={filterCellClass}>
+                  <th key={`${key}-filter`} style={filterStickyStyle} className={filterCellClass}>
                     <div className={filterWrapperClass}>
                       <Input
                         value={draftFilters[key] || ""}
