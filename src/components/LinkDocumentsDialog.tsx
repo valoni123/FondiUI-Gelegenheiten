@@ -254,6 +254,12 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
             for (const v of pidVariants(String(raw))) next.add(v);
           }
           setExistingLinkedPids(next);
+          console.log("[LinkDocumentsDialog] loaded existing links", {
+            mainPid,
+            count: pids?.length ?? 0,
+            raw: pids,
+            normalizedVariantsCount: next.size,
+          });
         }
       } catch (err: any) {
         if (!cancelled) setExistingLinkedPids(new Set());
@@ -269,6 +275,39 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
       cancelled = true;
     };
   }, [open, mainPid, authToken, cloudEnvironment, pidVariants]);
+
+  const debugLoggedRef = React.useRef<string>("");
+  React.useEffect(() => {
+    if (!open || step !== 3) return;
+    const key = `${mainPid ?? ""}|${existingLinkedPids.size}|${results.length}`;
+    if (debugLoggedRef.current === key) return;
+    debugLoggedRef.current = key;
+
+    const sample = results.slice(0, 12).map((r) => ({
+      pid: r.pid,
+      dokumentVerlinkung:
+        (r.attributes ?? []).find((a) => a?.name === "Dokument_Verlinkung")?.value ?? "",
+    }));
+
+    const linked = results
+      .map((r) => {
+        const pidStr = normalizePid(r.pid);
+        const already = !!pidStr && (isAlreadyLinkedPid(pidStr) || isAlreadyLinkedByBackReference(r));
+        return { pid: r.pid, already };
+      })
+      .filter((x) => x.already);
+
+    console.log("[LinkDocumentsDialog] link-detection debug", {
+      mainPid,
+      mainPidVariants: Array.from(mainPidVariants),
+      existingLinkedPidsSize: existingLinkedPids.size,
+      existingLinkedPidsSample: Array.from(existingLinkedPids).slice(0, 15),
+      resultsCount: results.length,
+      resultsSample: sample,
+      alreadyLinkedCount: linked.length,
+      alreadyLinkedSample: linked.slice(0, 15),
+    });
+  }, [open, step, mainPid, results, existingLinkedPids, normalizePid, isAlreadyLinkedPid, isAlreadyLinkedByBackReference, mainPidVariants]);
 
   // If the user searched/selected quickly before the existing links finished loading,
   // ensure already linked PIDs are removed from the current selection.
