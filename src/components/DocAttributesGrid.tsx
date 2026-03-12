@@ -1367,6 +1367,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                           const isStatusCol = col.id === "status";
                           const isSerienstatusCol = col.id === "serienstatus";
+                          const isGeometrieartCol = col.id === "geometrieart";
                           const isGeoSpecificCol =
                             col.id === "serienstatus" ||
                             col.id === "versuchsstatus" ||
@@ -1391,6 +1392,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             : "";
 
                           const serienstatusLabel = isSerienstatusCol
+                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                                (rowEdited[attrName] ?? ""))
+                            : "";
+
+                          const geometrieartLabel = isGeometrieartCol
                             ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
                                 (rowEdited[attrName] ?? ""))
                             : "";
@@ -1455,15 +1461,57 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             },
                           };
 
+                          const getGeometriedatenGeometrieartStyle = (label: string) => {
+                            const first = (label || "").trim().charAt(0).toUpperCase();
+                            if (first === "H") {
+                              return {
+                                triggerClass:
+                                  "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                                itemClass:
+                                  "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                              };
+                            }
+                            if (first === "D") {
+                              return {
+                                triggerClass:
+                                  "bg-[#80C6FF] text-black border-[#80C6FF] hover:bg-[#80C6FF]",
+                                itemClass:
+                                  "bg-[#80C6FF] text-black data-[highlighted]:bg-[#80C6FF] data-[highlighted]:text-black data-[state=checked]:bg-[#80C6FF] data-[state=checked]:text-black",
+                              };
+                            }
+                            if (first === "Z") {
+                              return {
+                                triggerClass:
+                                  "bg-[#D8D8EE] text-black border-[#D8D8EE] hover:bg-[#D8D8EE]",
+                                itemClass:
+                                  "bg-[#D8D8EE] text-black data-[highlighted]:bg-[#D8D8EE] data-[highlighted]:text-black data-[state=checked]:bg-[#D8D8EE] data-[state=checked]:text-black",
+                              };
+                            }
+                            if (first === "S") {
+                              return {
+                                triggerClass:
+                                  "bg-[#C3F8F9] text-black border-[#C3F8F9] hover:bg-[#C3F8F9]",
+                                itemClass:
+                                  "bg-[#C3F8F9] text-black data-[highlighted]:bg-[#C3F8F9] data-[highlighted]:text-black data-[state=checked]:bg-[#C3F8F9] data-[state=checked]:text-black",
+                              };
+                            }
+                            return undefined;
+                          };
+
+                          const geometrieartStyle =
+                            isGeometriedatenFilter && isGeometrieartCol
+                              ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
+                              : undefined;
+
                           const selectStyle =
                             isGeometriedatenFilter && isStatusCol
                               ? geometriedatenStatusStyles[statusLabel]
                               : isGeometriedatenFilter && isSerienstatusCol
                                 ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                                : undefined;
+                                : geometrieartStyle;
 
                           const selectColorClass =
-                            (isStatusCol || isSerienstatusCol) && (rowEdited[attrName] ?? "")
+                            (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
                               ? selectStyle?.triggerClass ?? ""
                               : "";
 
@@ -1509,7 +1557,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                           ? geometriedatenStatusStyles[label]
                                           : isGeometriedatenFilter && isSerienstatusCol
                                             ? geometriedatenSerienstatusStyles[label]
-                                            : undefined;
+                                            : isGeometriedatenFilter && isGeometrieartCol
+                                              ? getGeometriedatenGeometrieartStyle(label)
+                                              : undefined;
 
                                       return (
                                         <SelectItem
