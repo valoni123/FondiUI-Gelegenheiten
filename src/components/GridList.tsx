@@ -22,10 +22,7 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
-  /**
-   * Reserved: previous attempt used viewport-sticky headers. Now the table scrolls inside the left panel,
-   * so sticky is relative to the scroll container and doesn't need an external offset.
-   */
+  /** Height of the sticky AppHeader above (px). */
   stickyOffsetTop?: number;
 }
 
@@ -41,6 +38,7 @@ const GridList: React.FC<GridListProps> = (props) => {
     isLoading,
     filters,
     onCommitFilters,
+    stickyOffsetTop = 0,
   } = props;
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
@@ -156,9 +154,9 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   const headerRowHeightPx = 32; // h-8
 
-  // Sticky is relative to the table's scroll container.
-  const headerStickyStyle: React.CSSProperties = { top: 0 };
-  const filterStickyStyle: React.CSSProperties = { top: headerRowHeightPx };
+  // Sticky is relative to the document scroll.
+  const headerStickyStyle: React.CSSProperties = { top: stickyOffsetTop };
+  const filterStickyStyle: React.CSSProperties = { top: stickyOffsetTop + headerRowHeightPx };
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
@@ -172,8 +170,8 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   return (
     <React.Fragment>
-      <div className="h-full min-h-0 flex flex-col gap-3">
-        <div className="flex-1 min-h-0 w-full overflow-auto">
+      <div className="space-y-4">
+        <div className="w-full overflow-x-auto overflow-y-visible">
           <table className="w-max min-w-full border-collapse caption-bottom text-sm border-l border-border">
             <thead className="[&_tr]:border-b">
               <tr className="border-b border-border">
@@ -363,7 +361,7 @@ const GridList: React.FC<GridListProps> = (props) => {
           </table>
         </div>
 
-        <p className="shrink-0 text-sm text-muted-foreground text-center py-2">
+        <p className="text-sm text-muted-foreground text-center py-2">
           {`${sortedItems.length} Gelegenheiten angezeigt`}
         </p>
       </div>
