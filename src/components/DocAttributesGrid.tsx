@@ -1473,7 +1473,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                         <SelectItem
                                           key={vs.name}
                                           value={vs.name}
-                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap")}
+                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
                                         >
                                           {label}
                                         </SelectItem>
