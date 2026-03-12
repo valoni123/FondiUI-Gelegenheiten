@@ -12,7 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Check, Link as LinkIcon, Folder } from "lucide-react";
+import { Check, Link as LinkIcon } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import { type CloudEnvironment } from "@/authorization/configLoader";
@@ -470,17 +470,20 @@ const LinkDocumentsDialog: React.FC<LinkDocumentsDialogProps> = ({
                           </div>
                         ) : null}
 
-                        {/* Projekt-Verlinkung Hinweis (Icon statt Badge) */}
+                        {/* Projekt-Verlinkung Badge */}
                         {r.linkedViaProject ? (
-                          <div
-                            className="absolute top-2 right-2 z-10 text-amber-700"
-                            title={`Verknüpfte Projekte: ${
-                              (r.linkedProjectValue ?? "").toString().trim() ||
-                              String((r.attributes ?? []).find((a) => a?.name === "Projekt_Verlinkung")?.value ?? "").trim() ||
-                              "unbekannt"
-                            }`}
-                          >
-                            <Folder className="h-4 w-4" />
+                          <div className="absolute top-2 right-2 z-10">
+                            <Badge
+                              variant="default"
+                              className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                              title={
+                                (r.attributes ?? []).find((a) => a?.name === "Projekt")?.value
+                                  ? `Hauptprojekt: ${(r.attributes ?? []).find((a) => a?.name === "Projekt")?.value}`
+                                  : "Hauptprojekt: unbekannt"
+                              }
+                            >
+                              verlinkt
+                            </Badge>
                           </div>
                         ) : null}
 
