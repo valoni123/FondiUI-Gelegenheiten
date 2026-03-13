@@ -296,13 +296,15 @@ const GridList: React.FC<GridListProps> = (props) => {
                           )}
                           onClick={() => onSelectOpportunity(item.id)}
                         >
-                          <td className={cn(iconCellClass, "text-center")}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              props.onViewDetails(item);
-                            }}
-                          >
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <td className={cn(iconCellClass, "text-center")}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onSelectOpportunity(item.id)}
+                              title="Zur Detailansicht"
+                              aria-label="Zur Detailansicht"
+                            >
                               <ArrowRight className="h-4 w-4" />
                             </Button>
                           </td>
