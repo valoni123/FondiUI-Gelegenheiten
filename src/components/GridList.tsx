@@ -151,216 +151,189 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   const headerRowHeightPx = 32; // h-8
 
-  // Sticky is relative to this grid's scroll container.
-  const headerStickyStyle: React.CSSProperties = { top: 0 };
-  const filterStickyStyle: React.CSSProperties = { top: headerRowHeightPx };
-
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "sticky z-30 p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
-  const filterCellClass =
-    "sticky z-20 p-0 border-r border-b border-border bg-background h-8 align-middle";
+    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
   const filterWrapperClass = "px-1 py-1 bg-background flex items-center min-h-8 min-w-0";
 
+  const columns = React.useMemo(() => {
+    const specs = visibleKeys.map((key) => {
+      const widthPx =
+        key === "id"
+          ? 120
+          : key === "Project"
+            ? 120
+            : key === "description"
+              ? 180
+              : key === "Artikel"
+                ? 140
+                : key === "Customer"
+                  ? 160
+                  : key === "PartNoOriginalRequest"
+                    ? 160
+                    : key === "DrawingNoOriginalRequest"
+                      ? 160
+                      : 60;
+      return { key, widthPx };
+    });
+    return [{ key: "__open__", widthPx: 40 }, ...specs];
+  }, [visibleKeys]);
+
   return (
     <React.Fragment>
       <div className="h-full min-h-0 flex flex-col gap-3">
-        <div className="flex-1 min-h-0 w-full overflow-auto">
-          <table className="w-max min-w-full border-separate border-spacing-0 caption-bottom text-sm border-l border-border">
-            <thead className="[&_tr]:border-b">
-              <tr className="border-b border-border">
-                <th style={headerStickyStyle} className={cn("w-[40px] text-center", headerCellClass)}>
-                  <span className="sr-only">Open</span>
-                </th>
-                {visibleKeys.map((key) => (
-                  <th
-                    key={key}
-                    style={headerStickyStyle}
-                    className={cn(
-                      headerCellClass,
-                      "min-w-[60px] text-left",
-                      key === "id" && "min-w-[120px]",
-                      key === "Project" && "min-w-[120px]",
-                      key === "description" && "min-w-[180px]",
-                      key === "Artikel" && "min-w-[140px]",
-                      key === "Customer" && "min-w-[160px]",
-                      key === "PartNoOriginalRequest" && "min-w-[160px]",
-                      key === "DrawingNoOriginalRequest" && "min-w-[160px]"
-                    )}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSort(key)}
-                      className="flex items-center justify-start px-1 font-bold h-6 hover:bg-transparent"
-                    >
-                      {getColumnLabel(key)}
-                      {sortConfig?.key === key && (
-                        <ArrowDownUp
-                          className={cn(
-                            "h-3 w-3",
-                            sortConfig.direction === "desc" ? "rotate-180" : ""
-                          )}
-                        />
-                      )}
-                    </Button>
-                  </th>
-                ))}
-              </tr>
-
-              <tr className="border-b border-border">
-                <th style={filterStickyStyle} className={cn("w-[40px]", filterCellClass)}>
-                  <div className={filterWrapperClass} />
-                </th>
-                {visibleKeys.map((key) => (
-                  <th key={`${key}-filter`} style={filterStickyStyle} className={filterCellClass}>
-                    <div className={filterWrapperClass}>
-                      <Input
-                        value={draftFilters[key] || ""}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                          handleDraftFilterChange(key, e.target.value)
-                        }
-                        onBlur={commitFilters}
-                        onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            commitFilters();
-                          }
-                        }}
-                        className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
-                      />
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody className="[&_tr:last-child]:border-0">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={visibleKeys.length + 1} className="text-center py-6">
-                    <div className="flex items-center justify-center text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Gelegenheiten werden geladen…
-                    </div>
-                  </td>
-                </tr>
-              ) : sortedItems.length === 0 ? (
-                <tr>
-                  <td colSpan={visibleKeys.length + 1} className="text-center py-6">
-                    <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
-                  </td>
-                </tr>
-              ) : (
-                sortedItems.map((item) => {
-                  const isSelected = selectedOpportunityId === item.id;
-                  return (
-                    <tr
-                      key={item.id}
-                      className={cn(
-                        "cursor-pointer border-b border-border",
-                        isSelected && "bg-blue-100 dark:bg-blue-900"
-                      )}
-                      onClick={() => {
-                        if (selectedOpportunityId === item.id) {
-                          onSelectOpportunity(null);
-                        } else {
-                          onSelectOpportunity(item.id);
-                        }
-                      }}
-                    >
-                      <td className={cn("text-center", iconCellClass)}>
+        {/*
+          IMPORTANT: Sticky table headers inside <table> can be unreliable depending on scroll containers.
+          We render header+filter as a separate (non-scrolling) table, and only the body scrolls.
+          Horizontal scrolling is shared via the outer overflow-x container.
+        */}
+        <div className="flex-1 min-h-0 w-full overflow-x-auto">
+          <div className="min-w-max h-full min-h-0 flex flex-col">
+            {/* Fixed header + filter row */}
+            <div className="flex-shrink-0 border-l border-border">
+              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+                <colgroup>
+                  {columns.map((c) => (
+                    <col key={c.key} style={{ width: `${c.widthPx}px` }} />
+                  ))}
+                </colgroup>
+                <thead className="[&_tr]:border-b">
+                  <tr className="border-b border-border">
+                    <th className={cn("text-center", headerCellClass)}>
+                      <span className="sr-only">Open</span>
+                    </th>
+                    {visibleKeys.map((key) => (
+                      <th
+                        key={key}
+                        className={cn(headerCellClass, "text-left")}
+                      >
                         <Button
-                          variant="default"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            if (selectedOpportunityId === item.id) {
-                              onSelectOpportunity(null);
-                            } else {
-                              onSelectOpportunity(item.id);
-                            }
-                          }}
-                          aria-label={`Open opportunity ${item.id}`}
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleSort(key)}
+                          className="flex items-center justify-start px-1 font-bold h-6 hover:bg-transparent"
                         >
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </td>
-
-                      {visibleKeys.map((key) => (
-                        <td key={`${item.id}-${key}`} className={dataCellClass}>
-                          {key === "id" ||
-                          key === "Project" ||
-                          key === "description" ||
-                          key === "Artikel" ||
-                          key === "Customer" ||
-                          key === "PartNoOriginalRequest" ||
-                          key === "DrawingNoOriginalRequest" ? (
-                            <button
-                              className="w-full text-left h-6 text-xs px-1 rounded-none truncate"
-                              onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                if (selectedOpportunityId !== item.id) {
-                                  onSelectOpportunity(item.id);
-                                }
-                              }}
-                            >
-                              {String(item[key] ?? "")}
-                            </button>
-                          ) : key === "SoldtoBusinessPartner" ? (
-                            <div className="flex items-center gap-2">
-                              <EditableCellInput
-                                itemId={item.id}
-                                fieldKey={key}
-                                initialValue={item[key] || ""}
-                                onUpdateItem={onUpdateItem}
-                                className="pr-10 w-full rounded-none h-6 text-xs"
-                                disabled={false}
-                                hasSearchButton={true}
-                                onSearchButtonClick={handleOpenBpSelectDialog}
-                              />
-                              {item.SoldtoBusinessPartnerName && (
-                                <p className="text-xs text-muted-foreground whitespace-nowrap">
-                                  {item.SoldtoBusinessPartnerName}
-                                </p>
+                          {getColumnLabel(key)}
+                          {sortConfig?.key === key && (
+                            <ArrowDownUp
+                              className={cn(
+                                "h-3 w-3",
+                                sortConfig.direction === "desc" ? "rotate-180" : ""
                               )}
-                            </div>
-                          ) : (
-                            <EditableCellInput
-                              itemId={item.id}
-                              fieldKey={key}
-                              initialValue={item[key] || ""}
-                              onUpdateItem={onUpdateItem}
-                              type={typeof item[key] === "number" ? "number" : "text"}
-                              className="w-full rounded-none h-6 text-xs px-1"
-                              disabled={
-                                key === "id" ||
-                                key === "Opportunity" ||
-                                key === "Guid" ||
-                                key === "CreationDate" ||
-                                key === "LastTransactionDate" ||
-                                key === "CreatedBy" ||
-                                key === "LastModifiedBy"
-                              }
                             />
                           )}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        </Button>
+                      </th>
+                    ))}
+                  </tr>
 
-        <p className="shrink-0 text-sm text-muted-foreground text-center py-2">
-          {`${sortedItems.length} Gelegenheiten angezeigt`}
-        </p>
+                  <tr className="border-b border-border">
+                    <th className={filterCellClass}>
+                      <div className={filterWrapperClass} />
+                    </th>
+                    {visibleKeys.map((key) => (
+                      <th key={`${key}-filter`} className={filterCellClass}>
+                        <div className={filterWrapperClass}>
+                          <Input
+                            value={draftFilters[key] || ""}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              handleDraftFilterChange(key, e.target.value)
+                            }
+                            onBlur={commitFilters}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitFilters();
+                              }
+                            }}
+                            className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                          />
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+              </table>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto border-l border-border">
+              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+                <colgroup>
+                  {columns.map((c) => (
+                    <col key={c.key} style={{ width: `${c.widthPx}px` }} />
+                  ))}
+                </colgroup>
+                <tbody className="[&_tr:last-child]:border-0">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={visibleKeys.length + 1} className="text-center py-6">
+                        <div className="flex items-center justify-center text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Gelegenheiten werden geladen…
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sortedItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={visibleKeys.length + 1} className="text-center py-6">
+                        <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedItems.map((item) => {
+                      const isSelected = selectedOpportunityId === item.id;
+                      return (
+                        <tr
+                          key={item.id}
+                          className={cn(
+                            "cursor-pointer",
+                            isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-muted"
+                          )}
+                          onClick={() => onSelectOpportunity(item.id)}
+                        >
+                          <td className={cn(iconCellClass, "text-center")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              props.onViewDetails(item);
+                            }}
+                          >
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </td>
+
+                          {visibleKeys.map((key) => (
+                            <td
+                              key={key}
+                              className={cn(
+                                dataCellClass,
+                                "px-1 text-xs",
+                                key === "description" && "min-w-0"
+                              )}
+                            >
+                              <div className="truncate" title={String((item as any)[key] ?? "")}>
+                                {String((item as any)[key] ?? "")}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex-shrink-0 py-2 text-xs text-muted-foreground">
+              {`${sortedItems.length} Gelegenheiten angezeigt`}
+            </div>
+          </div>
+        </div>
       </div>
 
       <BusinessPartnerSelectDialog
