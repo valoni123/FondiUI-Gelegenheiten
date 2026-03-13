@@ -547,7 +547,6 @@ const Index: React.FC<IndexProps> = ({
                 isLoading={isLoadingOpportunities}
                 filters={opportunityFilters}
                 onCommitFilters={handleCommitOpportunityFilters}
-                stickyTopOffsetPx={appHeaderHeight}
               />
             </ResizablePanel>
           )}
