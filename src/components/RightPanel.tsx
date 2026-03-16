@@ -84,7 +84,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: title, url });
+        const text = `${title}\n${url}`;
+        await navigator.share({ title, text, url });
         return;
       }
 
