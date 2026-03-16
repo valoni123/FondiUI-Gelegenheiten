@@ -84,7 +84,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
     try {
       if (navigator.share) {
-        await navigator.share({ title, text: title, url });
+        // Many share targets map `title` to the mail subject and `text` to the message body.
+        // We want the body to contain only the link.
+        await navigator.share({ title, text: url, url });
         return;
       }
 
@@ -957,7 +959,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
           {/* UNTEN: Dokumentenvorschau (no fixed-height scroll; let outer page scroll) */}
           <div className="flex-shrink-0">
             <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenvorschau</div>
-            <div className="rounded-md border p-3">
+            {/* Constrain preview height so it can't push the document list out of view */}
+            <div className="rounded-md border p-3 max-h-[32vh] overflow-y-auto">
               {isPreviewsLoading ? (
                 <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

@@ -3,7 +3,7 @@ import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
 import { toast } from "sonner";
-import { createItem, getOpportunities, updateItem, getOpportunityById } from "@/api/items";
+import { createItem, getOpportunitiesWithCount, updateItem, getOpportunityById } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getBusinessPartnerById } from "@/api/businessPartners";
 import { CloudEnvironment } from "@/authorization/configLoader";
@@ -59,10 +59,16 @@ const Index: React.FC<IndexProps> = ({
   const effectiveOpportunityId = paramOpportunityId || urlOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
+  const [opportunitiesTotalCount, setOpportunitiesTotalCount] = useState<number | null>(null);
   const [opportunitiesLoadError, setOpportunitiesLoadError] = useState<string | null>(null);
   // Server-side filter state (sent as OData $filter)
   const [opportunityFilters, setOpportunityFilters] = useState<Record<string, string>>({});
   const [opportunityOdataFilter, setOpportunityOdataFilter] = useState<string | undefined>(undefined);
+  const [opportunitySortConfig, setOpportunitySortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>({
+    key: "id",
+    direction: "desc",
+  });
+  const [opportunityOrderBy, setOpportunityOrderBy] = useState<string | undefined>("Opportunity desc");
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isAddingNewItem, setIsAddingNewItem] = useState(false);
@@ -122,6 +128,18 @@ const Index: React.FC<IndexProps> = ({
     };
   }, [selectedOpportunityId, opportunities, authToken, companyNumber, cloudEnvironment]);
 
+  const mapGridKeyToOrderByField = useCallback((key: string) => {
+    // Map visible grid keys to LN API $orderby values.
+    if (key === "id") return "Opportunity";
+    if (key === "description") return "Description";
+    if (key === "Project") return "Project";
+    if (key === "Artikel") return "Artikel";
+    if (key === "Customer") return "Customer";
+    if (key === "PartNoOriginalRequest") return "PartNoOriginalRequest";
+    if (key === "DrawingNoOriginalRequest") return "DrawingNoOriginalRequest";
+    return null;
+  }, []);
+
   const buildOpportunityODataFilter = useCallback((filters: Record<string, string>): string | undefined => {
     const escapeODataString = (v: string) => v.replace(/'/g, "''");
 
@@ -160,7 +178,8 @@ const Index: React.FC<IndexProps> = ({
       currentCompanyNumber: string,
       currentCloudEnvironment: CloudEnvironment,
       silent: boolean = false,
-      odataFilter?: string
+      odataFilter?: string,
+      orderBy?: string
     ) => {
       if (!silent) {
         setIsLoadingOpportunities(true);
@@ -168,19 +187,21 @@ const Index: React.FC<IndexProps> = ({
       setOpportunitiesLoadError(null);
       const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
       try {
-        const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment, {
+        const res = await getOpportunitiesWithCount(token, currentCompanyNumber, currentCloudEnvironment, {
           top: 100,
           filter: odataFilter,
-          orderBy: "Opportunity desc",
+          orderBy,
           select: "*",
         });
-        setOpportunities(fetchedOpportunities);
+        setOpportunities(res.items);
+        setOpportunitiesTotalCount(res.totalCount);
         if (!silent) {
           toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
         }
       } catch (error) {
         console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
         setOpportunitiesLoadError(error instanceof Error ? error.message : String(error));
+        setOpportunitiesTotalCount(null);
         if (!silent) {
           toast.error("Failed to load opportunities.", { id: loadingToastId });
         } else {
@@ -250,10 +271,10 @@ const Index: React.FC<IndexProps> = ({
         setIdmEntityOptions(filtered.map((i) => ({ name: i.name, desc: i.desc })));
 
         if (!effectiveOpportunityId) {
-          await loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter);
+          await loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter, opportunityOrderBy);
         } else {
           setSelectedOpportunityId(effectiveOpportunityId);
-          await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
+          await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter, opportunityOrderBy);
         }
 
         initDoneRef.current = true;
@@ -266,7 +287,7 @@ const Index: React.FC<IndexProps> = ({
       }
     };
     initWithLoginToken();
-  }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, opportunityOdataFilter]);
+  }, [companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, opportunityOdataFilter, opportunityOrderBy]);
 
   // When coming back from detail view to overview, refresh opportunities once without showing stale content.
   useEffect(() => {
@@ -296,7 +317,7 @@ const Index: React.FC<IndexProps> = ({
         }
       }
 
-      await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
+      await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter, opportunityOrderBy);
       if (cancelled) return;
       needsOverviewReloadRef.current = false;
       setIsLoadingOpportunities(false);
@@ -306,7 +327,7 @@ const Index: React.FC<IndexProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate, opportunityOdataFilter]);
+  }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate, opportunityOdataFilter, opportunityOrderBy]);
 
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
@@ -329,12 +350,12 @@ const Index: React.FC<IndexProps> = ({
           }
         }
 
-        await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter);
+        await loadOpportunities(token, companyNumber, cloudEnvironment, true, opportunityOdataFilter, opportunityOrderBy);
       }, 10000);
 
       return () => clearInterval(refreshInterval);
     }
-  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, navigate, opportunityOdataFilter]);
+  }, [authToken, companyNumber, cloudEnvironment, loadOpportunities, effectiveOpportunityId, navigate, opportunityOdataFilter, opportunityOrderBy]);
 
   // Effect to update panel sizes based on selectedOpportunityId
   useEffect(() => {
@@ -442,6 +463,20 @@ const Index: React.FC<IndexProps> = ({
     }
   };
 
+  const handleSortChange = useCallback(
+    async (next: { key: string; direction: "asc" | "desc" } | null) => {
+      setOpportunitySortConfig(next);
+
+      const field = next ? mapGridKeyToOrderByField(next.key) : null;
+      const orderBy = next && field ? `${field}${next.direction === "desc" ? " desc" : ""}` : undefined;
+      setOpportunityOrderBy(orderBy);
+
+      if (!authToken) return;
+      await loadOpportunities(authToken, companyNumber, cloudEnvironment, false, opportunityOdataFilter, orderBy);
+    },
+    [authToken, companyNumber, cloudEnvironment, loadOpportunities, mapGridKeyToOrderByField, opportunityOdataFilter]
+  );
+
   const handleCommitOpportunityFilters = useCallback(
     async (filters: Record<string, string>) => {
       setOpportunityFilters(filters);
@@ -449,9 +484,9 @@ const Index: React.FC<IndexProps> = ({
       setOpportunityOdataFilter(odataFilter);
 
       if (!authToken) return;
-      await loadOpportunities(authToken, companyNumber, cloudEnvironment, false, odataFilter);
+      await loadOpportunities(authToken, companyNumber, cloudEnvironment, false, odataFilter, opportunityOrderBy);
     },
-    [authToken, buildOpportunityODataFilter, loadOpportunities, companyNumber, cloudEnvironment]
+    [authToken, buildOpportunityODataFilter, loadOpportunities, companyNumber, cloudEnvironment, opportunityOrderBy]
   );
 
   if (isAuthLoading) {
@@ -463,8 +498,8 @@ const Index: React.FC<IndexProps> = ({
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
-      <div className="w-full px-4 flex flex-col flex-grow min-h-0">
+    <div className="h-screen overflow-hidden flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
+      <div className="w-full px-4 flex flex-col flex-grow min-h-0 overflow-hidden">
         <div
           ref={appHeaderRef}
           className={!selectedOpportunityId ? "sticky top-0 z-50" : undefined}
@@ -494,7 +529,7 @@ const Index: React.FC<IndexProps> = ({
                 onClick={() => {
                   const token = localStorage.getItem("oauthAccessToken") || authToken;
                   if (!token) return;
-                  loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter);
+                  loadOpportunities(token, companyNumber, cloudEnvironment, false, opportunityOdataFilter, opportunityOrderBy);
                 }}
               >
                 Erneut laden
@@ -547,6 +582,9 @@ const Index: React.FC<IndexProps> = ({
                 isLoading={isLoadingOpportunities}
                 filters={opportunityFilters}
                 onCommitFilters={handleCommitOpportunityFilters}
+                sortConfig={opportunitySortConfig}
+                onSortChange={handleSortChange}
+                totalCount={opportunitiesTotalCount}
               />
             </ResizablePanel>
           )}
