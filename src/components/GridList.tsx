@@ -118,31 +118,24 @@ const GridList: React.FC<GridListProps> = ({
     "px-0 py-1 border-r border-b border-border bg-background flex items-center justify-center min-h-8";
 
   const columns = useMemo(() => {
+    // Use minmax(...) and fr units like the document list so the grid fills the available width
+    // while still keeping sensible minimums.
     const specs = visibleKeys.map((key) => {
-      const widthPx =
-        key === "id"
-          ? 120
-          : key === "Project"
-            ? 120
-            : key === "description"
-              ? 180
-              : key === "Artikel"
-                ? 140
-                : key === "Customer"
-                  ? 160
-                  : key === "PartNoOriginalRequest"
-                    ? 160
-                    : key === "DrawingNoOriginalRequest"
-                      ? 160
-                      : 60;
-      return { key, widthPx };
+      if (key === "id") return { key, template: "minmax(140px, 1fr)" };
+      if (key === "Project") return { key, template: "minmax(140px, 1.2fr)" };
+      if (key === "Artikel") return { key, template: "minmax(140px, 1fr)" };
+      if (key === "Customer") return { key, template: "minmax(180px, 1.6fr)" };
+      if (key === "description") return { key, template: "minmax(220px, 2fr)" };
+      if (key === "PartNoOriginalRequest") return { key, template: "minmax(170px, 1.2fr)" };
+      if (key === "DrawingNoOriginalRequest") return { key, template: "minmax(180px, 1.2fr)" };
+      return { key, template: "minmax(120px, 1fr)" };
     });
 
-    return [{ key: "__open__", widthPx: 30 }, ...specs];
+    return [{ key: "__open__", template: "30px" }, ...specs];
   }, [visibleKeys]);
 
   const gridTemplateColumns = useMemo(
-    () => columns.map((c) => `${c.widthPx}px`).join(" "),
+    () => columns.map((c: any) => c.template).join(" "),
     [columns]
   );
 
@@ -152,7 +145,7 @@ const GridList: React.FC<GridListProps> = ({
         <div className="w-full h-full min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-y-auto w-full">
             <div
-              className="grid w-max min-w-full border-l border-t border-border"
+              className="grid w-full min-w-full border-l border-t border-border"
               style={{ gridTemplateColumns: gridTemplateColumns }}
             >
               {/* Header */}
