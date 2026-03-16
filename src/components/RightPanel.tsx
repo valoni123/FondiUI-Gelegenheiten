@@ -931,12 +931,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
           </div>
 
           {/* MITTE: Dokumentenliste (single scroll container for sticky header + x-scroll) */}
-          <div className="flex-1 min-h-0 overflow-auto">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <DocAttributesGrid
               ref={docListGridRef}
               title="Dokumentenliste"
               docs={docPreviews}
-              useInternalScroll={false}
+              scrollMode="fill"
               contextKey={selectedOpportunityId}
               maxDataColumnWidthPx={200}
               highlightedDocKeys={highlightedDocKeys}

@@ -47,12 +47,8 @@ import { toast } from "@/components/ui/use-toast";
 
 type Props = {
   docs: IdmDocPreview[];
-  /**
-   * If false, the grid will NOT create its own vertical scroll container.
-   * Use this when the parent already provides the single scroll container
-   * (required for sticky headers to work reliably).
-   */
-  useInternalScroll?: boolean;
+  /** Controls how the internal scroll area is sized when useInternalScroll=true. */
+  scrollMode?: "max60vh" | "fill";
   /**
    * Used to reset internal UI state (filters/selection) only when the dataset context changes
    * (e.g. switching to another opportunity), not on silent background refreshes.
@@ -145,7 +141,7 @@ const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
-  useInternalScroll = true,
+  scrollMode = "max60vh",
   contextKey,
   maxDataColumnWidthPx,
   highlightedDocKeys,
@@ -1026,7 +1022,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   );
 
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col min-h-0">
       {(title || !hideSaveAllButton) && (
         <div className="mb-2 flex items-center justify-between gap-3">
           {title ? (
@@ -1067,9 +1063,17 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       )}
 
       <TooltipProvider>
-        <div className={cn("w-full", useInternalScroll && "overflow-x-auto")}>
+        <div
+          className={cn(
+            "w-full overflow-x-auto",
+            scrollMode === "fill" && "flex-1 min-h-0"
+          )}
+        >
           <div
-            className={cn(useInternalScroll && "max-h-[60vh] overflow-y-auto")}
+            className={cn(
+              "overflow-y-auto",
+              scrollMode === "fill" ? "flex-1 min-h-0" : "max-h-[60vh]"
+            )}
             style={{ gridTemplateColumns: gridTemplate }}
           >
             <div
@@ -1131,8 +1135,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                   {filteredDocs.map(({ doc, idx }, rowIndex) => {
                     const rowEdited = edited[idx] ?? {};
                     const rowInitial = initial[idx] ?? {};
-                    const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
-                    const defs = attrDefsByEntity[effectiveEntityName] || {};
+                    const entityName = editedDocTypes[idx] || String(doc.entityName ?? "");
+                    const defs = attrDefsByEntity[entityName] ?? {};
 
                     // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
                     const statusCol = displayColumns.find(
@@ -1259,7 +1263,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             size="icon"
                             className="h-6 w-6"
                             disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => runWithUnsavedGuard(() => setConfirmReplaceRow(idx))}
+                            onClick={() => runWithUnsavedGuard(() => void setConfirmReplaceRow(idx))}
                             title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
                             aria-label="Dokument ersetzen"
                           >
@@ -1279,7 +1283,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   variant="ghost"
                                   size="icon"
                                   className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                                  onClick={() => runWithUnsavedGuard(() => setOpen(true))}
+                                  onClick={() => runWithUnsavedGuard(() => void setOpen(true))}
                                   title="Verlinkte Dokumente anzeigen"
                                   aria-label="Verlinkte Dokumente anzeigen"
                                 >
@@ -1529,7 +1533,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               ? geometriedatenStatusStyles[statusLabel]
                               : isGeometriedatenFilter && isSerienstatusCol
                                 ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                                : geometrieartStyle;
+                                : isGeometriedatenFilter && isGeometrieartCol
+                                  ? getGeometriedatenGeometrieartStyle(label)
+                                  : undefined;
 
                           const selectColorClass =
                             (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
@@ -2065,7 +2071,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             <Button
               variant="destructive"
               disabled={unsavedSaving}
-              onClick={() => {
+              onClick={async () => {
                 // Discard all local edits and continue with the user's intended action.
                 setEdited(initial);
                 setEditedDocTypes(initialDocTypes);
@@ -2092,8 +2098,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                   const action = pendingActionRef.current;
                   setUnsavedDialogOpen(false);
-                  pendingActionRef.current = null;
                   setUnsavedSaveFailed(false);
+                  pendingActionRef.current = null;
                   action?.();
                 } finally {
                   setUnsavedSaving(false);
