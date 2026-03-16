@@ -3,7 +3,7 @@ import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
 import { toast } from "sonner";
-import { createItem, getOpportunities, updateItem, getOpportunityById } from "@/api/items";
+import { createItem, getOpportunitiesWithCount, updateItem, getOpportunityById } from "@/api/items";
 import { getOpportunityStatusOptions } from "@/api/metadata";
 import { getBusinessPartnerById } from "@/api/businessPartners";
 import { CloudEnvironment } from "@/authorization/configLoader";
@@ -59,6 +59,7 @@ const Index: React.FC<IndexProps> = ({
   const effectiveOpportunityId = paramOpportunityId || urlOpportunityId || null;
 
   const [opportunities, setOpportunities] = useState<Item[]>([]);
+  const [opportunitiesTotalCount, setOpportunitiesTotalCount] = useState<number | null>(null);
   const [opportunitiesLoadError, setOpportunitiesLoadError] = useState<string | null>(null);
   // Server-side filter state (sent as OData $filter)
   const [opportunityFilters, setOpportunityFilters] = useState<Record<string, string>>({});
@@ -186,19 +187,21 @@ const Index: React.FC<IndexProps> = ({
       setOpportunitiesLoadError(null);
       const loadingToastId = !silent ? toast.loading("Loading opportunities...") : undefined;
       try {
-        const fetchedOpportunities = await getOpportunities(token, currentCompanyNumber, currentCloudEnvironment, {
+        const res = await getOpportunitiesWithCount(token, currentCompanyNumber, currentCloudEnvironment, {
           top: 100,
           filter: odataFilter,
           orderBy,
           select: "*",
         });
-        setOpportunities(fetchedOpportunities);
+        setOpportunities(res.items);
+        setOpportunitiesTotalCount(res.totalCount);
         if (!silent) {
           toast.success("Gelegenheiten erfolgreich geladen!", { id: loadingToastId });
         }
       } catch (error) {
         console.error(`[Opportunities] Reload fehlgeschlagen (silent=${silent})`, error);
         setOpportunitiesLoadError(error instanceof Error ? error.message : String(error));
+        setOpportunitiesTotalCount(null);
         if (!silent) {
           toast.error("Failed to load opportunities.", { id: loadingToastId });
         } else {
@@ -581,6 +584,7 @@ const Index: React.FC<IndexProps> = ({
                 onCommitFilters={handleCommitOpportunityFilters}
                 sortConfig={opportunitySortConfig}
                 onSortChange={handleSortChange}
+                totalCount={opportunitiesTotalCount}
               />
             </ResizablePanel>
           )}

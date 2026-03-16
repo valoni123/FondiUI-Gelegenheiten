@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ArrowDown, ArrowUp, ArrowUpDown, Loader2 } from "lucide-react";
@@ -24,6 +24,7 @@ interface GridListProps {
   onCommitFilters: (filters: Record<string, string>) => void;
   sortConfig: { key: string; direction: "asc" | "desc" } | null;
   onSortChange: (sort: { key: string; direction: "asc" | "desc" } | null) => void;
+  totalCount?: number | null;
 }
 
 const GridList: React.FC<GridListProps> = (props) => {
@@ -40,7 +41,26 @@ const GridList: React.FC<GridListProps> = (props) => {
     onCommitFilters,
     sortConfig,
     onSortChange,
+    totalCount,
   } = props;
+
+  const bodyScrollRef = useRef<HTMLDivElement | null>(null);
+  const [bodyScrollbarWidth, setBodyScrollbarWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = bodyScrollRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      // offsetWidth includes scrollbar; clientWidth excludes it.
+      const w = el.offsetWidth - el.clientWidth;
+      setBodyScrollbarWidth(w > 0 ? w : 0);
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [items.length, isLoading]);
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
   const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
@@ -178,7 +198,11 @@ const GridList: React.FC<GridListProps> = (props) => {
         <div className="flex-1 min-h-0 w-full overflow-x-auto">
           <div className="min-w-max h-full min-h-0 flex flex-col">
             {/* Fixed header + filter row */}
-            <div className="flex-shrink-0 border-l border-border">
+            <div
+              className="flex-shrink-0 border-l border-border"
+              // Keep header columns aligned with the scrollable body (accounts for the vertical scrollbar).
+              style={{ paddingRight: bodyScrollbarWidth }}
+            >
               <table className="w-max min-w-full table-fixed border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
@@ -241,7 +265,7 @@ const GridList: React.FC<GridListProps> = (props) => {
             </div>
 
             {/* Scrollable body */}
-            <div className="flex-1 min-h-0 overflow-y-auto border-l border-border">
+            <div ref={bodyScrollRef} className="flex-1 min-h-0 overflow-y-auto border-l border-border">
               <table className="w-max min-w-full table-fixed border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
@@ -312,7 +336,10 @@ const GridList: React.FC<GridListProps> = (props) => {
             </div>
 
             <div className="flex-shrink-0 py-2 text-xs text-muted-foreground">
-              {`${items.length} Gelegenheiten angezeigt`}
+              {typeof totalCount === "number"
+                ? `${items.length} von ${totalCount} Gelegenheiten angezeigt`
+                : `${items.length} Gelegenheiten angezeigt`}
+
             </div>
           </div>
         </div>
