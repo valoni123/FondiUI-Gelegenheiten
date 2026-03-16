@@ -176,7 +176,8 @@ const GridList: React.FC<GridListProps> = (props) => {
                       : 60;
       return { key, widthPx };
     });
-    return [{ key: "__open__", widthPx: 40 }, ...specs];
+    // Match the compact icon column width used in the document list.
+    return [{ key: "__open__", widthPx: 30 }, ...specs];
   }, [visibleKeys]);
 
   return (
@@ -199,7 +200,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                 </colgroup>
                 <thead className="[&_tr]:border-b">
                   <tr className="border-b border-border">
-                    <th className={cn("text-center", headerCellClass)}>
+                    <th className={cn("text-center", headerCellClass, "px-0")}>
                       <span className="sr-only">Open</span>
                     </th>
                     {visibleKeys.map((key) => (
@@ -228,7 +229,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                   </tr>
 
                   <tr className="border-b border-border">
-                    <th className={filterCellClass} />
+                    <th className={cn(filterCellClass, "px-0")} />
                     {visibleKeys.map((key) => (
                       <th key={`${key}-filter`} className={filterCellClass}>
                         <Input
@@ -288,7 +289,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                           )}
                           onClick={() => onSelectOpportunity(item.id)}
                         >
-                          <td className={cn(iconCellClass, "text-center")}>
+                          <td className={cn(iconCellClass, "px-0 text-center")}>
                             <Button
                               variant="ghost"
                               size="icon"
