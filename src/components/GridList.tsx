@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
+import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
+import { BusinessPartner } from "@/api/businessPartners";
+import EditableCellInput from "./EditableCellInput";
 import { CloudEnvironment } from "@/authorization/configLoader";
 
 interface GridListProps {
@@ -19,24 +22,27 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
-  sortConfig: { key: string; direction: "asc" | "desc" } | null;
-  onSortChange: (sort: { key: string; direction: "asc" | "desc" } | null) => void;
-  totalCount?: number | null;
 }
 
-const GridList: React.FC<GridListProps> = ({
-  items,
-  selectedOpportunityId,
-  onSelectOpportunity,
-  isLoading,
-  filters,
-  onCommitFilters,
-  sortConfig,
-  onSortChange,
-  totalCount,
-}) => {
+const GridList: React.FC<GridListProps> = (props) => {
+  const {
+    items,
+    onUpdateItem,
+    authToken,
+    companyNumber,
+    cloudEnvironment,
+    selectedOpportunityId,
+    onSelectOpportunity,
+    isLoading,
+    filters,
+    onCommitFilters,
+  } = props;
+
   // Draft filters: user can type; we only send to LN on blur/Enter.
   const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
+  const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     setDraftFilters(filters);
@@ -63,11 +69,6 @@ const GridList: React.FC<GridListProps> = ({
     return true;
   };
 
-  const commitFilters = () => {
-    if (isSameFilters(draftFilters, filters)) return;
-    onCommitFilters(draftFilters);
-  };
-
   // Define the specific keys to be displayed in the grid
   const visibleKeys = useMemo(
     () => [
@@ -92,173 +93,260 @@ const GridList: React.FC<GridListProps> = ({
     return key.replace(/([A-Z])/g, " $1").trim();
   };
 
-  const handleSort = (key: string) => {
-    // Cycle: none -> asc -> desc -> none
-    if (!sortConfig || sortConfig.key !== key) {
-      onSortChange({ key, direction: "asc" });
-      return;
-    }
-
-    if (sortConfig.direction === "asc") {
-      onSortChange({ key, direction: "desc" });
-      return;
-    }
-
-    onSortChange(null);
+  const handleDraftFilterChange = (key: string, value: string) => {
+    setDraftFilters((prev) => ({ ...prev, [key]: value }));
   };
 
-  // Styling aligned with DocAttributesGrid (document list) using a CSS grid instead of <table>
-  const headerCellClass =
-    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 flex items-center min-h-8";
-  const filterCellClass =
-    "px-1 py-1 border-r border-b border-border bg-background flex items-center min-h-8";
-  const gridCellClass =
-    "px-1 py-1 min-w-0 border-r border-b border-border bg-background flex items-center min-h-8";
-  const iconCellClass =
-    "px-0 py-1 border-r border-b border-border bg-background flex items-center justify-center min-h-8";
+  const commitFilters = () => {
+    // Avoid reloading when the user just moves focus between filter inputs without changing anything.
+    if (isSameFilters(draftFilters, filters)) return;
+    onCommitFilters(draftFilters);
+  };
 
-  const columns = useMemo(() => {
-    // Use minmax(...) and fr units like the document list so the grid fills the available width
-    // while still keeping sensible minimums.
-    const specs = visibleKeys.map((key) => {
-      if (key === "id") return { key, template: "minmax(140px, 1fr)" };
-      if (key === "Project") return { key, template: "minmax(140px, 1.2fr)" };
-      if (key === "Artikel") return { key, template: "minmax(140px, 1fr)" };
-      if (key === "Customer") return { key, template: "minmax(180px, 1.6fr)" };
-      if (key === "description") return { key, template: "minmax(220px, 2fr)" };
-      if (key === "PartNoOriginalRequest") return { key, template: "minmax(170px, 1.2fr)" };
-      if (key === "DrawingNoOriginalRequest") return { key, template: "minmax(180px, 1.2fr)" };
-      return { key, template: "minmax(120px, 1fr)" };
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedItems = useMemo(() => {
+    const currentItems = [...items];
+    if (!sortConfig) return currentItems;
+
+    currentItems.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      if (aValue === null || aValue === undefined) return sortConfig.direction === "asc" ? 1 : -1;
+      if (bValue === null || bValue === undefined) return sortConfig.direction === "asc" ? -1 : 1;
+
+      if (typeof aValue === "string" && typeof bValue === "string") {
+        return sortConfig.direction === "asc"
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      if (typeof aValue === "number" && typeof bValue === "number") {
+        return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
+      }
+      return 0;
     });
 
-    return [{ key: "__open__", template: "30px" }, ...specs];
+    return currentItems;
+  }, [items, sortConfig]);
+
+  const handleOpenBpSelectDialog = (itemId: string) => {
+    setCurrentEditingItemId(itemId);
+    setIsBpSelectDialogOpen(true);
+  };
+
+  const handleSelectBusinessPartnerFromGrid = (bp: BusinessPartner) => {
+    if (currentEditingItemId) {
+      onUpdateItem(currentEditingItemId, "SoldtoBusinessPartner", bp.BusinessPartner);
+    }
+    setIsBpSelectDialogOpen(false);
+    setCurrentEditingItemId(null);
+  };
+
+  const headerRowHeightPx = 32; // h-8
+
+  // Match Detailansicht-Zellgrößen (DocAttributesGrid)
+  const headerCellClass =
+    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+  const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+  const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+  const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
+
+  const filterWrapperClass = "px-1 py-1 bg-background flex items-center min-h-8 min-w-0";
+
+  const columns = React.useMemo(() => {
+    const specs = visibleKeys.map((key) => {
+      const widthPx =
+        key === "id"
+          ? 120
+          : key === "Project"
+            ? 120
+            : key === "description"
+              ? 180
+              : key === "Artikel"
+                ? 140
+                : key === "Customer"
+                  ? 160
+                  : key === "PartNoOriginalRequest"
+                    ? 160
+                    : key === "DrawingNoOriginalRequest"
+                      ? 160
+                      : 60;
+      return { key, widthPx };
+    });
+    return [{ key: "__open__", widthPx: 40 }, ...specs];
   }, [visibleKeys]);
 
-  const gridTemplateColumns = useMemo(
-    () => columns.map((c: any) => c.template).join(" "),
-    [columns]
-  );
-
   return (
-    <div className="h-full min-h-0 flex flex-col gap-3">
-      <div className="flex-1 min-h-0 w-full overflow-x-auto">
-        <div className="w-full h-full min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto w-full">
-            <div
-              className="grid w-full min-w-full border-l border-t border-border"
-              style={{ gridTemplateColumns: gridTemplateColumns }}
-            >
-              {/* Header */}
-              <div className={cn(headerCellClass, "sticky top-0 z-30")} />
-              {visibleKeys.map((key) => (
-                <div
-                  key={`h-${key}`}
-                  className={cn(headerCellClass, "min-w-0 sticky top-0 z-30")}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort(key)}
-                    className="flex w-full items-center justify-start gap-1 truncate p-0 text-left text-xs font-bold leading-none text-foreground"
-                  >
-                    <span className="truncate">{getColumnLabel(key)}</span>
-                    {sortConfig?.key === key ? (
-                      sortConfig.direction === "asc" ? (
-                        <ArrowUp className="h-3 w-3 shrink-0" />
-                      ) : (
-                        <ArrowDown className="h-3 w-3 shrink-0" />
-                      )
-                    ) : (
-                      <ArrowUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-                    )}
-                  </button>
-                </div>
-              ))}
-
-              {/* Filters */}
-              <div className={cn(filterCellClass, "sticky top-8 z-20")} />
-              {visibleKeys.map((key) => (
-                <div
-                  key={`f-${key}`}
-                  className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}
-                >
-                  <Input
-                    value={draftFilters[key] || ""}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setDraftFilters((prev) => ({ ...prev, [key]: e.target.value }))
-                    }
-                    onBlur={commitFilters}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        commitFilters();
-                      }
-                    }}
-                    className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
-                  />
-                </div>
-              ))}
-
-              {/* Rows */}
-              {isLoading ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Gelegenheiten werden geladen…
-                </div>
-              ) : items.length === 0 ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
-                  Keine Einträge gefunden.
-                </div>
-              ) : (
-                items.map((item) => {
-                  const isSelected = selectedOpportunityId === item.id;
-                  const rowClass = isSelected
-                    ? "bg-blue-50 dark:bg-blue-900/20"
-                    : "hover:bg-muted";
-
-                  return (
-                    <React.Fragment key={item.id}>
-                      <div
-                        className={cn(iconCellClass, rowClass, "cursor-pointer")}
-                        onClick={() => onSelectOpportunity(item.id)}
+    <React.Fragment>
+      <div className="h-full min-h-0 flex flex-col gap-3">
+        {/*
+          IMPORTANT: Sticky table headers inside <table> can be unreliable depending on scroll containers.
+          We render header+filter as a separate (non-scrolling) table, and only the body scrolls.
+          Horizontal scrolling is shared via the outer overflow-x container.
+        */}
+        <div className="flex-1 min-h-0 w-full overflow-x-auto">
+          <div className="min-w-max h-full min-h-0 flex flex-col">
+            {/* Fixed header + filter row */}
+            <div className="flex-shrink-0 border-l border-border">
+              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+                <colgroup>
+                  {columns.map((c) => (
+                    <col key={c.key} style={{ width: `${c.widthPx}px` }} />
+                  ))}
+                </colgroup>
+                <thead className="[&_tr]:border-b">
+                  <tr className="border-b border-border">
+                    <th className={cn("text-center", headerCellClass)}>
+                      <span className="sr-only">Open</span>
+                    </th>
+                    {visibleKeys.map((key) => (
+                      <th
+                        key={key}
+                        className={cn(headerCellClass, "text-left")}
                       >
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => onSelectOpportunity(item.id)}
-                          title="Zur Detailansicht"
-                          aria-label="Zur Detailansicht"
+                          size="sm"
+                          onClick={() => handleSort(key)}
+                          className="flex items-center justify-start px-1 font-bold h-6 hover:bg-transparent"
                         >
-                          <ChevronRight className="h-3 w-3" />
+                          {getColumnLabel(key)}
+                          {sortConfig?.key === key && (
+                            <ArrowDownUp
+                              className={cn(
+                                "h-3 w-3",
+                                sortConfig.direction === "desc" ? "rotate-180" : ""
+                              )}
+                            />
+                          )}
                         </Button>
-                      </div>
+                      </th>
+                    ))}
+                  </tr>
 
-                      {visibleKeys.map((key) => (
-                        <div
-                          key={`${item.id}-${key}`}
-                          className={cn(gridCellClass, rowClass, "cursor-pointer")}
+                  <tr className="border-b border-border">
+                    <th className={filterCellClass}>
+                      <div className={filterWrapperClass} />
+                    </th>
+                    {visibleKeys.map((key) => (
+                      <th key={`${key}-filter`} className={filterCellClass}>
+                        <div className={filterWrapperClass}>
+                          <Input
+                            value={draftFilters[key] || ""}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                              handleDraftFilterChange(key, e.target.value)
+                            }
+                            onBlur={commitFilters}
+                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitFilters();
+                              }
+                            }}
+                            className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                          />
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+              </table>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 min-h-0 overflow-y-auto border-l border-border">
+              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+                <colgroup>
+                  {columns.map((c) => (
+                    <col key={c.key} style={{ width: `${c.widthPx}px` }} />
+                  ))}
+                </colgroup>
+                <tbody className="[&_tr:last-child]:border-0">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={visibleKeys.length + 1} className="text-center py-6">
+                        <div className="flex items-center justify-center text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Gelegenheiten werden geladen…
+                        </div>
+                      </td>
+                    </tr>
+                  ) : sortedItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={visibleKeys.length + 1} className="text-center py-6">
+                        <div className="text-sm text-muted-foreground">Keine Einträge gefunden.</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    sortedItems.map((item) => {
+                      const isSelected = selectedOpportunityId === item.id;
+                      return (
+                        <tr
+                          key={item.id}
+                          className={cn(
+                            "cursor-pointer",
+                            isSelected ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-muted"
+                          )}
                           onClick={() => onSelectOpportunity(item.id)}
                         >
-                          <div className="truncate" title={String((item as any)[key] ?? "")}>
-                            {String((item as any)[key] ?? "")}
-                          </div>
-                        </div>
-                      ))}
-                    </React.Fragment>
-                  );
-                })
-              )}
+                          <td className={cn(iconCellClass, "text-center")}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onSelectOpportunity(item.id)}
+                              title="Zur Detailansicht"
+                              aria-label="Zur Detailansicht"
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </Button>
+                          </td>
+
+                          {visibleKeys.map((key) => (
+                            <td
+                              key={key}
+                              className={cn(
+                                dataCellClass,
+                                "px-1 text-xs",
+                                key === "description" && "min-w-0"
+                              )}
+                            >
+                              <div className="truncate" title={String((item as any)[key] ?? "")}>
+                                {String((item as any)[key] ?? "")}
+                              </div>
+                            </td>
+                          ))}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex-shrink-0 py-2 text-xs text-muted-foreground">
+              {`${sortedItems.length} Gelegenheiten angezeigt`}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="flex-shrink-0 py-2 text-xs text-muted-foreground">
-        {typeof totalCount === "number"
-          ? `${items.length} von ${totalCount} Gelegenheiten angezeigt`
-          : `${items.length} Gelegenheiten angezeigt`}
-      </div>
-    </div>
+      <BusinessPartnerSelectDialog
+        isOpen={isBpSelectDialogOpen}
+        onClose={() => setIsBpSelectDialogOpen(false)}
+        onSelect={handleSelectBusinessPartnerFromGrid}
+        authToken={authToken}
+        companyNumber={companyNumber}
+        cloudEnvironment={cloudEnvironment}
+      />
+    </React.Fragment>
   );
 };
 

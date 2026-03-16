@@ -1321,31 +1321,17 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                         {/* MOVED: Note Editor Button (now after Linked Docs) */}
                         <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          {(() => {
-                            const note = String(
-                              (rowEdited?.["Anmerkung"] ?? rowInitial?.["Anmerkung"] ?? "")
-                            ).trim();
-                            const hasNote = note.length > 0;
-
-                            return (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={cn(
-                                  "h-6 w-6",
-                                  hasNote
-                                    ? ""
-                                    : "text-muted-foreground/60 hover:text-muted-foreground"
-                                )}
-                                disabled={!doc.pid}
-                                onClick={() => openNoteEditor(idx)}
-                                title={hasNote ? "Anmerkung bearbeiten" : "Keine Anmerkung – hinzufügen"}
-                                aria-label="Anmerkung bearbeiten"
-                              >
-                                <FileText className="h-3 w-3" />
-                              </Button>
-                            );
-                          })()}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            disabled={!doc.pid}
+                            onClick={() => openNoteEditor(idx)}
+                            title="Anmerkung bearbeiten"
+                            aria-label="Anmerkung bearbeiten"
+                          >
+                            <FileText className="h-3 w-3" />
+                          </Button>
                         </div>
 
                         {/* Data columns */}
