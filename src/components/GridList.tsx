@@ -149,8 +149,8 @@ const GridList: React.FC<GridListProps> = ({
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
       <div className="flex-1 min-h-0 w-full overflow-x-auto">
-        <div className="min-w-max h-full min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="w-full h-full min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto w-full">
             <div
               className="grid w-max min-w-full border-l border-t border-border"
               style={{ gridTemplateColumns: gridTemplateColumns }}
