@@ -151,10 +151,10 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Visually align the opportunities grid with the document list (Detailansicht).
   const headerCellClass =
-    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 align-middle";
-  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background align-middle";
-  const dataCellClass = "px-1 py-1 min-w-0 border-r border-b border-border bg-background align-middle";
-  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background align-middle";
+    "h-8 px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 align-middle";
+  const filterCellClass = "h-8 px-1 py-1 border-r border-b border-border bg-background align-middle";
+  const dataCellClass = "h-8 px-1 py-1 min-w-0 border-r border-b border-border bg-background align-middle";
+  const iconCellClass = "h-8 px-1 py-1 border-r border-b border-border bg-background align-middle";
 
   const columns = React.useMemo(() => {
     const specs = visibleKeys.map((key) => {
@@ -192,7 +192,7 @@ const GridList: React.FC<GridListProps> = (props) => {
           <div className="min-w-max h-full min-h-0 flex flex-col">
             {/* Fixed header + filter row */}
             <div className="flex-shrink-0 border-l border-border">
-              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+              <table className="w-max min-w-full table-fixed border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
                     <col key={c.key} style={{ width: `${c.widthPx}px` }} />
@@ -208,11 +208,10 @@ const GridList: React.FC<GridListProps> = (props) => {
                         key={key}
                         className={cn(headerCellClass, "text-left")}
                       >
-                        <Button
-                          variant="ghost"
-                          size="sm"
+                        <button
+                          type="button"
                           onClick={() => handleSort(key)}
-                          className="h-auto w-full justify-start p-0 text-xs font-bold hover:bg-transparent"
+                          className="flex w-full items-center justify-start gap-1 p-0 text-left text-xs font-bold leading-none text-foreground hover:text-foreground"
                         >
                           {getColumnLabel(key)}
                           {sortConfig?.key === key && (
@@ -223,7 +222,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                               )}
                             />
                           )}
-                        </Button>
+                        </button>
                       </th>
                     ))}
                   </tr>
@@ -255,7 +254,7 @@ const GridList: React.FC<GridListProps> = (props) => {
 
             {/* Scrollable body */}
             <div className="flex-1 min-h-0 overflow-y-auto border-l border-border">
-              <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
+              <table className="w-max min-w-full table-fixed border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
                     <col key={c.key} style={{ width: `${c.widthPx}px` }} />
