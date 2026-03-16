@@ -84,8 +84,9 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
     try {
       if (navigator.share) {
-        const text = `${title}\n${url}`;
-        await navigator.share({ title, text, url });
+        // Many share targets map `title` to the mail subject and `text` to the message body.
+        // We want the body to contain only the link.
+        await navigator.share({ title, text: url, url });
         return;
       }
 
