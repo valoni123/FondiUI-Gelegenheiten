@@ -48,6 +48,12 @@ import { toast } from "@/components/ui/use-toast";
 type Props = {
   docs: IdmDocPreview[];
   /**
+   * If false, the grid will NOT create its own vertical scroll container.
+   * Use this when the parent already provides the single scroll container
+   * (required for sticky headers to work reliably).
+   */
+  useInternalScroll?: boolean;
+  /**
    * Used to reset internal UI state (filters/selection) only when the dataset context changes
    * (e.g. switching to another opportunity), not on silent background refreshes.
    */
@@ -139,6 +145,7 @@ const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
+  useInternalScroll = true,
   contextKey,
   maxDataColumnWidthPx,
   highlightedDocKeys,
@@ -1060,9 +1067,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       )}
 
       <TooltipProvider>
-        <div className="w-full overflow-x-auto">
+        <div className={cn("w-full", useInternalScroll && "overflow-x-auto")}>
           <div
-            className="max-h-[60vh] overflow-y-auto"
+            className={cn(useInternalScroll && "max-h-[60vh] overflow-y-auto")}
             style={{ gridTemplateColumns: gridTemplate }}
           >
             <div
