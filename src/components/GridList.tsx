@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, ArrowDownUp, Loader2 } from "lucide-react";
+import { ChevronRight, ArrowDownUp, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
@@ -153,7 +153,7 @@ const GridList: React.FC<GridListProps> = (props) => {
 
   // Match Detailansicht-Zellgrößen (DocAttributesGrid)
   const headerCellClass =
-    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle";
+    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle leading-none";
   const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
@@ -215,7 +215,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSort(key)}
-                          className="flex items-center justify-start px-1 font-bold h-6 hover:bg-transparent"
+                          className="flex h-8 w-full items-center justify-start rounded-none px-1 py-0 font-bold hover:bg-transparent"
                         >
                           {getColumnLabel(key)}
                           {sortConfig?.key === key && (
@@ -305,7 +305,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                               title="Zur Detailansicht"
                               aria-label="Zur Detailansicht"
                             >
-                              <ArrowRight className="h-4 w-4" />
+                              <ChevronRight className="h-4 w-4" />
                             </Button>
                           </td>
 
