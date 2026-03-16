@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ArrowDownUp, Loader2 } from "lucide-react";
+import { ChevronRight, ArrowDown, ArrowUp, ArrowUpDown, Loader2 } from "lucide-react";
 import { Item } from "@/types";
 import { cn } from "@/lib/utils";
 import BusinessPartnerSelectDialog from "./BusinessPartnerSelectDialog";
@@ -22,6 +22,8 @@ interface GridListProps {
   isLoading?: boolean;
   filters: Record<string, string>;
   onCommitFilters: (filters: Record<string, string>) => void;
+  sortConfig: { key: string; direction: "asc" | "desc" } | null;
+  onSortChange: (sort: { key: string; direction: "asc" | "desc" } | null) => void;
 }
 
 const GridList: React.FC<GridListProps> = (props) => {
@@ -36,11 +38,12 @@ const GridList: React.FC<GridListProps> = (props) => {
     isLoading,
     filters,
     onCommitFilters,
+    sortConfig,
+    onSortChange,
   } = props;
 
   // Draft filters: user can type; we only send to LN on blur/Enter.
   const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [isBpSelectDialogOpen, setIsBpSelectDialogOpen] = useState(false);
   const [currentEditingItemId, setCurrentEditingItemId] = useState<string | null>(null);
 
@@ -104,37 +107,21 @@ const GridList: React.FC<GridListProps> = (props) => {
   };
 
   const handleSort = (key: string) => {
-    let direction: "asc" | "desc" = "asc";
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
+    // Cycle: none -> asc -> desc -> none
+    if (!sortConfig || sortConfig.key !== key) {
+      onSortChange({ key, direction: "asc" });
+      return;
     }
-    setSortConfig({ key, direction });
+
+    if (sortConfig.direction === "asc") {
+      onSortChange({ key, direction: "desc" });
+      return;
+    }
+
+    onSortChange(null);
   };
 
-  const sortedItems = useMemo(() => {
-    const currentItems = [...items];
-    if (!sortConfig) return currentItems;
-
-    currentItems.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-
-      if (aValue === null || aValue === undefined) return sortConfig.direction === "asc" ? 1 : -1;
-      if (bValue === null || bValue === undefined) return sortConfig.direction === "asc" ? -1 : 1;
-
-      if (typeof aValue === "string" && typeof bValue === "string") {
-        return sortConfig.direction === "asc"
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-      if (typeof aValue === "number" && typeof bValue === "number") {
-        return sortConfig.direction === "asc" ? aValue - bValue : bValue - aValue;
-      }
-      return 0;
-    });
-
-    return currentItems;
-  }, [items, sortConfig]);
+  const sortedItems = items;
 
   const handleOpenBpSelectDialog = (itemId: string) => {
     setCurrentEditingItemId(itemId);
@@ -214,13 +201,14 @@ const GridList: React.FC<GridListProps> = (props) => {
                           className="flex w-full items-center justify-start gap-1 p-0 text-left text-xs font-bold leading-none text-foreground hover:text-foreground"
                         >
                           {getColumnLabel(key)}
-                          {sortConfig?.key === key && (
-                            <ArrowDownUp
-                              className={cn(
-                                "h-3 w-3",
-                                sortConfig.direction === "desc" ? "rotate-180" : ""
-                              )}
-                            />
+                          {sortConfig?.key === key ? (
+                            sortConfig.direction === "asc" ? (
+                              <ArrowUp className="h-3 w-3" />
+                            ) : (
+                              <ArrowDown className="h-3 w-3" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 text-muted-foreground/60" />
                           )}
                         </button>
                       </th>
@@ -324,7 +312,7 @@ const GridList: React.FC<GridListProps> = (props) => {
             </div>
 
             <div className="flex-shrink-0 py-2 text-xs text-muted-foreground">
-              {`${sortedItems.length} Gelegenheiten angezeigt`}
+              {`${items.length} Gelegenheiten angezeigt`}
             </div>
           </div>
         </div>
