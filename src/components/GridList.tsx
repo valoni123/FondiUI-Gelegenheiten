@@ -52,9 +52,13 @@ const GridList: React.FC<GridListProps> = (props) => {
     if (!el) return;
 
     const measure = () => {
-      // offsetWidth includes scrollbar; clientWidth excludes it.
-      const w = el.offsetWidth - el.clientWidth;
-      setBodyScrollbarWidth(w > 0 ? w : 0);
+      // offsetWidth includes border + scrollbar; clientWidth excludes border + scrollbar.
+      // We only want the scrollbar width (without borders), to keep header/body perfectly aligned.
+      const styles = window.getComputedStyle(el);
+      const borderLeft = parseFloat(styles.borderLeftWidth || "0") || 0;
+      const borderRight = parseFloat(styles.borderRightWidth || "0") || 0;
+      const w = el.offsetWidth - el.clientWidth - borderLeft - borderRight;
+      setBodyScrollbarWidth(w > 0 ? Math.round(w) : 0);
     };
 
     measure();
