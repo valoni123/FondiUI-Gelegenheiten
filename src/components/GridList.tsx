@@ -149,17 +149,12 @@ const GridList: React.FC<GridListProps> = (props) => {
     setCurrentEditingItemId(null);
   };
 
-  const headerRowHeightPx = 32; // h-8
-
-  // Match Detailansicht-Zellgrößen (DocAttributesGrid)
+  // Visually align the opportunities grid with the document list (Detailansicht).
   const headerCellClass =
-    "p-0 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 h-8 align-middle leading-none";
-  const filterCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
-  const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
-  const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
-
-  // Keep filter row exactly the same height as the data rows (h-8).
-  const filterWrapperClass = "px-1 bg-background flex items-center h-8 min-w-0";
+    "px-1 py-1 text-xs font-medium text-muted-foreground border-r border-b border-border bg-gray-100 dark:bg-gray-800 align-middle";
+  const filterCellClass = "px-1 py-1 border-r border-b border-border bg-background align-middle";
+  const dataCellClass = "px-1 py-1 min-w-0 border-r border-b border-border bg-background align-middle";
+  const iconCellClass = "px-1 py-1 border-r border-b border-border bg-background align-middle";
 
   const columns = React.useMemo(() => {
     const specs = visibleKeys.map((key) => {
@@ -216,7 +211,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleSort(key)}
-                          className="flex h-8 w-full items-center justify-start rounded-none px-1 py-0 font-bold hover:bg-transparent"
+                          className="h-auto w-full justify-start p-0 text-xs font-bold hover:bg-transparent"
                         >
                           {getColumnLabel(key)}
                           {sortConfig?.key === key && (
@@ -233,27 +228,23 @@ const GridList: React.FC<GridListProps> = (props) => {
                   </tr>
 
                   <tr className="border-b border-border">
-                    <th className={filterCellClass}>
-                      <div className={filterWrapperClass} />
-                    </th>
+                    <th className={filterCellClass} />
                     {visibleKeys.map((key) => (
                       <th key={`${key}-filter`} className={filterCellClass}>
-                        <div className={filterWrapperClass}>
-                          <Input
-                            value={draftFilters[key] || ""}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                              handleDraftFilterChange(key, e.target.value)
+                        <Input
+                          value={draftFilters[key] || ""}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            handleDraftFilterChange(key, e.target.value)
+                          }
+                          onBlur={commitFilters}
+                          onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              commitFilters();
                             }
-                            onBlur={commitFilters}
-                            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                commitFilters();
-                              }
-                            }}
-                            className="h-6 w-full min-w-0 text-xs px-1 py-0 rounded-none"
-                          />
-                        </div>
+                          }}
+                          className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                        />
                       </th>
                     ))}
                   </tr>
@@ -301,12 +292,12 @@ const GridList: React.FC<GridListProps> = (props) => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-6 w-6"
                               onClick={() => onSelectOpportunity(item.id)}
                               title="Zur Detailansicht"
                               aria-label="Zur Detailansicht"
                             >
-                              <ChevronRight className="h-4 w-4" />
+                              <ChevronRight className="h-3 w-3" />
                             </Button>
                           </td>
 
@@ -315,7 +306,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                               key={key}
                               className={cn(
                                 dataCellClass,
-                                "px-1 text-xs",
+                                "text-xs",
                                 key === "description" && "min-w-0"
                               )}
                             >
