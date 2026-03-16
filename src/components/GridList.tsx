@@ -38,22 +38,6 @@ const GridList: React.FC<GridListProps> = (props) => {
     onCommitFilters,
   } = props;
 
-  // Body has its own vertical scrollbar (to keep header fixed). Reserve the same space on the header
-  // so columns stay perfectly aligned.
-  const [bodyScrollbarWidth, setBodyScrollbarWidth] = useState(0);
-
-  useEffect(() => {
-    const div = document.createElement("div");
-    div.style.position = "absolute";
-    div.style.top = "-9999px";
-    div.style.width = "100px";
-    div.style.height = "100px";
-    div.style.overflow = "scroll";
-    document.body.appendChild(div);
-    setBodyScrollbarWidth(div.offsetWidth - div.clientWidth);
-    div.remove();
-  }, []);
-
   // Draft filters: user can type; we only send to LN on blur/Enter.
   const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -211,10 +195,7 @@ const GridList: React.FC<GridListProps> = (props) => {
         <div className="flex-1 min-h-0 w-full overflow-x-auto">
           <div className="min-w-max h-full min-h-0 flex flex-col">
             {/* Fixed header + filter row */}
-            <div
-              className="flex-shrink-0 border-l border-border"
-              style={{ paddingRight: bodyScrollbarWidth }}
-            >
+            <div className="flex-shrink-0 border-l border-border">
               <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
@@ -281,7 +262,7 @@ const GridList: React.FC<GridListProps> = (props) => {
             </div>
 
             {/* Scrollable body */}
-            <div className="flex-1 min-h-0 overflow-y-scroll border-l border-border">
+            <div className="flex-1 min-h-0 overflow-y-auto border-l border-border">
               <table className="w-full border-separate border-spacing-0 caption-bottom text-sm">
                 <colgroup>
                   {columns.map((c) => (
