@@ -158,7 +158,8 @@ const GridList: React.FC<GridListProps> = (props) => {
   const dataCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
   const iconCellClass = "p-0 border-r border-b border-border bg-background h-8 align-middle";
 
-  const filterWrapperClass = "px-1 py-1 bg-background flex items-center min-h-8 min-w-0";
+  // Keep filter row exactly the same height as the data rows (h-8).
+  const filterWrapperClass = "px-1 bg-background flex items-center h-8 min-w-0";
 
   const columns = React.useMemo(() => {
     const specs = visibleKeys.map((key) => {
@@ -250,7 +251,7 @@ const GridList: React.FC<GridListProps> = (props) => {
                                 commitFilters();
                               }
                             }}
-                            className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                            className="h-6 w-full min-w-0 text-xs px-1 py-0 rounded-none"
                           />
                         </div>
                       </th>
