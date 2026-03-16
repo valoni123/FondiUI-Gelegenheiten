@@ -27,7 +27,7 @@ import DocAttributesGrid, { type DocAttributesGridHandle } from "./DocAttributes
 import { replaceIdmItemResource, deleteIdmItem } from "@/api/idm";
 import ReplacementDropzone from "@/components/ReplacementDropzone"; // Import ReplacementDropzone
 import UploadDialog from "@/components/UploadDialog"; // Import UploadDialog
-import LinkDocumentsDialog from "@/components/LinkDocumentsDialog"; // Import LinkDocumentsDialog
+import LinkDocumentsDialog from "@/components/LinkDocumentsDialog";
 import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -932,26 +932,24 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           {/* MITTE: Dokumentenliste (scrolls, sticky header inside) */}
           <div className="flex-1 min-h-0 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              <DocAttributesGrid
-                ref={docListGridRef}
-                title="Dokumentenliste"
-                docs={docPreviews}
-                contextKey={selectedOpportunityId}
-                maxDataColumnWidthPx={200}
-                highlightedDocKeys={highlightedDocKeys}
-                onOpenFullPreview={openFullPreview}
-                onSaveRow={handleSaveRow}
-                onReplaceDoc={handleReplaceDoc}
-                onDeleteDoc={handleDeleteDoc}
-                authToken={authToken}
-                cloudEnvironment={cloudEnvironment}
-                entityOptions={entityOptions}
-                hideProjectColumn={true}
-                isLoading={isPreviewsLoading}
-                activeDocFilter={activeDocFilter}
-              />
-            </div>
+            <DocAttributesGrid
+              ref={docListGridRef}
+              title="Dokumentenliste"
+              docs={docPreviews}
+              contextKey={selectedOpportunityId}
+              maxDataColumnWidthPx={200}
+              highlightedDocKeys={highlightedDocKeys}
+              onOpenFullPreview={openFullPreview}
+              onSaveRow={handleSaveRow}
+              onReplaceDoc={handleReplaceDoc}
+              onDeleteDoc={handleDeleteDoc}
+              authToken={authToken}
+              cloudEnvironment={cloudEnvironment}
+              entityOptions={entityOptions}
+              hideProjectColumn={true}
+              isLoading={isPreviewsLoading}
+              activeDocFilter={activeDocFilter}
+            />
           </div>
 
           <Separator className="mt-4 mb-4" />
