@@ -22,6 +22,8 @@ interface GridListProps {
   sortConfig: { key: string; direction: "asc" | "desc" } | null;
   onSortChange: (sort: { key: string; direction: "asc" | "desc" } | null) => void;
   totalCount?: number | null;
+  /** Whether to render the top border of the grid container. */
+  showTopBorder?: boolean;
 }
 
 const GridList: React.FC<GridListProps> = ({
@@ -34,6 +36,7 @@ const GridList: React.FC<GridListProps> = ({
   sortConfig,
   onSortChange,
   totalCount,
+  showTopBorder = true,
 }) => {
   // Draft filters: user can type; we only send to LN on blur/Enter.
   const [draftFilters, setDraftFilters] = useState<Record<string, string>>(filters);
@@ -145,7 +148,10 @@ const GridList: React.FC<GridListProps> = ({
         <div className="w-full h-full min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-y-auto w-full">
             <div
-              className="grid w-full min-w-full border-l border-t border-border"
+              className={cn(
+                "grid w-full min-w-full border-l border-border",
+                showTopBorder && "border-t"
+              )}
               style={{ gridTemplateColumns: gridTemplateColumns }}
             >
               {/* Header */}

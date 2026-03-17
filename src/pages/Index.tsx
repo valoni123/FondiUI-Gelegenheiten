@@ -585,6 +585,7 @@ const Index: React.FC<IndexProps> = ({
                 sortConfig={opportunitySortConfig}
                 onSortChange={handleSortChange}
                 totalCount={opportunitiesTotalCount}
+                showTopBorder={false}
               />
             </ResizablePanel>
           )}
