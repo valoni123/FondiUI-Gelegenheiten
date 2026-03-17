@@ -48,7 +48,7 @@ import { toast } from "@/components/ui/use-toast";
 type Props = {
   docs: IdmDocPreview[];
   /** Controls how the internal scroll area is sized when useInternalScroll=true. */
-  scrollMode?: "max60vh" | "max50vh" | "fill";
+  scrollMode?: "max60vh" | "fill";
   /**
    * Used to reset internal UI state (filters/selection) only when the dataset context changes
    * (e.g. switching to another opportunity), not on silent background refreshes.
@@ -1066,11 +1066,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         <div
           className={cn(
             "w-full overflow-auto",
-            scrollMode === "fill"
-              ? "flex-1 min-h-0"
-              : scrollMode === "max50vh"
-                ? "max-h-[50vh]"
-                : "max-h-[60vh]"
+            scrollMode === "fill" ? "flex-1 min-h-0" : "max-h-[60vh]"
           )}
         >
           <div
