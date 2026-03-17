@@ -1527,7 +1527,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             : isGeometriedatenFilter && isSerienstatusCol
                               ? geometriedatenSerienstatusStyles[serienstatusLabel]
                               : isGeometriedatenFilter && isGeometrieartCol
-                                ? getGeometriedatenGeometrieartStyle(label)
+                                ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
                                 : undefined;
 
                         const selectColorClass =
