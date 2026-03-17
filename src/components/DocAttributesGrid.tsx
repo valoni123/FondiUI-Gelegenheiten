@@ -49,6 +49,8 @@ type Props = {
   docs: IdmDocPreview[];
   /** Controls how the internal scroll area is sized when useInternalScroll=true. */
   scrollMode?: "max60vh" | "fill";
+  /** Only used when scrollMode="max60vh"; allows customizing the max height (in vh). */
+  maxScrollHeightVh?: number;
   /**
    * Used to reset internal UI state (filters/selection) only when the dataset context changes
    * (e.g. switching to another opportunity), not on silent background refreshes.
@@ -142,6 +144,7 @@ const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
   scrollMode = "max60vh",
+  maxScrollHeightVh = 60,
   contextKey,
   maxDataColumnWidthPx,
   highlightedDocKeys,
@@ -1066,8 +1069,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         <div
           className={cn(
             "w-full overflow-auto",
-            scrollMode === "fill" ? "flex-1 min-h-0" : "max-h-[60vh]"
+            scrollMode === "fill" ? "flex-1 min-h-0" : undefined
           )}
+          style={scrollMode === "fill" ? undefined : { maxHeight: `${maxScrollHeightVh}vh` }}
         >
           <div
             className="grid w-max min-w-full border-l border-t border-border"

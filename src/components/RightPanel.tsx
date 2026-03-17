@@ -930,99 +930,97 @@ const RightPanel: React.FC<RightPanelProps> = ({
             )}
           </div>
 
-          {/* Split area: Dokumentenliste nimmt mind. 50vh ein; Vorschau nimmt den Rest bzw. die benötigte Höhe */}
-          <div className="flex-1 min-h-0 grid grid-rows-[minmax(50vh,1fr)_auto] gap-4">
-            {/* DOKUMENTENLISTE */}
-            <div className="min-h-0 overflow-hidden">
-              <DocAttributesGrid
-                ref={docListGridRef}
-                title="Dokumentenliste"
-                docs={docPreviews}
-                scrollMode="fill"
-                contextKey={selectedOpportunityId}
-                maxDataColumnWidthPx={200}
-                highlightedDocKeys={highlightedDocKeys}
-                onOpenFullPreview={openFullPreview}
-                onSaveRow={handleSaveRow}
-                onReplaceDoc={handleReplaceDoc}
-                onDeleteDoc={handleDeleteDoc}
-                authToken={authToken}
-                cloudEnvironment={cloudEnvironment}
-                entityOptions={entityOptions}
-                hideProjectColumn={true}
-                isLoading={isPreviewsLoading}
-                activeDocFilter={activeDocFilter}
-              />
-            </div>
+          {/* Dokumentenliste: max. 50vh, bei wenig Inhalt nur so hoch wie nötig. */}
+          <div className="mb-4">
+            <DocAttributesGrid
+              ref={docListGridRef}
+              title="Dokumentenliste"
+              docs={docPreviews}
+              scrollMode="max60vh"
+              maxScrollHeightVh={50}
+              contextKey={selectedOpportunityId}
+              maxDataColumnWidthPx={200}
+              highlightedDocKeys={highlightedDocKeys}
+              onOpenFullPreview={openFullPreview}
+              onSaveRow={handleSaveRow}
+              onReplaceDoc={handleReplaceDoc}
+              onDeleteDoc={handleDeleteDoc}
+              authToken={authToken}
+              cloudEnvironment={cloudEnvironment}
+              entityOptions={entityOptions}
+              hideProjectColumn={true}
+              isLoading={isPreviewsLoading}
+              activeDocFilter={activeDocFilter}
+            />
+          </div>
 
-            {/* DOKUMENTENVORSCHAU */}
-            <div>
-              <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenvorschau</div>
-              <div className="rounded-md border p-3">
-                {isPreviewsLoading ? (
-                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Vorschauen werden geladen…
-                  </div>
-                ) : docPreviews.length === 0 ? (
-                  <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-                    Keine Vorschauen gefunden.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {docPreviews.map((doc, idx) => (
-                      <div
-                        key={getDocKey(doc)}
-                        className={cn(
-                          "group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer",
-                          isDocHighlighted(doc) && "border-red-400 ring-1 ring-red-400"
-                        )}
-                        onClick={() => openFullPreview(doc)}
-                        title={doc.filename || "Vorschau öffnen"}
-                      >
-                        {doc.linkedViaProject ? (
-                          <Badge
-                            variant="default"
-                            className="absolute left-2 top-2 z-10 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                          >
-                            verknüpft
-                          </Badge>
-                        ) : null}
-                        {doc.smallUrl ? (
-                          <img
-                            src={doc.smallUrl}
-                            alt={doc.filename || `Vorschau ${idx + 1}`}
-                            className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
-                          />
-                        ) : (
-                          <div className="flex flex-col items-center gap-2">
-                            <FileWarning className="h-10 w-10 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {doc.filename || "Dokument"}
-                          {doc.entityName ? (
-                            <span className="text-white/80"> · {doc.entityName}</span>
-                          ) : null}
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openFullPreview(doc);
-                          }}
-                          title="Details anzeigen"
+          {/* DOKUMENTENVORSCHAU */}
+          <div>
+            <div className="mb-2 text-sm font-medium text-muted-foreground">Dokumentenvorschau</div>
+            <div className="rounded-md border p-3">
+              {isPreviewsLoading ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Vorschauen werden geladen…
+                </div>
+              ) : docPreviews.length === 0 ? (
+                <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+                  Keine Vorschauen gefunden.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {docPreviews.map((doc, idx) => (
+                    <div
+                      key={getDocKey(doc)}
+                      className={cn(
+                        "group relative flex h-40 items-center justify-center overflow-hidden rounded-md border bg-accent/30 cursor-pointer",
+                        isDocHighlighted(doc) && "border-red-400 ring-1 ring-red-400"
+                      )}
+                      onClick={() => openFullPreview(doc)}
+                      title={doc.filename || "Vorschau öffnen"}
+                    >
+                      {doc.linkedViaProject ? (
+                        <Badge
+                          variant="default"
+                          className="absolute left-2 top-2 z-10 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
                         >
-                          <ChevronLeft className="h-3 w-3 rotate-180" />
-                        </Button>
+                          verknüpft
+                        </Badge>
+                      ) : null}
+                      {doc.smallUrl ? (
+                        <img
+                          src={doc.smallUrl}
+                          alt={doc.filename || `Vorschau ${idx + 1}`}
+                          className="max-h-full max-w-full object-contain transition-transform group-hover:scale-[1.02]"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <FileWarning className="h-10 w-10 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">Keine SmallPreview</span>
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/40 text-white text-xs px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {doc.filename || "Dokument"}
+                        {doc.entityName ? (
+                          <span className="text-white/80"> · {doc.entityName}</span>
+                        ) : null}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6 bg-white/80 hover:bg-white text-black opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openFullPreview(doc);
+                        }}
+                        title="Details anzeigen"
+                      >
+                        <ChevronLeft className="h-3 w-3 rotate-180" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
