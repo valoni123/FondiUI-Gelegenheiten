@@ -47,6 +47,8 @@ import { toast } from "@/components/ui/use-toast";
 
 type Props = {
   docs: IdmDocPreview[];
+  /** Controls how the internal scroll area is sized when useInternalScroll=true. */
+  scrollMode?: "max60vh" | "fill";
   /**
    * Used to reset internal UI state (filters/selection) only when the dataset context changes
    * (e.g. switching to another opportunity), not on silent background refreshes.
@@ -139,6 +141,7 @@ const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
 
 const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   docs,
+  scrollMode = "max60vh",
   contextKey,
   maxDataColumnWidthPx,
   highlightedDocKeys,
@@ -1019,7 +1022,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   );
 
   return (
-    <div className="w-full">
+    <div className={cn("w-full flex flex-col min-h-0", scrollMode === "fill" && "h-full")}>
       {(title || !hideSaveAllButton) && (
         <div className="mb-2 flex items-center justify-between gap-3">
           {title ? (
@@ -1060,649 +1063,501 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       )}
 
       <TooltipProvider>
-        <div className="w-full overflow-x-auto">
+        <div
+          className={cn(
+            "w-full overflow-auto",
+            scrollMode === "fill" ? "flex-1 min-h-0" : "max-h-[60vh]"
+          )}
+        >
           <div
-            className="max-h-[60vh] overflow-y-auto"
+            className="grid w-max min-w-full border-l border-t border-border"
             style={{ gridTemplateColumns: gridTemplate }}
           >
-            <div
-              className="grid w-max min-w-full border-l border-t border-border"
-              style={{ gridTemplateColumns: gridTemplate }}
-            >
-              {/* Header */}
-              {/* ADD one more empty header cell for the project-link column */}
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
-              {displayColumns.map((col) => (
-                <div key={col.id} className={cn(headerCellClass, "min-w-0 sticky top-0 z-30")}>
-                  <div className="truncate">{col.header}</div>
-                </div>
-              ))}
-              <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            {/* Header */}
+            {/* ADD one more empty header cell for the project-link column */}
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
+            {displayColumns.map((col) => (
+              <div key={col.id} className={cn(headerCellClass, "min-w-0 sticky top-0 z-30")}>
+                <div className="truncate">{col.header}</div>
+              </div>
+            ))}
+            <div className={cn(headerCellClass, "sticky top-0 z-30")}></div>
 
-              {/* Filters */}
-              {/* ADD one more empty filter cell for the project-link column */}
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
-              {displayColumns.map((col) => (
-                <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}>
-                  <Input
-                    key={`${filterResetKey}-${col.id}`}
-                    defaultValue={filterDraftRef.current[col.id] || ""}
-                    onChange={(e) => {
-                      filterDraftRef.current[col.id] = e.target.value;
-                      scheduleApplyFilters();
-                    }}
-                    className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
-                  />
-                </div>
-              ))}
-              <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            {/* Filters */}
+            {/* ADD one more empty filter cell for the project-link column */}
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
+            {displayColumns.map((col) => (
+              <div key={`filter-${col.id}`} className={cn(filterCellClass, "min-w-0 sticky top-8 z-20")}>
+                <Input
+                  key={`${filterResetKey}-${col.id}`}
+                  defaultValue={filterDraftRef.current[col.id] || ""}
+                  onChange={(e) => {
+                    filterDraftRef.current[col.id] = e.target.value;
+                    scheduleApplyFilters();
+                  }}
+                  className="h-6 w-full min-w-0 text-xs px-1 rounded-none"
+                />
+              </div>
+            ))}
+            <div className={cn(filterCellClass, "sticky top-8 z-20")}></div>
 
-              {/* Rows */}
-              {isLoading ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Dokumente werden geladen…
-                </div>
-              ) : docs.length === 0 ? (
-                <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
-                  Keine Dokumente gefunden.
-                </div>
-              ) : (
-                <>
-                  {filteredDocs.map(({ doc, idx }, rowIndex) => {
-                    const rowEdited = edited[idx] ?? {};
-                    const rowInitial = initial[idx] ?? {};
-                    const effectiveEntityName = editedDocTypes[idx] ?? doc.entityName ?? "";
-                    const defs = attrDefsByEntity[effectiveEntityName] || {};
+            {/* Rows */}
+            {isLoading ? (
+              <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Dokumente werden geladen…
+              </div>
+            ) : docs.length === 0 ? (
+              <div className="col-span-full flex h-40 items-center justify-center text-sm text-muted-foreground border-b border-border">
+                Keine Dokumente gefunden.
+              </div>
+            ) : (
+              <>
+                {filteredDocs.map(({ doc, idx }, rowIndex) => {
+                  const rowEdited = edited[idx] ?? {};
+                  const rowInitial = initial[idx] ?? {};
+                  const entityName = editedDocTypes[idx] || String(doc.entityName ?? "");
+                  const defs = attrDefsByEntity[entityName] ?? {};
 
-                    // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
-                    const statusCol = displayColumns.find(
-                      (c) => c.kind === "attr" && c.id === "status"
-                    ) as Extract<DisplayColumn, { kind: "attr" }> | undefined;
+                  // Determine lock-state: if the SAVED status is "Freigegeben", lock all fields except Status.
+                  const statusCol = displayColumns.find(
+                    (c) => c.kind === "attr" && c.id === "status"
+                  ) as Extract<DisplayColumn, { kind: "attr" }> | undefined;
 
-                    const statusAttrName = statusCol
-                      ? resolveAttrName(rowEdited, rowInitial, defs, statusCol)
-                      : "Status";
-                    const statusDef = defs[statusAttrName];
-                    const initialStatusValue = (rowInitial[statusAttrName] ?? "").toString();
-                    const initialStatusLabel = statusDef?.valueset?.length
-                      ? statusDef.valueset.find((vs) => vs.name === initialStatusValue)?.desc || initialStatusValue
-                      : initialStatusValue;
+                  const statusAttrName = statusCol
+                    ? resolveAttrName(rowEdited, rowInitial, defs, statusCol)
+                    : "Status";
+                  const statusDef = defs[statusAttrName];
+                  const initialStatusValue = (rowInitial[statusAttrName] ?? "").toString();
+                  const initialStatusLabel = statusDef?.valueset?.length
+                    ? statusDef.valueset.find((vs) => vs.name === initialStatusValue)?.desc || initialStatusValue
+                    : initialStatusValue;
 
-                    const isLockedByStatus = initialStatusLabel === "Freigegeben";
+                  const isLockedByStatus = initialStatusLabel === "Freigegeben";
 
-                    const isHighlighted = highlightedSet.has(getDocKey(doc));
-                    const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
-                    // NEW: note changes will also trigger hasChanges
-                    const noteChanged = (rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "");
-                    const hasChanges =
-                      typeChanged ||
-                      noteChanged ||
-                      editableColumns.some((c) => {
-                        const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
-                        return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
-                      });
+                  const isHighlighted = highlightedSet.has(getDocKey(doc));
+                  const typeChanged = (editedDocTypes[idx] ?? "") !== (initialDocTypes[idx] ?? "");
+                  // NEW: note changes will also trigger hasChanges
+                  const noteChanged = (rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "");
+                  const hasChanges =
+                    typeChanged ||
+                    noteChanged ||
+                    editableColumns.some((c) => {
+                      const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                      return (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? "");
+                    });
 
-                    return (
-                      <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
-                        {/* Detail Button (now first icon cell) */}
-                        <div
-                          className={cn(
-                            iconCellClass,
-                            isHighlighted && rowHighlightClass,
-                            isHighlighted && rowHighlightLeft
-                          )}
+                  return (
+                    <React.Fragment key={`${doc.entityName || "doc"}-${doc.filename || idx}-${idx}`}>
+                      {/* Detail Button (now first icon cell) */}
+                      <div
+                        className={cn(
+                          iconCellClass,
+                          isHighlighted && rowHighlightClass,
+                          isHighlighted && rowHighlightLeft
+                        )}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() =>
+                            runWithUnsavedGuard(() =>
+                              onOpenFullPreview(doc, (updatedDoc) => {
+                                void updatedDoc;
+                              })
+                            )
+                          }
+                          title="Details anzeigen"
                         >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={() =>
-                              runWithUnsavedGuard(() =>
-                                onOpenFullPreview(doc, (updatedDoc) => {
-                                  void updatedDoc;
-                                })
-                              )
+                          <ChevronRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Select Checkbox */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        <Checkbox
+                          checked={selectedRows.has(idx)}
+                          onCheckedChange={() => toggleRowSelected(idx)}
+                          className="h-4 w-4"
+                          disabled={!doc.pid || isLockedByStatus}
+                          aria-label="Dokument auswählen"
+                        />
+                      </div>
+
+                      {/* Save Button */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn("h-6 w-6", hasChanges && "bg-orange-500 hover:bg-orange-600 text-white")}
+                          disabled={!hasChanges || !doc.pid}
+                          onClick={async () => {
+                            const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
+
+                            const updates = editableColumns
+                              .map((c) => {
+                                const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
+                                return {
+                                  name: attrName,
+                                  value: rowEdited[attrName] ?? "",
+                                  changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
+                                };
+                              })
+                              .filter((u) => u.changed)
+                              .map((u) => ({ name: u.name, value: u.value }));
+
+                            // NEW: include note changes
+                            if ((rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "")) {
+                              updates.push({ name: "Anmerkung", value: rowEdited["Anmerkung"] ?? "" });
                             }
-                            title="Details anzeigen"
-                          >
-                            <ChevronRight className="h-3 w-3" />
-                          </Button>
-                        </div>
 
-                        {/* Select Checkbox */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          <Checkbox
-                            checked={selectedRows.has(idx)}
-                            onCheckedChange={() => toggleRowSelected(idx)}
-                            className="h-4 w-4"
-                            disabled={!doc.pid || isLockedByStatus}
-                            aria-label="Dokument auswählen"
-                          />
-                        </div>
-
-                        {/* Save Button */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn("h-6 w-6", hasChanges && "bg-orange-500 hover:bg-orange-600 text-white")}
-                            disabled={!hasChanges || !doc.pid}
-                            onClick={async () => {
-                              const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
-
-                              const updates = editableColumns
-                                .map((c) => {
-                                  const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
-                                  return {
-                                    name: attrName,
-                                    value: rowEdited[attrName] ?? "",
-                                    changed: (rowEdited[attrName] ?? "") !== (rowInitial[attrName] ?? ""),
-                                  };
-                                })
-                                .filter((u) => u.changed)
-                                .map((u) => ({ name: u.name, value: u.value }));
-
-                              // NEW: include note changes
-                              if ((rowEdited["Anmerkung"] ?? "") !== (rowInitial["Anmerkung"] ?? "")) {
-                                updates.push({ name: "Anmerkung", value: rowEdited["Anmerkung"] ?? "" });
-                              }
-
-                              if (updates.length || newEntityName) {
-                                const res = await onSaveRow(doc, updates, { entityName: newEntityName });
-                                if (res.ok) {
-                                  setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
-                                  if (!typeChanged) {
-                                    setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
-                                  }
-                                  setSyncWithInitial((prev) => {
-                                    const next = new Set(prev);
-                                    next.add(idx);
-                                    return next;
-                                  });
-                                  flashSuccess(idx, updates.map((u) => u.name));
-                                } else {
-                                  const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
-                                  flashError(idx, colsToFlash);
+                            if (updates.length || newEntityName) {
+                              const res = await onSaveRow(doc, updates, { entityName: newEntityName });
+                              if (res.ok) {
+                                setEdited((prev) => ({ ...prev, [idx]: { ...rowInitial } }));
+                                if (!typeChanged) {
+                                  setEditedDocTypes((prev) => ({ ...prev, [idx]: initialDocTypes[idx] ?? "" }));
                                 }
+                                setSyncWithInitial((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(idx);
+                                  return next;
+                                });
+                                flashSuccess(idx, updates.map((u) => u.name));
+                              } else {
+                                const colsToFlash = res.errorAttributes?.length ? res.errorAttributes : updates.map((u) => u.name);
+                                flashError(idx, colsToFlash);
                               }
-                            }}
-                            title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
-                          >
-                            <Save className="h-3 w-3" />
-                          </Button>
-                        </div>
+                            }
+                          }}
+                          title={doc.pid ? (hasChanges ? "Änderungen speichern" : "Keine Änderungen") : "PID fehlt – Speichern nicht möglich"}
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                      </div>
 
-                        {/* Replace Button */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                      {/* Replace Button */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          disabled={!doc.pid || isLockedByStatus}
+                          onClick={() => runWithUnsavedGuard(() => void setConfirmReplaceRow(idx))}
+                          title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
+                          aria-label="Dokument ersetzen"
+                        >
+                          <ArrowLeftRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Linked Documents Button */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        {doc.pid ? (
+                          <LinkedDocumentsDialog
+                            authToken={authToken}
+                            cloudEnvironment={cloudEnvironment}
+                            mainPid={doc.pid}
+                            trigger={({ setOpen }) => (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 text-violet-600 hover:text-violet-700"
+                                onClick={() => runWithUnsavedGuard(() => void setOpen(true))}
+                                title="Verlinkte Dokumente anzeigen"
+                                aria-label="Verlinkte Dokumente anzeigen"
+                              >
+                                <LinkIcon className="h-3 w-3" />
+                              </Button>
+                            )}
+                          />
+                        ) : (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6"
-                            disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => runWithUnsavedGuard(() => setConfirmReplaceRow(idx))}
-                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
-                            aria-label="Dokument ersetzen"
+                            className="h-6 w-6 opacity-50 cursor-not-allowed"
+                            disabled
+                            title="PID fehlt – keine Verlinkungen"
+                            aria-label="Verlinkte Dokumente anzeigen"
                           >
-                            <ArrowLeftRight className="h-3 w-3" />
+                            <LinkIcon className="h-3 w-3" />
                           </Button>
-                        </div>
+                        )}
+                      </div>
 
-                        {/* Linked Documents Button */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          {doc.pid ? (
-                            <LinkedDocumentsDialog
-                              authToken={authToken}
-                              cloudEnvironment={cloudEnvironment}
-                              mainPid={doc.pid}
-                              trigger={({ setOpen }) => (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                                  onClick={() => runWithUnsavedGuard(() => setOpen(true))}
-                                  title="Verlinkte Dokumente anzeigen"
-                                  aria-label="Verlinkte Dokumente anzeigen"
-                                >
-                                  <LinkIcon className="h-3 w-3" />
-                                </Button>
-                              )}
-                            />
-                          ) : (
+                      {/* Project Link Indicator (click to edit Projekt_Verlinkung) */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6",
+                            hasProjectLinks(doc)
+                              ? "text-amber-700 hover:text-amber-800"
+                              : "text-muted-foreground/60 hover:text-muted-foreground"
+                          )}
+                          disabled={!doc.pid || isLockedByStatus}
+                          onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
+                          title={(() => {
+                            if (!doc.pid) return "PID fehlt";
+                            const links = getProjectLinksForDoc(doc);
+                            if (!links.length) return "Keine Projekt-Verknüpfung";
+                            return `Projekt-Verknüpfungen: ${links.join(", ")}`;
+                          })()}
+                          aria-label="Projekt-Verknüpfungen bearbeiten"
+                        >
+                          <Link2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* MOVED: Note Editor Button (now after Linked Docs) */}
+                      <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
+                        {(() => {
+                          const note = String(
+                            (rowEdited?.["Anmerkung"] ?? rowInitial?.["Anmerkung"] ?? "")
+                          ).trim();
+                          const hasNote = note.length > 0;
+
+                          return (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 opacity-50 cursor-not-allowed"
-                              disabled
-                              title="PID fehlt – keine Verlinkungen"
-                              aria-label="Verlinkte Dokumente anzeigen"
+                              className={cn(
+                                "h-6 w-6",
+                                hasNote
+                                  ? ""
+                                  : "text-muted-foreground/60 hover:text-muted-foreground"
+                              )}
+                              disabled={!doc.pid}
+                              onClick={() => openNoteEditor(idx)}
+                              title={hasNote ? "Anmerkung bearbeiten" : "Keine Anmerkung – hinzufügen"}
+                              aria-label="Anmerkung bearbeiten"
                             >
-                              <LinkIcon className="h-3 w-3" />
+                              <FileText className="h-3 w-3" />
                             </Button>
-                          )}
-                        </div>
+                          );
+                        })()}
+                      </div>
 
-                        {/* Project Link Indicator (click to edit Projekt_Verlinkung) */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                              "h-6 w-6",
-                              hasProjectLinks(doc)
-                                ? "text-amber-700 hover:text-amber-800"
-                                : "text-muted-foreground/60 hover:text-muted-foreground"
-                            )}
-                            disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
-                            title={(() => {
-                              if (!doc.pid) return "PID fehlt";
-                              const links = getProjectLinksForDoc(doc);
-                              if (!links.length) return "Keine Projekt-Verknüpfung";
-                              return `Projekt-Verknüpfungen: ${links.join(", ")}`;
-                            })()}
-                            aria-label="Projekt-Verknüpfungen bearbeiten"
-                          >
-                            <Link2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                      {/* Data columns */}
+                      {displayColumns.map((col) => {
+                        if (col.kind === "meta") {
+                          const value = col.getValue(doc);
 
-                        {/* MOVED: Note Editor Button (now after Linked Docs) */}
-                        <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            disabled={!doc.pid}
-                            onClick={() => openNoteEditor(idx)}
-                            title="Anmerkung bearbeiten"
-                            aria-label="Anmerkung bearbeiten"
-                          >
-                            <FileText className="h-3 w-3" />
-                          </Button>
-                        </div>
-
-                        {/* Data columns */}
-                        {displayColumns.map((col) => {
-                          if (col.kind === "meta") {
-                            const value = col.getValue(doc);
-
-                            if (col.id === "dokumentname") {
-                              return (
-                                <div
-                                  key={`${idx}-${col.id}`}
-                                  className={cn(gridCellClass, "flex items-center gap-2 min-w-0", isHighlighted && rowHighlightClass)}
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <TruncatedTextCell value={(value || "").toString()} />
-                                  </div>
-                                </div>
-                              );
-                            }
-
+                          if (col.id === "dokumentname") {
                             return (
-                              <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
-                                <TruncatedTextCell value={(value || "").toString()} />
+                              <div
+                                key={`${idx}-${col.id}`}
+                                className={cn(gridCellClass, "flex items-center gap-2 min-w-0", isHighlighted && rowHighlightClass)}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <TruncatedTextCell value={(value || "").toString()} />
+                                </div>
                               </div>
                             );
                           }
 
-                          const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
-                          const hasError = (errorHighlights[idx] ?? []).includes(attrName);
-                          const hasSuccess = (successHighlights[idx] ?? []).includes(attrName);
-                          const def = defs[attrName];
-                          const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
+                          return (
+                            <div key={`${idx}-${col.id}`} className={cn(gridCellClass, "flex items-center", isHighlighted && rowHighlightClass)}>
+                              <TruncatedTextCell value={(value || "").toString()} />
+                            </div>
+                          );
+                        }
 
-                          const isStatusCol = col.id === "status";
-                          const isSerienstatusCol = col.id === "serienstatus";
-                          const isGeometrieartCol = col.id === "geometrieart";
-                          const isGeoSpecificCol =
-                            col.id === "serienstatus" ||
-                            col.id === "versuchsstatus" ||
-                            col.id === "s_k_version" ||
-                            col.id === "v_k_version" ||
-                            col.id === "lfd_nr" ||
-                            col.id === "geometrieart";
-                          // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
-                          const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
+                        const attrName = resolveAttrName(rowEdited, rowInitial, defs, col);
+                        const hasError = (errorHighlights[idx] ?? []).includes(attrName);
+                        const hasSuccess = (successHighlights[idx] ?? []).includes(attrName);
+                        const def = defs[attrName];
+                        const isDate = col.forceDate || def?.type === "7" || attrName === "Belegdatum";
 
-                          const isGeometriedatenFilter =
-                            activeDocFilter === "FME_GEOM_KUNDE" ||
-                            activeDocFilter === "FME_SERIE_GUELTIG" ||
-                            activeDocFilter === "FME_VERSUCH_GUELTIG" ||
-                            activeDocFilter === "FSI_GEOM_KUNDE" ||
-                            activeDocFilter === "FSI_SERIE_GUELTIG" ||
-                            activeDocFilter === "FSI_VERSUCH_GUELTIG";
+                        const isStatusCol = col.id === "status";
+                        const isSerienstatusCol = col.id === "serienstatus";
+                        const isGeometrieartCol = col.id === "geometrieart";
+                        const isGeoSpecificCol =
+                          col.id === "serienstatus" ||
+                          col.id === "versuchsstatus" ||
+                          col.id === "s_k_version" ||
+                          col.id === "v_k_version" ||
+                          col.id === "lfd_nr" ||
+                          col.id === "geometrieart";
+                        // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
+                        const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
 
-                          const statusLabel = isStatusCol
-                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
-                                (rowEdited[attrName] ?? ""))
-                            : "";
+                        const isGeometriedatenFilter =
+                          activeDocFilter === "FME_GEOM_KUNDE" ||
+                          activeDocFilter === "FME_SERIE_GUELTIG" ||
+                          activeDocFilter === "FME_VERSUCH_GUELTIG" ||
+                          activeDocFilter === "FSI_GEOM_KUNDE" ||
+                          activeDocFilter === "FSI_SERIE_GUELTIG" ||
+                          activeDocFilter === "FSI_VERSUCH_GUELTIG";
 
-                          const serienstatusLabel = isSerienstatusCol
-                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
-                                (rowEdited[attrName] ?? ""))
-                            : "";
+                        const statusLabel = isStatusCol
+                          ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                              (rowEdited[attrName] ?? ""))
+                          : "";
 
-                          const geometrieartLabel = isGeometrieartCol
-                            ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
-                                (rowEdited[attrName] ?? ""))
-                            : "";
+                        const serienstatusLabel = isSerienstatusCol
+                          ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                              (rowEdited[attrName] ?? ""))
+                          : "";
 
-                          const geometriedatenStatusStyles: Record<
-                            string,
-                            { triggerClass: string; itemClass: string }
-                          > = {
-                            "In Änderung": {
-                              triggerClass:
-                                "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
-                              itemClass:
-                                "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
-                            },
-                            Freigegeben: {
-                              triggerClass:
-                                "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
-                              itemClass:
-                                "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
-                            },
-                            Registriert: {
-                              triggerClass:
-                                "bg-[#757575] text-white border-[#757575] hover:bg-[#757575]",
-                              itemClass:
-                                "bg-[#757575] text-white data-[highlighted]:bg-[#757575] data-[highlighted]:text-white data-[state=checked]:bg-[#757575] data-[state=checked]:text-white",
-                            },
-                            Ungültig: {
-                              triggerClass:
-                                "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
-                              itemClass:
-                                "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
-                            },
-                          };
+                        const geometrieartLabel = isGeometrieartCol
+                          ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                              (rowEdited[attrName] ?? ""))
+                          : "";
 
-                          const geometriedatenSerienstatusStyles: Record<
-                            string,
-                            { triggerClass: string; itemClass: string }
-                          > = {
-                            "Serie führend": {
-                              triggerClass:
-                                "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
-                              itemClass:
-                                "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
-                            },
-                            "Serie ungültig": {
-                              triggerClass:
-                                "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
-                              itemClass:
-                                "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
-                            },
-                            "Serie normal": {
-                              triggerClass:
-                                "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
-                              itemClass:
-                                "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
-                            },
-                            "Serie eingeschränkt": {
+                        const geometriedatenStatusStyles: Record<
+                          string,
+                          { triggerClass: string; itemClass: string }
+                        > = {
+                          "In Änderung": {
+                            triggerClass:
+                              "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
+                            itemClass:
+                              "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
+                          },
+                          Freigegeben: {
+                            triggerClass:
+                              "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                            itemClass:
+                              "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
+                          },
+                          Registriert: {
+                            triggerClass:
+                              "bg-[#757575] text-white border-[#757575] hover:bg-[#757575]",
+                            itemClass:
+                              "bg-[#757575] text-white data-[highlighted]:bg-[#757575] data-[highlighted]:text-white data-[state=checked]:bg-[#757575] data-[state=checked]:text-white",
+                          },
+                          Ungültig: {
+                            triggerClass:
+                              "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                            itemClass:
+                              "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
+                          },
+                        };
+
+                        const geometriedatenSerienstatusStyles: Record<
+                          string,
+                          { triggerClass: string; itemClass: string }
+                        > = {
+                          "Serie führend": {
+                            triggerClass:
+                              "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                            itemClass:
+                              "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
+                          },
+                          "Serie ungültig": {
+                            triggerClass:
+                              "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                            itemClass:
+                              "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
+                          },
+                          "Serie normal": {
+                            triggerClass:
+                              "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
+                            itemClass:
+                              "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
+                          },
+                          "Serie eingeschränkt": {
+                            triggerClass:
+                              "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                            itemClass:
+                              "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                          },
+                        };
+
+                        const getGeometriedatenGeometrieartStyle = (label: string) => {
+                          const first = (label || "").trim().charAt(0).toUpperCase();
+                          if (first === "H") {
+                            return {
                               triggerClass:
                                 "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
                               itemClass:
                                 "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
-                            },
-                          };
+                            };
+                          }
+                          if (first === "D") {
+                            return {
+                              triggerClass:
+                                "bg-[#80C6FF] text-black border-[#80C6FF] hover:bg-[#80C6FF]",
+                              itemClass:
+                                "bg-[#80C6FF] text-black data-[highlighted]:bg-[#80C6FF] data-[highlighted]:text-black data-[state=checked]:bg-[#80C6FF] data-[state=checked]:text-black",
+                            };
+                          }
+                          if (first === "Z") {
+                            return {
+                              triggerClass:
+                                "bg-[#D8D8EE] text-black border-[#D8D8EE] hover:bg-[#D8D8EE]",
+                              itemClass:
+                                "bg-[#D8D8EE] text-black data-[highlighted]:bg-[#D8D8EE] data-[highlighted]:text-black data-[state=checked]:bg-[#D8D8EE] data-[state=checked]:text-black",
+                            };
+                          }
+                          if (first === "S") {
+                            return {
+                              triggerClass:
+                                "bg-[#C3F8F9] text-black border-[#C3F8F9] hover:bg-[#C3F8F9]",
+                              itemClass:
+                                "bg-[#C3F8F9] text-black data-[highlighted]:bg-[#C3F8F9] data-[highlighted]:text-black data-[state=checked]:bg-[#C3F8F9] data-[state=checked]:text-black",
+                            };
+                          }
+                          return undefined;
+                        };
 
-                          const getGeometriedatenGeometrieartStyle = (label: string) => {
-                            const first = (label || "").trim().charAt(0).toUpperCase();
-                            if (first === "H") {
-                              return {
-                                triggerClass:
-                                  "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
-                                itemClass:
-                                  "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
-                              };
-                            }
-                            if (first === "D") {
-                              return {
-                                triggerClass:
-                                  "bg-[#80C6FF] text-black border-[#80C6FF] hover:bg-[#80C6FF]",
-                                itemClass:
-                                  "bg-[#80C6FF] text-black data-[highlighted]:bg-[#80C6FF] data-[highlighted]:text-black data-[state=checked]:bg-[#80C6FF] data-[state=checked]:text-black",
-                              };
-                            }
-                            if (first === "Z") {
-                              return {
-                                triggerClass:
-                                  "bg-[#D8D8EE] text-black border-[#D8D8EE] hover:bg-[#D8D8EE]",
-                                itemClass:
-                                  "bg-[#D8D8EE] text-black data-[highlighted]:bg-[#D8D8EE] data-[highlighted]:text-black data-[state=checked]:bg-[#D8D8EE] data-[state=checked]:text-black",
-                              };
-                            }
-                            if (first === "S") {
-                              return {
-                                triggerClass:
-                                  "bg-[#C3F8F9] text-black border-[#C3F8F9] hover:bg-[#C3F8F9]",
-                                itemClass:
-                                  "bg-[#C3F8F9] text-black data-[highlighted]:bg-[#C3F8F9] data-[highlighted]:text-black data-[state=checked]:bg-[#C3F8F9] data-[state=checked]:text-black",
-                              };
-                            }
-                            return undefined;
-                          };
+                        const geometrieartStyle =
+                          isGeometriedatenFilter && isGeometrieartCol
+                            ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
+                            : undefined;
 
-                          const geometrieartStyle =
-                            isGeometriedatenFilter && isGeometrieartCol
-                              ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
-                              : undefined;
+                        const selectStyle =
+                          isGeometriedatenFilter && isStatusCol
+                            ? geometriedatenStatusStyles[statusLabel]
+                            : isGeometriedatenFilter && isSerienstatusCol
+                              ? geometriedatenSerienstatusStyles[serienstatusLabel]
+                              : isGeometriedatenFilter && isGeometrieartCol
+                                ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
+                                : undefined;
 
-                          const selectStyle =
-                            isGeometriedatenFilter && isStatusCol
-                              ? geometriedatenStatusStyles[statusLabel]
-                              : isGeometriedatenFilter && isSerienstatusCol
-                                ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                                : geometrieartStyle;
+                        const selectColorClass =
+                          (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
+                            ? selectStyle?.triggerClass ?? ""
+                            : "";
 
-                          const selectColorClass =
-                            (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
-                              ? selectStyle?.triggerClass ?? ""
-                              : "";
-
-                          return (
-                            <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
-                              {def?.valueset && def.valueset.length > 0 ? (
-                                <Select
-                                  value={(rowEdited[attrName] ?? "") || undefined}
-                                  onValueChange={(val) =>
-                                    setEdited((prev) => {
-                                      const row = { ...(prev[idx] ?? {}) };
-                                      row[attrName] = val;
-                                      return { ...prev, [idx]: row };
-                                    })
-                                  }
+                        return (
+                          <div key={`${idx}-${col.id}`} className={cn(gridCellClass, isHighlighted && rowHighlightClass)}>
+                            {def?.valueset && def.valueset.length > 0 ? (
+                              <Select
+                                value={(rowEdited[attrName] ?? "") || undefined}
+                                onValueChange={(val) =>
+                                  setEdited((prev) => {
+                                    const row = { ...(prev[idx] ?? {}) };
+                                    row[attrName] = val;
+                                    return { ...prev, [idx]: row };
+                                  })
+                                }
+                                disabled={isEditDisabled}
+                              >
+                                <SelectTrigger
                                   disabled={isEditDisabled}
-                                >
-                                  <SelectTrigger
-                                    disabled={isEditDisabled}
-                                    title={
-                                      def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
-                                      (rowEdited[attrName] ?? "")
-                                    }
-                                    className={cn(
-                                      "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap",
-                                      selectColorClass,
-                                      isEditDisabled && "opacity-60",
-                                      hasError &&
-                                        !hasSuccess &&
-                                        "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                      hasSuccess &&
-                                        !hasError &&
-                                        "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                    )}
-                                  >
-                                    <SelectValue placeholder="Wählen…" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {def.valueset.map((vs) => {
-                                      const label = (vs.desc || vs.name || "").trim();
-                                      const itemStyle =
-                                        isGeometriedatenFilter && isStatusCol
-                                          ? geometriedatenStatusStyles[label]
-                                          : isGeometriedatenFilter && isSerienstatusCol
-                                            ? geometriedatenSerienstatusStyles[label]
-                                            : isGeometriedatenFilter && isGeometrieartCol
-                                              ? getGeometriedatenGeometrieartStyle(label)
-                                              : undefined;
-
-                                      return (
-                                        <SelectItem
-                                          key={vs.name}
-                                          value={vs.name}
-                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
-                                        >
-                                          {label}
-                                        </SelectItem>
-                                      );
-                                    })}
-                                  </SelectContent>
-                                </Select>
-                              ) : isDate ? (
-                                (() => {
-                                  const cellKey = `${idx}__${attrName}`;
-                                  const isInvalid = dateInputErrors.has(cellKey);
-
-                                  const displayValue = rowEdited[attrName]
-                                    ? (() => {
-                                        try {
-                                          return format(parse(rowEdited[attrName], "yyyy-MM-dd", new Date()), "dd.MM.yyyy");
-                                        } catch {
-                                          return "";
-                                        }
-                                      })()
-                                    : "";
-
-                                  return (
-                                    <Popover
-                                      open={openDateKey === cellKey}
-                                      onOpenChange={(open) => setOpenDateKey(open ? cellKey : null)}
-                                    >
-                                      <PopoverPrimitive.Anchor asChild>
-                                        <div className="relative w-full">
-                                          <Input
-                                            key={`${idx}-${attrName}-${rowEdited[attrName] ?? ""}`}
-                                            defaultValue={displayValue}
-                                            disabled={isEditDisabled}
-                                            placeholder="TT.MM.JJJJ"
-                                            title={displayValue}
-                                            onFocus={() => {
-                                              if (isEditDisabled) return;
-                                              // Defer open so the input keeps focus (cursor stays visible)
-                                              requestAnimationFrame(() => setOpenDateKey(cellKey));
-                                            }}
-                                            onBlur={(e) => {
-                                              if (isEditDisabled) return;
-                                              commitDateInput(cellKey, idx, attrName, e.target.value);
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (isEditDisabled) return;
-                                              if (e.key === "Enter") {
-                                                commitDateInput(cellKey, idx, attrName, (e.target as HTMLInputElement).value);
-                                                setOpenDateKey(null);
-                                              }
-                                            }}
-                                            className={cn(
-                                              "h-6 w-full min-w-0 text-xs px-1 pr-7 rounded-none",
-                                              isEditDisabled && "opacity-60",
-                                              isInvalid && "border-red-500 ring-2 ring-red-500",
-                                              hasError &&
-                                                !hasSuccess &&
-                                                "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                              hasSuccess &&
-                                                !hasError &&
-                                                "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                            )}
-                                          />
-
-                                          <button
-                                            type="button"
-                                            className={cn(
-                                              "absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground",
-                                              isEditDisabled && "pointer-events-none opacity-60"
-                                            )}
-                                            onMouseDown={(e) => {
-                                              // Keep focus on the input
-                                              e.preventDefault();
-                                            }}
-                                            onClick={() => {
-                                              if (isEditDisabled) return;
-                                              setOpenDateKey((prev) => (prev === cellKey ? null : cellKey));
-                                            }}
-                                            aria-label="Kalender öffnen"
-                                            title="Kalender öffnen"
-                                          >
-                                            <CalendarDays className="h-4 w-4" />
-                                          </button>
-                                        </div>
-                                      </PopoverPrimitive.Anchor>
-
-                                      <PopoverContent
-                                        className="p-0"
-                                        align="start"
-                                        onOpenAutoFocus={(e) => e.preventDefault()}
-                                      >
-                                        <Calendar
-                                          mode="single"
-                                          selected={
-                                            rowEdited[attrName]
-                                              ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
-                                              : undefined
-                                          }
-                                          onSelect={(date) => {
-                                            if (isEditDisabled) return;
-                                            const iso = date ? format(date, "yyyy-MM-dd") : "";
-                                            setEdited((prev) => {
-                                              const row = { ...(prev[idx] ?? {}) };
-                                              row[attrName] = iso;
-                                              return { ...prev, [idx]: row };
-                                            });
-                                            setDateInputErrors((prev) => {
-                                              const next = new Set(prev);
-                                              next.delete(cellKey);
-                                              return next;
-                                            });
-                                            setOpenDateKey(null);
-                                          }}
-                                        />
-                                        {isInvalid ? (
-                                          <div className="px-3 py-2 text-xs text-destructive border-t">
-                                            Ungültiges Datum. Bitte im Format TT.MM.JJJJ eingeben.
-                                          </div>
-                                        ) : null}
-                                      </PopoverContent>
-                                    </Popover>
-                                  );
-                                })()
-                              ) : (
-                                <Input
-                                  value={rowEdited[attrName] ?? ""}
-                                  disabled={isEditDisabled}
-                                  title={(rowEdited[attrName] ?? "").toString()}
-                                  onChange={(e) =>
-                                    setEdited((prev) => {
-                                      const row = { ...(prev[idx] ?? {}) };
-                                      row[attrName] = e.target.value;
-                                      return { ...prev, [idx]: row };
-                                    })
+                                  title={
+                                    def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                                    (rowEdited[attrName] ?? "")
                                   }
                                   className={cn(
-                                    "h-6 w-full min-w-0 text-xs px-1 rounded-none",
+                                    "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap",
+                                    selectColorClass,
                                     isEditDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
@@ -1711,42 +1566,206 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                       !hasError &&
                                       "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
                                   )}
-                                />
-                              )}{" "}
-                            </div>
-                          );
-                        })}
+                                >
+                                  <SelectValue placeholder="Wählen…" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {def.valueset.map((vs) => {
+                                    const label = (vs.desc || vs.name || "").trim();
+                                    const itemStyle =
+                                      isGeometriedatenFilter && isStatusCol
+                                        ? geometriedatenStatusStyles[label]
+                                        : isGeometriedatenFilter && isSerienstatusCol
+                                          ? geometriedatenSerienstatusStyles[label]
+                                          : isGeometriedatenFilter && isGeometrieartCol
+                                            ? getGeometriedatenGeometrieartStyle(label)
+                                            : undefined;
 
-                        {/* Delete Button */}
-                        <div
-                          className={cn(
-                            iconCellClass,
-                            isHighlighted && rowHighlightClass,
-                            isHighlighted && rowHighlightRight
-                          )}
-                        >
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 text-destructive"
-                            disabled={!doc.pid || isLockedByStatus}
-                            onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
-                            title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
-                            aria-label="Dokument löschen"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
+                                    return (
+                                      <SelectItem
+                                        key={vs.name}
+                                        value={vs.name}
+                                        className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
+                                      >
+                                        {label}
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            ) : isDate ? (
+                              (() => {
+                                const cellKey = `${idx}__${attrName}`;
+                                const isInvalid = dateInputErrors.has(cellKey);
 
-                        {rowIndex < filteredDocs.length - 1 && (
-                          <div className="col-span-full h-px bg-border/60" />
+                                const displayValue = rowEdited[attrName]
+                                  ? (() => {
+                                      try {
+                                        return format(parse(rowEdited[attrName], "yyyy-MM-dd", new Date()), "dd.MM.yyyy");
+                                      } catch {
+                                        return "";
+                                      }
+                                    })()
+                                  : "";
+
+                                return (
+                                  <Popover
+                                    open={openDateKey === cellKey}
+                                    onOpenChange={(open) => setOpenDateKey(open ? cellKey : null)}
+                                  >
+                                    <PopoverPrimitive.Anchor asChild>
+                                      <div className="relative w-full">
+                                        <Input
+                                          key={`${idx}-${attrName}-${rowEdited[attrName] ?? ""}`}
+                                          defaultValue={displayValue}
+                                          disabled={isEditDisabled}
+                                          placeholder="TT.MM.JJJJ"
+                                          title={displayValue}
+                                          onFocus={() => {
+                                            if (isEditDisabled) return;
+                                            // Defer open so the input keeps focus (cursor stays visible)
+                                            requestAnimationFrame(() => setOpenDateKey(cellKey));
+                                          }}
+                                          onBlur={(e) => {
+                                            if (isEditDisabled) return;
+                                            commitDateInput(cellKey, idx, attrName, e.target.value);
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (isEditDisabled) return;
+                                            if (e.key === "Enter") {
+                                              commitDateInput(cellKey, idx, attrName, (e.target as HTMLInputElement).value);
+                                              setOpenDateKey(null);
+                                            }
+                                          }}
+                                          className={cn(
+                                            "h-6 w-full min-w-0 text-xs px-1 pr-7 rounded-none",
+                                            isEditDisabled && "opacity-60",
+                                            isInvalid && "border-red-500 ring-2 ring-red-500",
+                                            hasError &&
+                                              !hasSuccess &&
+                                              "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                            hasSuccess &&
+                                              !hasError &&
+                                              "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                          )}
+                                        />
+
+                                        <button
+                                          type="button"
+                                          className={cn(
+                                            "absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground",
+                                            isEditDisabled && "pointer-events-none opacity-60"
+                                          )}
+                                          onMouseDown={(e) => {
+                                            // Keep focus on the input
+                                            e.preventDefault();
+                                          }}
+                                          onClick={() => {
+                                            if (isEditDisabled) return;
+                                            setOpenDateKey((prev) => (prev === cellKey ? null : cellKey));
+                                          }}
+                                          aria-label="Kalender öffnen"
+                                          title="Kalender öffnen"
+                                        >
+                                          <CalendarDays className="h-4 w-4" />
+                                        </button>
+                                      </div>
+                                    </PopoverPrimitive.Anchor>
+
+                                    <PopoverContent
+                                      className="p-0"
+                                      align="start"
+                                      onOpenAutoFocus={(e) => e.preventDefault()}
+                                    >
+                                      <Calendar
+                                        mode="single"
+                                        selected={
+                                          rowEdited[attrName]
+                                            ? parse(rowEdited[attrName], "yyyy-MM-dd", new Date())
+                                            : undefined
+                                        }
+                                        onSelect={(date) => {
+                                          if (isEditDisabled) return;
+                                          const iso = date ? format(date, "yyyy-MM-dd") : "";
+                                          setEdited((prev) => {
+                                            const row = { ...(prev[idx] ?? {}) };
+                                            row[attrName] = iso;
+                                            return { ...prev, [idx]: row };
+                                          });
+                                          setDateInputErrors((prev) => {
+                                            const next = new Set(prev);
+                                            next.delete(cellKey);
+                                            return next;
+                                          });
+                                          setOpenDateKey(null);
+                                        }}
+                                      />
+                                      {isInvalid ? (
+                                        <div className="px-3 py-2 text-xs text-destructive border-t">
+                                          Ungültiges Datum. Bitte im Format TT.MM.JJJJ eingeben.
+                                        </div>
+                                      ) : null}
+                                    </PopoverContent>
+                                  </Popover>
+                                );
+                              })()
+                            ) : (
+                              <Input
+                                value={rowEdited[attrName] ?? ""}
+                                disabled={isEditDisabled}
+                                title={(rowEdited[attrName] ?? "").toString()}
+                                onChange={(e) =>
+                                  setEdited((prev) => {
+                                    const row = { ...(prev[idx] ?? {}) };
+                                    row[attrName] = e.target.value;
+                                    return { ...prev, [idx]: row };
+                                  })
+                                }
+                                className={cn(
+                                  "h-6 w-full min-w-0 text-xs px-1 rounded-none",
+                                  isEditDisabled && "opacity-60",
+                                  hasError &&
+                                    !hasSuccess &&
+                                    "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                  hasSuccess &&
+                                    !hasError &&
+                                    "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                )}
+                              />
+                            )}{" "}
+                          </div>
+                        );
+                      })}
+
+                      {/* Delete Button */}
+                      <div
+                        className={cn(
+                          iconCellClass,
+                          isHighlighted && rowHighlightClass,
+                          isHighlighted && rowHighlightRight
                         )}
-                      </React.Fragment>
-                    );
-                  })}
-                </>
-              )}
-            </div>
+                      >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          disabled={!doc.pid || isLockedByStatus}
+                          onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
+                          title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
+                          aria-label="Dokument löschen"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {rowIndex < filteredDocs.length - 1 && (
+                        <div className="col-span-full h-px bg-border/60" />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
       </TooltipProvider>
@@ -2044,7 +2063,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             <Button
               variant="destructive"
               disabled={unsavedSaving}
-              onClick={() => {
+              onClick={async () => {
                 // Discard all local edits and continue with the user's intended action.
                 setEdited(initial);
                 setEditedDocTypes(initialDocTypes);
@@ -2071,8 +2090,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                   const action = pendingActionRef.current;
                   setUnsavedDialogOpen(false);
-                  pendingActionRef.current = null;
                   setUnsavedSaveFailed(false);
+                  pendingActionRef.current = null;
                   action?.();
                 } finally {
                   setUnsavedSaving(false);
