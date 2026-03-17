@@ -875,7 +875,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       </div>
 
       <Card className="flex-grow flex flex-col min-h-0">
-        <CardContent className="p-6 flex flex-1 flex-col min-h-0 overflow-hidden">
+        <CardContent className="p-6 flex flex-1 flex-col min-h-0 overflow-y-auto overflow-x-hidden">
           {/* Upload dialog remains mounted; opened via header button */}
           <UploadDialog
             open={isUploadDialogOpen}
@@ -930,8 +930,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
             )}
           </div>
 
-          {/* MITTE: Dokumentenliste (single scroll container for sticky header + x-scroll) */}
-          <div className="flex-1 min-h-0 overflow-hidden">
+          {/* MITTE: Dokumentenliste */}
+          <div className="flex-1 min-h-0 min-h-[280px] overflow-hidden">
             <DocAttributesGrid
               ref={docListGridRef}
               title="Dokumentenliste"
