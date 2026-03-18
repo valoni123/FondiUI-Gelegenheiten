@@ -198,6 +198,15 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       .sort((a, b) => a.label.localeCompare(b.label, "de"));
   }, [entityOptions]);
 
+  const getEntityLabel = React.useCallback(
+    (entityName: string) => {
+      const opt = entityOptions?.find((o) => o.name === entityName);
+      const desc = (opt?.desc || opt?.name || entityName).toString();
+      return desc.replace(/^\*/, "").trim();
+    },
+    [entityOptions]
+  );
+
   type DisplayColumn =
     | {
         kind: "attr";
@@ -230,7 +239,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         kind: "meta",
         id: "dokumenttyp",
         header: "Dokumenttyp",
-        getValue: (doc) => String(doc.entityName ?? ""),
+        getValue: (doc) => {
+          const raw = String(doc.entityName ?? "");
+          return raw ? getEntityLabel(raw) : "";
+        },
       },
       {
         kind: "attr",
@@ -290,7 +302,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       },
       { kind: "attr", id: "ort", header: "Ort", attrNames: ["Ort", "Werk"] },
     ];
-  }, []);
+  }, [getEntityLabel]);
 
   // Geometriedaten-spezifische Zusatzspalten (werden nur eingeblendet, wenn mind. ein Geometriedaten-Dokument vorhanden ist)
   const extraGeometriedatenColumns = React.useMemo<DisplayColumn[]>(
@@ -521,15 +533,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       setAttrDefsByEntity((prev) => ({ ...prev, ...Object.fromEntries(entries) }));
     })();
   }, [docs, editedDocTypes, authToken, cloudEnvironment, attrDefsByEntity]);
-
-  const getEntityLabel = React.useCallback(
-    (entityName: string) => {
-      const opt = entityOptions?.find((o) => o.name === entityName);
-      const desc = (opt?.desc || opt?.name || entityName).toString();
-      return desc.replace(/^\*/, "").trim();
-    },
-    [entityOptions]
-  );
 
   const resolveAttrName = React.useCallback(
     (
