@@ -127,6 +127,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const [backUnsavedSaving, setBackUnsavedSaving] = React.useState(false);
   const [backUnsavedSaveFailed, setBackUnsavedSaveFailed] = React.useState(false);
 
+  const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
+
   const handleBackToOverview = React.useCallback(() => {
     const hasUnsavedList = !!docListGridRef.current?.hasUnsavedChanges();
     const hasUnsavedDetail = !!detailGridRef.current?.hasUnsavedChanges();
@@ -144,46 +146,38 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const getDocKey = React.useCallback((doc: IdmDocPreview) => {
     if (doc.pid) return `pid:${doc.pid}`;
-    // fallback when pid is missing (avoid preview URLs because they can be re-signed every poll)
     return `f:${doc.entityName ?? ""}|${doc.filename ?? ""}|${doc.createdTS ?? ""}|${doc.lastChangedTS ?? ""}`;
   }, []);
 
-  const sortDocsByCreatedAt = React.useCallback((docs: IdmDocPreview[]) => {
-    const toMs = (v?: string) => {
-      if (!v) return Number.NEGATIVE_INFINITY;
-      const t = new Date(v).getTime();
-      return Number.isFinite(t) ? t : Number.NEGATIVE_INFINITY;
-    };
-
-    // Newest first (descending). Stable tie-breakers for deterministic ordering.
-    return [...docs].sort((a, b) => {
-      const diff = toMs(b.createdTS) - toMs(a.createdTS);
-      if (diff !== 0) return diff;
-
-      const diffChanged = toMs(b.lastChangedTS) - toMs(a.lastChangedTS);
-      if (diffChanged !== 0) return diffChanged;
-
-      const aKey = getDocKey(a);
-      const bKey = getDocKey(b);
-      return aKey.localeCompare(bKey, "de");
-    });
-  }, [getDocKey]);
-
-  const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
-
-  const highlightedDocKeySet = React.useMemo(
-    () => new Set(highlightedDocKeys),
-    [highlightedDocKeys]
-  );
-
+  const highlightedDocKeySet = React.useMemo(() => new Set(highlightedDocKeys), [highlightedDocKeys]);
   const isDocHighlighted = React.useCallback(
     (doc: IdmDocPreview) => highlightedDocKeySet.has(getDocKey(doc)),
     [highlightedDocKeySet, getDocKey]
   );
 
+  const sortDocsByCreatedAt = React.useCallback((docs: IdmDocPreview[]) => {
+    const copy = [...docs];
+    copy.sort((a, b) => {
+      const at = a.createdTS ? new Date(a.createdTS).getTime() : 0;
+      const bt = b.createdTS ? new Date(b.createdTS).getTime() : 0;
+      return bt - at;
+    });
+    return copy;
+  }, []);
+
+  const migratedProjectXQuery = React.useMemo(() => {
+    const project = (selectedOpportunityProject ?? "").toString().trim();
+    if (!project) return null;
+    if (!entityNames?.length) return null;
+
+    const segments = entityNames.map((name) => `/${name}[@Projekt = "${project}"]`);
+    return `${segments.join(" UNION ")} SORTBY(@LASTCHANGEDTS DESCENDING)`;
+  }, [selectedOpportunityProject, entityNames]);
+
   const linkedProjectXQuery = React.useMemo(() => {
     const project = (selectedOpportunityProject ?? "").toString().trim();
     if (!project) return null;
+
     return (
       `/Anfrage_Kunde[Projekt_Verlinkung/@Value = "${project}"] ` +
       `UNION /_Anfrage__Lieferant_[Projekt_Verlinkung/@Value = "${project}"] ` +
@@ -191,29 +185,40 @@ const RightPanel: React.FC<RightPanelProps> = ({
     );
   }, [selectedOpportunityProject]);
 
-  const mergeDocs = React.useCallback((primary: IdmDocPreview[], linked: IdmDocPreview[]) => {
-    const byKey = new Map<string, IdmDocPreview>();
+  const mergeDocs = React.useCallback(
+    (primary: IdmDocPreview[], linked: IdmDocPreview[], migrated: IdmDocPreview[]) => {
+      const byKey = new Map<string, IdmDocPreview>();
 
-    for (const d of primary) {
-      byKey.set(getDocKey(d), d);
-    }
+      for (const d of primary) {
+        byKey.set(getDocKey(d), d);
+      }
 
-    for (const d of linked) {
-      const key = getDocKey(d);
-      const existing = byKey.get(key);
-      if (existing) {
-        byKey.set(key, {
-          ...existing,
-          linkedViaProject: existing.linkedViaProject || true,
-          linkedProjectValue: existing.linkedProjectValue || d.linkedProjectValue,
-        });
-      } else {
+      for (const d of linked) {
+        const key = getDocKey(d);
+        const existing = byKey.get(key);
+        if (existing) {
+          byKey.set(key, {
+            ...existing,
+            linkedViaProject: existing.linkedViaProject || true,
+            linkedProjectValue: existing.linkedProjectValue || d.linkedProjectValue,
+          });
+        } else {
+          byKey.set(key, d);
+        }
+      }
+
+      // Only mark "migrated" when the document does NOT already exist via Gelegenheit or Projekt_Verlinkung.
+      for (const d of migrated) {
+        const key = getDocKey(d);
+        const existing = byKey.get(key);
+        if (existing) continue;
         byKey.set(key, d);
       }
-    }
 
-    return Array.from(byKey.values());
-  }, [getDocKey]);
+      return Array.from(byKey.values());
+    },
+    [getDocKey]
+  );
 
   const mergePreservePrevOrder = React.useCallback(
     (prev: IdmDocPreview[], next: IdmDocPreview[]) => {
@@ -234,7 +239,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
         const key = getDocKey(d);
         if (used.has(key)) continue;
         ordered.push(d);
-        used.add(key);
       }
 
       return ordered;
@@ -260,6 +264,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
       String(doc.createdTS ?? ""),
       String(doc.linkedViaProject ? "1" : "0"),
       String(doc.linkedProjectValue ?? ""),
+      String(doc.migratedViaProject ? "1" : "0"),
+      String(doc.migratedProjectValue ?? ""),
       attrsSig,
     ].join("||");
   }, []);
@@ -281,20 +287,35 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const fetchLinkedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
     if (!linkedProjectXQuery || !authToken) return [];
     const project = (selectedOpportunityProject ?? "").toString().trim();
-    const docs = await searchIdmItemsByXQueryJson(
-      authToken,
-      cloudEnvironment,
-      linkedProjectXQuery,
-      0,
-      200,
-      "de-DE"
-    );
-    return docs.map((d) => ({
+
+    const linked = await searchIdmItemsByXQueryJson(authToken, cloudEnvironment, linkedProjectXQuery, 0, 200, "de-DE");
+
+    return linked.map((d) => ({
       ...d,
       linkedViaProject: true,
       linkedProjectValue: project,
     }));
   }, [linkedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
+
+  const fetchMigratedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
+    if (!migratedProjectXQuery || !authToken) return [];
+    const project = (selectedOpportunityProject ?? "").toString().trim();
+
+    const migrated = await searchIdmItemsByXQueryJson(
+      authToken,
+      cloudEnvironment,
+      migratedProjectXQuery,
+      0,
+      200,
+      "de-DE"
+    );
+
+    return migrated.map((d) => ({
+      ...d,
+      migratedViaProject: true,
+      migratedProjectValue: project,
+    }));
+  }, [migratedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
 
   type DocFilterKey =
     | "FME_GEOM_KUNDE"
@@ -366,13 +387,14 @@ const RightPanel: React.FC<RightPanelProps> = ({
       if (!selectedOpportunityId || !authToken) return [];
 
       if (!filterKey) {
-        const [results, linkedResults] = await Promise.all([
+        const [results, linkedResults, migratedResults] = await Promise.all([
           Promise.allSettled(
             entityNames.map((name) =>
               searchIdmItemsByEntityJson(authToken, cloudEnvironment, selectedOpportunityId, name)
             )
           ),
           fetchLinkedProjectDocs().catch(() => []),
+          fetchMigratedProjectDocs().catch(() => []),
         ]);
 
         const merged: IdmDocPreview[] = [];
@@ -381,7 +403,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
             merged.push(...r.value);
           }
         });
-        return sortDocsByCreatedAt(mergeDocs(merged, linkedResults));
+        return sortDocsByCreatedAt(mergeDocs(merged, linkedResults, migratedResults));
       }
 
       const filter = docFilters.find((f) => f.key === filterKey);
@@ -389,12 +411,13 @@ const RightPanel: React.FC<RightPanelProps> = ({
         return fetchDocsForFilter(null);
       }
 
-      const [docs, linked] = await Promise.all([
+      const [docs, linked, migrated] = await Promise.all([
         searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE"),
         fetchLinkedProjectDocs().catch(() => []),
+        fetchMigratedProjectDocs().catch(() => []),
       ]);
 
-      return sortDocsByCreatedAt(mergeDocs(docs, linked));
+      return sortDocsByCreatedAt(mergeDocs(docs, linked, migrated));
     },
     [
       selectedOpportunityId,
@@ -403,6 +426,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       cloudEnvironment,
       docFilters,
       fetchLinkedProjectDocs,
+      fetchMigratedProjectDocs,
       mergeDocs,
       sortDocsByCreatedAt,
     ]
@@ -980,12 +1004,31 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       title={doc.filename || "Vorschau öffnen"}
                     >
                       {doc.linkedViaProject ? (
-                        <Badge
-                          variant="default"
-                          className="absolute left-2 top-2 z-10 bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
-                        >
-                          verknüpft
-                        </Badge>
+                        <div className="absolute left-2 top-2 z-10 flex flex-col gap-1">
+                          <Badge
+                            variant="default"
+                            className="bg-gray-700 text-white border border-gray-800 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                          >
+                            verknüpft
+                          </Badge>
+                          {doc.migratedViaProject ? (
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-100 text-amber-900 border border-amber-200 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                            >
+                              migriert
+                            </Badge>
+                          ) : null}
+                        </div>
+                      ) : doc.migratedViaProject ? (
+                        <div className="absolute left-2 top-2 z-10">
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-900 border border-amber-200 shadow-sm text-[11px] px-2 py-0.5 font-semibold"
+                          >
+                            migriert
+                          </Badge>
+                        </div>
                       ) : null}
                       {doc.smallUrl ? (
                         <img

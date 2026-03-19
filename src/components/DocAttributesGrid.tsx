@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type IdmDocPreview } from "@/api/idm";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeftRight,
   ChevronRight,
@@ -1373,6 +1374,22 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 <div className="min-w-0 flex-1">
                                   <TruncatedTextCell value={(value || "").toString()} />
                                 </div>
+                                {doc.linkedViaProject ? (
+                                  <Badge
+                                    variant="default"
+                                    className="bg-gray-700 text-white border border-gray-800 text-[10px] px-2 py-0.5 font-semibold whitespace-nowrap"
+                                  >
+                                    verknüpft
+                                  </Badge>
+                                ) : null}
+                                {doc.migratedViaProject ? (
+                                  <Badge
+                                    variant="secondary"
+                                    className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] px-2 py-0.5 font-semibold whitespace-nowrap"
+                                  >
+                                    migriert
+                                  </Badge>
+                                ) : null}
                               </div>
                             );
                           }

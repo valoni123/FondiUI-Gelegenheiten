@@ -87,6 +87,9 @@ export type IdmDocPreview = {
   // NEW: UI hint - document came from a project link query (Projekt_Verlinkung)
   linkedViaProject?: boolean;
   linkedProjectValue?: string;
+  // NEW: UI hint - document was loaded only via @Projekt (migration / legacy behavior)
+  migratedViaProject?: boolean;
+  migratedProjectValue?: string;
 };
 
 export type IdmAttribute = {
