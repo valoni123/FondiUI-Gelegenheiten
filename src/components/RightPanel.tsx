@@ -207,11 +207,19 @@ const RightPanel: React.FC<RightPanelProps> = ({
         }
       }
 
-      // Only mark "migrated" when the document does NOT already exist via Gelegenheit or Projekt_Verlinkung.
+      // Mark "migrated" for any document that matches the @Projekt query.
+      // If the document also exists via Gelegenheit/Projekt_Verlinkung, we still keep it but add the flag.
       for (const d of migrated) {
         const key = getDocKey(d);
         const existing = byKey.get(key);
-        if (existing) continue;
+        if (existing) {
+          byKey.set(key, {
+            ...existing,
+            migratedViaProject: true,
+            migratedProjectValue: existing.migratedProjectValue || d.migratedProjectValue,
+          });
+          continue;
+        }
         byKey.set(key, d);
       }
 
