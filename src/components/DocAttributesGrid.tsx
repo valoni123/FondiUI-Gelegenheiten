@@ -1428,6 +1428,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           activeDocFilter === "FSI_SERIE_GUELTIG" ||
                           activeDocFilter === "FSI_VERSUCH_GUELTIG";
 
+                        const isGeometriedatenDoc = String(entityName).toLowerCase().includes("geometriedaten");
+                        const useGeometriedatenColors = isGeometriedatenFilter || isGeometriedatenDoc;
+
                         const statusLabel = isStatusCol
                           ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
                               (rowEdited[attrName] ?? ""))
@@ -1546,11 +1549,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             : undefined;
 
                         const selectStyle =
-                          isGeometriedatenFilter && isStatusCol
+                          useGeometriedatenColors && isStatusCol
                             ? geometriedatenStatusStyles[statusLabel]
-                            : isGeometriedatenFilter && isSerienstatusCol
+                            : useGeometriedatenColors && isSerienstatusCol
                               ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                              : isGeometriedatenFilter && isGeometrieartCol
+                              : useGeometriedatenColors && isGeometrieartCol
                                 ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
                                 : undefined;
 
@@ -1597,11 +1600,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   {def.valueset.map((vs) => {
                                     const label = (vs.desc || vs.name || "").trim();
                                     const itemStyle =
-                                      isGeometriedatenFilter && isStatusCol
+                                      useGeometriedatenColors && isStatusCol
                                         ? geometriedatenStatusStyles[label]
-                                        : isGeometriedatenFilter && isSerienstatusCol
+                                        : useGeometriedatenColors && isSerienstatusCol
                                           ? geometriedatenSerienstatusStyles[label]
-                                          : isGeometriedatenFilter && isGeometrieartCol
+                                          : useGeometriedatenColors && isGeometrieartCol
                                             ? getGeometriedatenGeometrieartStyle(label)
                                             : undefined;
 
