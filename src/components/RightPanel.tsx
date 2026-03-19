@@ -317,6 +317,37 @@ const RightPanel: React.FC<RightPanelProps> = ({
     }));
   }, [migratedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
 
+  const fetchMigratedProjectDocsForFilter = React.useCallback(
+    async (filterXQuery: string): Promise<IdmDocPreview[]> => {
+      if (!authToken) return [];
+      const project = (selectedOpportunityProject ?? "").toString().trim();
+      if (!project) return [];
+
+      // Run the SAME filter query, but for migrated docs we replace the Gelegenheit clause with Projekt.
+      // This prevents unrelated @Projekt docs from being appended when a geometry filter is active.
+      const migratedXQuery = filterXQuery.replaceAll(
+        `@Gelegenheit = "${selectedOpportunityId}"`,
+        `@Projekt = "${project}"`
+      );
+
+      const migrated = await searchIdmItemsByXQueryJson(
+        authToken,
+        cloudEnvironment,
+        migratedXQuery,
+        0,
+        200,
+        "de-DE"
+      );
+
+      return migrated.map((d) => ({
+        ...d,
+        migratedViaProject: true,
+        migratedProjectValue: project,
+      }));
+    },
+    [authToken, cloudEnvironment, selectedOpportunityProject, selectedOpportunityId]
+  );
+
   type DocFilterKey =
     | "FME_GEOM_KUNDE"
     | "FME_SERIE_GUELTIG"
@@ -414,7 +445,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       const [docs, linked, migrated] = await Promise.all([
         searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE"),
         fetchLinkedProjectDocs().catch(() => []),
-        fetchMigratedProjectDocs().catch(() => []),
+        fetchMigratedProjectDocsForFilter(filter.xquery).catch(() => []),
       ]);
 
       return sortDocsByCreatedAt(mergeDocs(docs, linked, migrated));
@@ -427,6 +458,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       docFilters,
       fetchLinkedProjectDocs,
       fetchMigratedProjectDocs,
+      fetchMigratedProjectDocsForFilter,
       mergeDocs,
       sortDocsByCreatedAt,
     ]
