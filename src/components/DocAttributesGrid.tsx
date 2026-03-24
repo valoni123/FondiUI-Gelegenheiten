@@ -1403,6 +1403,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
                         const isStatusCol = col.id === "status";
                         const isSerienstatusCol = col.id === "serienstatus";
+                        const isVersuchsstatusCol = col.id === "versuchsstatus";
                         const isGeometrieartCol = col.id === "geometrieart";
                         const isGeoSpecificCol =
                           col.id === "serienstatus" ||
@@ -1433,6 +1434,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           : "";
 
                         const serienstatusLabel = isSerienstatusCol
+                          ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
+                              (rowEdited[attrName] ?? ""))
+                          : "";
+
+                        const versuchsstatusLabel = isVersuchsstatusCol
                           ? (def?.valueset?.find((vs) => vs.name === (rowEdited[attrName] ?? ""))?.desc ??
                               (rowEdited[attrName] ?? ""))
                           : "";
@@ -1534,6 +1540,36 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           },
                         };
 
+                        const geometriedatenVersuchsstatusStyles: Record<
+                          string,
+                          { triggerClass: string; itemClass: string }
+                        > = {
+                          "Versuch führend": {
+                            triggerClass:
+                              "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                            itemClass:
+                              "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
+                          },
+                          "Versuch ungültig": {
+                            triggerClass:
+                              "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                            itemClass:
+                              "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
+                          },
+                          "Versuch normal": {
+                            triggerClass:
+                              "bg-[#CAF0CC] text-black border-[#CAF0CC] hover:bg-[#CAF0CC]",
+                            itemClass:
+                              "bg-[#CAF0CC] text-black data-[highlighted]:bg-[#CAF0CC] data-[highlighted]:text-black data-[state=checked]:bg-[#CAF0CC] data-[state=checked]:text-black",
+                          },
+                          "Versuch eingeschränkt": {
+                            triggerClass:
+                              "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                            itemClass:
+                              "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                          },
+                        };
+
                         const getGeometriedatenGeometrieartStyle = (label: string) => {
                           const first = (label || "").trim().charAt(0).toUpperCase();
                           if (first === "H") {
@@ -1585,12 +1621,14 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               ? nonGeoStatusStyles[statusLabel]
                               : useGeometriedatenColors && isSerienstatusCol
                                 ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                                : useGeometriedatenColors && isGeometrieartCol
-                                  ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
-                                  : undefined;
+                                : useGeometriedatenColors && isVersuchsstatusCol
+                                  ? geometriedatenVersuchsstatusStyles[versuchsstatusLabel]
+                                  : useGeometriedatenColors && isGeometrieartCol
+                                    ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
+                                    : undefined;
 
                         const selectColorClass =
-                          (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
+                          (isStatusCol || isSerienstatusCol || isVersuchsstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
                             ? selectStyle?.triggerClass ?? ""
                             : "";
 
@@ -1662,9 +1700,11 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                             ? nonGeoStatusStyles[label]
                                             : useGeometriedatenColors && isSerienstatusCol
                                               ? geometriedatenSerienstatusStyles[label]
-                                              : useGeometriedatenColors && isGeometrieartCol
-                                                ? getGeometriedatenGeometrieartStyle(label)
-                                                : undefined;
+                                              : useGeometriedatenColors && isVersuchsstatusCol
+                                                ? geometriedatenVersuchsstatusStyles[label]
+                                                : useGeometriedatenColors && isGeometrieartCol
+                                                  ? getGeometriedatenGeometrieartStyle(label)
+                                                  : undefined;
 
                                       return (
                                         <SelectItem
