@@ -1413,6 +1413,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           col.id === "geometrieart";
                         // Bei Geometriedaten-spezifischen Spalten: wenn Attribut beim aktuellen Dokumenttyp nicht existiert, nicht editierbar machen
                         const isEditDisabled = (isLockedByStatus && !isStatusCol) || (isGeoSpecificCol && !def);
+                        // Keep the disable behavior, but avoid dimming/overlay when the row is locked by Status=Freigegeben.
+                        const dimDisabled = isEditDisabled && !isLockedByStatus;
 
                         const isGeometriedatenFilter =
                           activeDocFilter === "FME_GEOM_KUNDE" ||
@@ -1613,9 +1615,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                     (rowEdited[attrName] ?? "")
                                   }
                                   className={cn(
-                                    "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap",
+                                    "h-6 w-full min-w-0 text-xs px-1 rounded-none whitespace-nowrap disabled:opacity-100",
                                     selectColorClass,
-                                    isEditDisabled && "opacity-60",
+                                    dimDisabled && "opacity-60",
                                     hasError &&
                                       !hasSuccess &&
                                       "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
@@ -1722,8 +1724,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                             }
                                           }}
                                           className={cn(
-                                            "h-6 w-full min-w-0 text-xs px-1 pr-7 rounded-none",
-                                            isEditDisabled && "opacity-60",
+                                            "h-6 w-full min-w-0 text-xs px-1 pr-7 rounded-none disabled:opacity-100",
+                                            dimDisabled && "opacity-60",
                                             isInvalid && "border-red-500 ring-2 ring-red-500",
                                             hasError &&
                                               !hasSuccess &&
@@ -1737,9 +1739,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                         <button
                                           type="button"
                                           className={cn(
-                                            "absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground",
-                                            isEditDisabled && "pointer-events-none opacity-60"
-                                          )}
+                                             "absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground hover:text-foreground",
+                                             isEditDisabled && "pointer-events-none",
+                                             dimDisabled && "opacity-60"
+                                           )}
                                           onMouseDown={(e) => {
                                             // Keep focus on the input
                                             e.preventDefault();
@@ -1806,15 +1809,15 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   })
                                 }
                                 className={cn(
-                                  "h-6 w-full min-w-0 text-xs px-1 rounded-none",
-                                  isEditDisabled && "opacity-60",
-                                  hasError &&
-                                    !hasSuccess &&
-                                    "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
-                                  hasSuccess &&
-                                    !hasError &&
-                                    "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
-                                )}
+                                  "h-6 w-full min-w-0 text-xs px-1 rounded-none disabled:opacity-100",
+                                  dimDisabled && "opacity-60",
+                                   hasError &&
+                                     !hasSuccess &&
+                                     "border-red-500 ring-2 ring-red-500 animate-[error-blink_0.9s_ease-in-out_2]",
+                                   hasSuccess &&
+                                     !hasError &&
+                                     "border-success-highlight ring-2 ring-success-highlight animate-[success-blink_0.9s_ease-in-out_2]"
+                                 )}
                               />
                             )}{" "}
                           </div>
