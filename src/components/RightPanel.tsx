@@ -83,13 +83,12 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const handleShare = React.useCallback(async () => {
     const selectedDocs = docListGridRef.current?.getSelectedDocs?.() ?? [];
-    if (selectedDocs.length > 1) {
-      showError("Bitte nur ein Dokument auswählen, um es zu teilen.");
-      return;
-    }
 
     const urlObj = new URL(window.location.href);
-    const selectedDoc = selectedDocs[0];
+
+    // Only when exactly one document is selected, add sharedDocPid.
+    // Otherwise share the plain opportunity link.
+    const selectedDoc = selectedDocs.length === 1 ? selectedDocs[0] : undefined;
     if (selectedDoc?.pid) {
       urlObj.searchParams.set("sharedDocPid", String(selectedDoc.pid));
     } else {
