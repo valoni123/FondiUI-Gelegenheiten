@@ -32,6 +32,7 @@ import LinkedDocumentsDialog from "@/components/LinkedDocumentsDialog";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useSearchParams } from "react-router-dom";
 
 interface RightPanelProps {
   selectedOpportunityId: string;
@@ -54,6 +55,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   selectedOpportunityProject, // New optional prop
   selectedOpportunityArticle, // New optional prop
 }) => {
+  const [searchParams] = useSearchParams();
+
   const forceDownload = React.useCallback(async (url: string, filename?: string) => {
     const safeName = (filename || "download")
       .trim()
@@ -79,8 +82,24 @@ const RightPanel: React.FC<RightPanelProps> = ({
   }, []);
 
   const handleShare = React.useCallback(async () => {
-    const url = window.location.href;
-    const title = `Gelegenheit ${selectedOpportunityId}`;
+    const selectedDocs = docListGridRef.current?.getSelectedDocs?.() ?? [];
+    if (selectedDocs.length > 1) {
+      showError("Bitte nur ein Dokument auswählen, um es zu teilen.");
+      return;
+    }
+
+    const urlObj = new URL(window.location.href);
+    const selectedDoc = selectedDocs[0];
+    if (selectedDoc?.pid) {
+      urlObj.searchParams.set("sharedDocPid", String(selectedDoc.pid));
+    } else {
+      urlObj.searchParams.delete("sharedDocPid");
+    }
+
+    const url = urlObj.toString();
+    const title = selectedDoc?.pid
+      ? `Gelegenheit ${selectedOpportunityId} – ${selectedDoc.filename || selectedDoc.pid}`
+      : `Gelegenheit ${selectedOpportunityId}`;
 
     try {
       if (navigator.share) {
@@ -92,7 +111,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       await navigator.clipboard.writeText(url);
       showSuccess("Link kopiert");
-    } catch (e) {
+    } catch {
       showError("Teilen nicht möglich");
     }
   }, [selectedOpportunityId]);
@@ -635,6 +654,24 @@ const RightPanel: React.FC<RightPanelProps> = ({
     },
     [docPreviews, authToken, cloudEnvironment]
   );
+
+  // If the page was opened via a shared link that contains a document PID,
+  // open the full preview automatically once the previews are loaded.
+  const sharedDocPid = (searchParams.get("sharedDocPid") ?? "").trim() || null;
+  const openedSharedRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!sharedDocPid) return;
+    if (isPreviewsLoading) return;
+
+    const key = `${selectedOpportunityId}::${sharedDocPid}`;
+    if (openedSharedRef.current === key) return;
+
+    const match = docPreviews.find((d) => d?.pid && String(d.pid) === sharedDocPid);
+    if (!match) return;
+
+    openedSharedRef.current = key;
+    openFullPreview(match);
+  }, [sharedDocPid, isPreviewsLoading, docPreviews, openFullPreview, selectedOpportunityId]);
 
   // Keep index in sync if the list or doc changes (e.g., after replacements or reloads)
   React.useEffect(() => {

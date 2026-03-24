@@ -90,6 +90,8 @@ export type DocAttributesGridHandle = {
   saveAllChanges: () => Promise<{ ok: boolean }>;
   hasUnsavedChanges: () => boolean;
   discardAllChanges: () => void;
+  /** Currently selected documents via the checkbox column (only docs with PID). */
+  getSelectedDocs: () => IdmDocPreview[];
 };
 
 const TruncatedTextCell: React.FC<{ value: string }> = ({ value }) => {
@@ -797,6 +799,20 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     return { ok: !hadFailures };
   };
 
+  const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
+  React.useEffect(() => {
+    setSelectedRows(new Set());
+  }, [contextKey]);
+
+  const toggleRowSelected = (idx: number) => {
+    setSelectedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx);
+      else next.add(idx);
+      return next;
+    });
+  };
+
   React.useImperativeHandle(
     ref,
     () => ({
@@ -807,8 +823,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         setEditedDocTypes(initialDocTypes);
         setSyncWithInitial(new Set());
       },
+      getSelectedDocs: () =>
+        Array.from(selectedRows)
+          .map((i) => docs[i])
+          .filter((d): d is IdmDocPreview => !!d?.pid),
     }),
-    [enableSaveAllButton, handleSaveAllChanges, initial, initialDocTypes]
+    [enableSaveAllButton, handleSaveAllChanges, initial, initialDocTypes, docs, selectedRows]
   );
 
   // Unsaved-changes guard (used when user tries other actions while "Alle Änderungen speichern" is active)
@@ -847,22 +867,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
 
   // Batch delete confirmation dialog state
   const [confirmBatchDelete, setConfirmBatchDelete] = React.useState(false);
-
-  // Track selected rows
-  const [selectedRows, setSelectedRows] = React.useState<Set<number>>(new Set());
-  React.useEffect(() => {
-    // Clear selection only when context changes to avoid flicker on silent background refreshes
-    setSelectedRows(new Set());
-  }, [contextKey]);
-
-  const toggleRowSelected = (idx: number) => {
-    setSelectedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
 
   const handleBatchDelete = async () => {
     setConfirmBatchDelete(true);
