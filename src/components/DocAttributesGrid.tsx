@@ -1200,7 +1200,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           checked={selectedRows.has(idx)}
                           onCheckedChange={() => toggleRowSelected(idx)}
                           className="h-4 w-4"
-                          disabled={!doc.pid || isLockedByStatus}
+                          disabled={!doc.pid}
                           aria-label="Dokument auswählen"
                         />
                       </div>
@@ -1214,7 +1214,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           disabled={!hasChanges || !doc.pid}
                           onClick={async () => {
                             const newEntityName = typeChanged ? (editedDocTypes[idx] ?? "") : undefined;
-
+                            
                             const updates = editableColumns
                               .map((c) => {
                                 const attrName = resolveAttrName(rowEdited, rowInitial, defs, c);
@@ -1263,9 +1263,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          disabled={!doc.pid || isLockedByStatus}
+                          disabled={!doc.pid}
                           onClick={() => runWithUnsavedGuard(() => void setConfirmReplaceRow(idx))}
-                          title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument ersetzen"}
+                          title={doc.pid ? "Dokument ersetzen" : "PID fehlt"}
                           aria-label="Dokument ersetzen"
                         >
                           <ArrowLeftRight className="h-3 w-3" />
@@ -1317,7 +1317,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                               ? "text-amber-700 hover:text-amber-800"
                               : "text-muted-foreground/60 hover:text-muted-foreground"
                           )}
-                          disabled={!doc.pid || isLockedByStatus}
+                          disabled={!doc.pid}
                           onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
                           title={(() => {
                             if (!doc.pid) return "PID fehlt";
@@ -1776,9 +1776,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-destructive"
-                          disabled={!doc.pid || isLockedByStatus}
+                          disabled={!doc.pid}
                           onClick={() => runWithUnsavedGuard(() => setConfirmDeleteRow(idx))}
-                          title={isLockedByStatus ? "Dokument ist freigegeben" : "Dokument löschen"}
+                          title={doc.pid ? "Dokument löschen" : "PID fehlt"}
                           aria-label="Dokument löschen"
                         >
                           <Trash2 className="h-3 w-3" />
