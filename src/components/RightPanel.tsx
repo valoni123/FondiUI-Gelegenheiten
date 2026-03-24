@@ -919,7 +919,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
               size="sm"
               onClick={() => {
                 window.open(
-                  "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx",
+                  "https://fondiumeu.sharepoint.com/sites/Managementsystem-Nachweise/_layouts/15/listforms.aspx?cid=N2JiMDdlMmItNjJlYS00YjA4LTk3ZjktMjYxYTVjNmU1NWIz&nav=YzNkNzhhNjEtYzEzNS00YWUzLWJjNjgtZTIyYWE0NGY3YWMz",
                   "_blank",
                   "noopener,noreferrer"
                 );
