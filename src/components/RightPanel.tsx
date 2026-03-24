@@ -366,6 +366,37 @@ const RightPanel: React.FC<RightPanelProps> = ({
     [authToken, cloudEnvironment, selectedOpportunityProject, selectedOpportunityId]
   );
 
+  const fetchLinkedProjectDocsForFilter = React.useCallback(
+    async (filterXQuery: string): Promise<IdmDocPreview[]> => {
+      if (!authToken) return [];
+      const project = (selectedOpportunityProject ?? "").toString().trim();
+      if (!project) return [];
+
+      // Apply the SAME geometry filter, but instead of filtering by Gelegenheit,
+      // filter by Projekt_Verlinkung so linked docs respect the active geometry badge.
+      const linkedXQuery = filterXQuery.replaceAll(
+        `@Gelegenheit = "${selectedOpportunityId}"`,
+        `Projekt_Verlinkung/@Value = "${project}"`
+      );
+
+      const linked = await searchIdmItemsByXQueryJson(
+        authToken,
+        cloudEnvironment,
+        linkedXQuery,
+        0,
+        200,
+        "de-DE"
+      );
+
+      return linked.map((d) => ({
+        ...d,
+        linkedViaProject: true,
+        linkedProjectValue: project,
+      }));
+    },
+    [authToken, cloudEnvironment, selectedOpportunityProject, selectedOpportunityId]
+  );
+
   type DocFilterKey =
     | "FME_GEOM_KUNDE"
     | "FME_SERIE_GUELTIG"
@@ -462,7 +493,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
       const [docs, linked, migrated] = await Promise.all([
         searchIdmItemsByXQueryJson(authToken, cloudEnvironment, filter.xquery, 0, 200, "de-DE"),
-        fetchLinkedProjectDocs().catch(() => []),
+        fetchLinkedProjectDocsForFilter(filter.xquery).catch(() => []),
         fetchMigratedProjectDocsForFilter(filter.xquery).catch(() => []),
       ]);
 
@@ -475,6 +506,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       cloudEnvironment,
       docFilters,
       fetchLinkedProjectDocs,
+      fetchLinkedProjectDocsForFilter,
       fetchMigratedProjectDocs,
       fetchMigratedProjectDocsForFilter,
       mergeDocs,
