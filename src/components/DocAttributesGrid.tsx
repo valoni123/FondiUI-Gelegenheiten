@@ -1470,6 +1470,38 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           },
                         };
 
+                        // For non-Geometriedaten documents we only want 3 status options, but we still
+                        // show a legacy status if it is currently selected on that document.
+                        const nonGeoStatusAllowedLabels = new Set([
+                          "Freigegeben",
+                          "In Arbeit",
+                          "Ungültig",
+                        ]);
+
+                        const nonGeoStatusStyles: Record<
+                          string,
+                          { triggerClass: string; itemClass: string }
+                        > = {
+                          Freigegeben: {
+                            triggerClass:
+                              "bg-[#498205] text-white border-[#498205] hover:bg-[#498205]",
+                            itemClass:
+                              "bg-[#498205] text-white data-[highlighted]:bg-[#498205] data-[highlighted]:text-white data-[state=checked]:bg-[#498205] data-[state=checked]:text-white",
+                          },
+                          "In Arbeit": {
+                            triggerClass:
+                              "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                            itemClass:
+                              "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                          },
+                          Ungültig: {
+                            triggerClass:
+                              "bg-[#D13438] text-white border-[#D13438] hover:bg-[#D13438]",
+                            itemClass:
+                              "bg-[#D13438] text-white data-[highlighted]:bg-[#D13438] data-[highlighted]:text-white data-[state=checked]:bg-[#D13438] data-[state=checked]:text-white",
+                          },
+                        };
+
                         const geometriedatenSerienstatusStyles: Record<
                           string,
                           { triggerClass: string; itemClass: string }
@@ -1542,14 +1574,18 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
                             : undefined;
 
+                        const isNonGeoStatusCol = isStatusCol && !useGeometriedatenColors;
+
                         const selectStyle =
                           useGeometriedatenColors && isStatusCol
                             ? geometriedatenStatusStyles[statusLabel]
-                            : useGeometriedatenColors && isSerienstatusCol
-                              ? geometriedatenSerienstatusStyles[serienstatusLabel]
-                              : useGeometriedatenColors && isGeometrieartCol
-                                ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
-                                : undefined;
+                            : isNonGeoStatusCol
+                              ? nonGeoStatusStyles[statusLabel]
+                              : useGeometriedatenColors && isSerienstatusCol
+                                ? geometriedatenSerienstatusStyles[serienstatusLabel]
+                                : useGeometriedatenColors && isGeometrieartCol
+                                  ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
+                                  : undefined;
 
                         const selectColorClass =
                           (isStatusCol || isSerienstatusCol || isGeometrieartCol) && (rowEdited[attrName] ?? "")
@@ -1591,27 +1627,54 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                   <SelectValue placeholder="Wählen…" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {def.valueset.map((vs) => {
-                                    const label = (vs.desc || vs.name || "").trim();
-                                    const itemStyle =
-                                      useGeometriedatenColors && isStatusCol
-                                        ? geometriedatenStatusStyles[label]
-                                        : useGeometriedatenColors && isSerienstatusCol
-                                          ? geometriedatenSerienstatusStyles[label]
-                                          : useGeometriedatenColors && isGeometrieartCol
-                                            ? getGeometriedatenGeometrieartStyle(label)
-                                            : undefined;
+                                  {(() => {
+                                    const currentValue = (rowEdited[attrName] ?? "").toString();
+                                    const currentVs = def.valueset.find((vs) => vs.name === currentValue);
+                                    const currentLabel = (currentVs?.desc || currentVs?.name || "").trim();
 
-                                    return (
-                                      <SelectItem
-                                        key={vs.name}
-                                        value={vs.name}
-                                        className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
-                                      >
-                                        {label}
-                                      </SelectItem>
-                                    );
-                                  })}
+                                    const baseValueset = isNonGeoStatusCol
+                                      ? def.valueset.filter((vs) => {
+                                          const label = (vs.desc || vs.name || "").trim();
+                                          return nonGeoStatusAllowedLabels.has(label);
+                                        })
+                                      : def.valueset;
+
+                                    const needsLegacy =
+                                      isNonGeoStatusCol &&
+                                      currentValue &&
+                                      currentLabel &&
+                                      !nonGeoStatusAllowedLabels.has(currentLabel);
+
+                                    const effectiveValueset =
+                                      needsLegacy && currentVs && !baseValueset.some((v) => v.name === currentVs.name)
+                                        ? [currentVs, ...baseValueset]
+                                        : baseValueset;
+
+                                    return effectiveValueset.map((vs) => {
+                                      const label = (vs.desc || vs.name || "").trim();
+
+                                      const itemStyle =
+                                        useGeometriedatenColors && isStatusCol
+                                          ? geometriedatenStatusStyles[label]
+                                          : isNonGeoStatusCol && nonGeoStatusAllowedLabels.has(label)
+                                            ? nonGeoStatusStyles[label]
+                                            : useGeometriedatenColors && isSerienstatusCol
+                                              ? geometriedatenSerienstatusStyles[label]
+                                              : useGeometriedatenColors && isGeometrieartCol
+                                                ? getGeometriedatenGeometrieartStyle(label)
+                                                : undefined;
+
+                                      return (
+                                        <SelectItem
+                                          key={vs.name}
+                                          value={vs.name}
+                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
+                                        >
+                                          {label}
+                                        </SelectItem>
+                                      );
+                                    });
+                                  })()}
                                 </SelectContent>
                               </Select>
                             ) : isDate ? (
