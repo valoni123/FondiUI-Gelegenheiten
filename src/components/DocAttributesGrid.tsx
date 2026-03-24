@@ -1311,12 +1311,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={cn(
-                            "h-6 w-6",
-                            hasProjectLinks(doc)
-                              ? "text-amber-700 hover:text-amber-800"
-                              : "text-muted-foreground/60 hover:text-muted-foreground"
-                          )}
+                          className="h-6 w-6 text-amber-700 hover:text-amber-800"
                           disabled={!doc.pid}
                           onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
                           title={(() => {
@@ -1343,12 +1338,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className={cn(
-                                "h-6 w-6",
-                                hasNote
-                                  ? ""
-                                  : "text-muted-foreground/60 hover:text-muted-foreground"
-                              )}
+                              className="h-6 w-6"
                               disabled={!doc.pid}
                               onClick={() => openNoteEditor(idx)}
                               title={hasNote ? "Anmerkung bearbeiten" : "Keine Anmerkung – hinzufügen"}
