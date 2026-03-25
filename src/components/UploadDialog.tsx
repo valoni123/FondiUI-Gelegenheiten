@@ -243,6 +243,9 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
   ) => {
     // IMPORTANT: do NOT reset values here.
     // Users may change the document type after filling fields and we want to preserve matching values.
+
+    const prevEntityName = rows.find((r) => r.key === rowKey)?.entityName;
+
     setRows((prev) =>
       prev.map((r) =>
         r.key === rowKey
@@ -281,6 +284,22 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         }
       }
 
+      // Default Status depending on document type.
+      // We prefer matching by valueset.desc so the correct internal value (valueset.name) is stored.
+      const statusAttr = filtered.find((attr) => attr.name === "Status");
+      const isGeometrie = entityName.toLowerCase().includes("geometriedaten");
+      const desiredStatusLabel = isGeometrie ? "Registriert" : "Freigegeben";
+      const desiredStatusValue =
+        statusAttr?.valueset?.find(
+          (vs) => (vs.desc ?? "").toString().trim().toLowerCase() === desiredStatusLabel.toLowerCase()
+        )?.name ??
+        statusAttr?.valueset?.find(
+          (vs) => (vs.name ?? "").toString().trim().toLowerCase() === desiredStatusLabel.toLowerCase()
+        )?.name ??
+        desiredStatusLabel;
+
+      const isEntitySwitch = !!prevEntityName && prevEntityName !== entityName;
+
       // Merge: keep any previously entered value for attributes that still exist
       let mergedValuesForCheck: Record<string, string> | null = null;
       setRows((prev) =>
@@ -307,6 +326,17 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
               if (av != null && String(av).trim().length > 0) {
                 mergedValues[name] = String(av);
               }
+            }
+          }
+
+          // 3) apply Status default (but don't block apply-to-all copying and don't override manual choices)
+          if (Object.prototype.hasOwnProperty.call(mergedValues, "Status")) {
+            const current = (mergedValues["Status"] ?? "").toString().trim();
+            const applyStatus = (applyFromValues?.["Status"] ?? "").toString().trim();
+            const hasApplyStatus = applyStatus.length > 0;
+
+            if (!hasApplyStatus && (current.length === 0 || isEntitySwitch)) {
+              mergedValues["Status"] = desiredStatusValue;
             }
           }
 
