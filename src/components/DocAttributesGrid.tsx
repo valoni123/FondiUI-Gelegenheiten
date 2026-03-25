@@ -908,6 +908,28 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     );
   }, []);
 
+  const parseDokumentVerlinkungAttr = React.useCallback((doc: IdmDocPreview): string[] => {
+    const raw = (doc.attributes ?? []).find((a) => a?.name === "Dokument_Verlinkung")?.value ?? "";
+    const text = String(raw ?? "").trim();
+    if (!text) return [];
+    return Array.from(
+      new Set(
+        text
+          .split(/[;,\n\r\t ]+/g)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+  }, []);
+
+  const hasLinkedDocuments = React.useCallback(
+    (doc: IdmDocPreview) => {
+      const list = parseDokumentVerlinkungAttr(doc);
+      return list.length > 0;
+    },
+    [parseDokumentVerlinkungAttr]
+  );
+
   const getProjectLinksForDoc = React.useCallback(
     (doc: IdmDocPreview): string[] => {
       const pid = doc.pid ? String(doc.pid) : "";
@@ -1283,18 +1305,26 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                             authToken={authToken}
                             cloudEnvironment={cloudEnvironment}
                             mainPid={doc.pid}
-                            trigger={({ setOpen }) => (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 text-violet-600 hover:text-violet-700"
-                                onClick={() => runWithUnsavedGuard(() => void setOpen(true))}
-                                title="Verlinkte Dokumente anzeigen"
-                                aria-label="Verlinkte Dokumente anzeigen"
-                              >
-                                <LinkIcon className="h-3 w-3" />
-                              </Button>
-                            )}
+                            trigger={({ setOpen }) => {
+                              const linked = hasLinkedDocuments(doc);
+                              return (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className={cn(
+                                    "h-6 w-6",
+                                    linked
+                                      ? "text-violet-600 hover:text-violet-700"
+                                      : "text-muted-foreground hover:text-violet-700"
+                                  )}
+                                  onClick={() => runWithUnsavedGuard(() => void setOpen(true))}
+                                  title="Verlinkte Dokumente anzeigen"
+                                  aria-label="Verlinkte Dokumente anzeigen"
+                                >
+                                  <LinkIcon className="h-3 w-3" />
+                                </Button>
+                              );
+                            }}
                           />
                         ) : (
                           <Button
@@ -1315,7 +1345,12 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-amber-700 hover:text-amber-800"
+                          className={cn(
+                            "h-6 w-6",
+                            hasProjectLinks(doc)
+                              ? "text-amber-700 hover:text-amber-800"
+                              : "text-muted-foreground hover:text-amber-800"
+                          )}
                           disabled={!doc.pid}
                           onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
                           title={(() => {
@@ -1333,16 +1368,19 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                       {/* MOVED: Note Editor Button (now after Linked Docs) */}
                       <div className={cn(iconCellClass, isHighlighted && rowHighlightClass)}>
                         {(() => {
-                          const note = String(
-                            (rowEdited?.["Anmerkung"] ?? rowInitial?.["Anmerkung"] ?? "")
-                          ).trim();
+                          const note = String((rowEdited?.["Anmerkung"] ?? rowInitial?.["Anmerkung"] ?? "")).trim();
                           const hasNote = note.length > 0;
 
                           return (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className={cn(
+                                "h-6 w-6",
+                                hasNote
+                                  ? "text-foreground hover:text-foreground"
+                                  : "text-muted-foreground hover:text-foreground"
+                              )}
                               disabled={!doc.pid}
                               onClick={() => openNoteEditor(idx)}
                               title={hasNote ? "Anmerkung bearbeiten" : "Keine Anmerkung – hinzufügen"}
