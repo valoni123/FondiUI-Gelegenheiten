@@ -196,16 +196,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
     return `${segments.join(" UNION ")} SORTBY(@LASTCHANGEDTS DESCENDING)`;
   }, [selectedOpportunityProject, entityNames]);
 
-  const linkedProjectXQuery = React.useMemo(() => {
-    const project = (selectedOpportunityProject ?? "").toString().trim();
-    if (!project) return null;
-
-    return (
-      `/Anfrage_Kunde[Projekt_Verlinkung/@Value = "${project}"] ` +
-      `UNION /_Anfrage__Lieferant_[Projekt_Verlinkung/@Value = "${project}"] ` +
-      `SORTBY(@LASTCHANGEDTS DESCENDING)`
-    );
-  }, [selectedOpportunityProject]);
+  // CHANGED: load linked project docs across ALL available document types (entityNames)
+  // instead of only Anfrage_Kunde/_Anfrage__Lieferant_.
 
   const mergeDocs = React.useCallback(
     (primary: IdmDocPreview[], linked: IdmDocPreview[], migrated: IdmDocPreview[]) => {
@@ -307,17 +299,62 @@ const RightPanel: React.FC<RightPanelProps> = ({
   );
 
   const fetchLinkedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
-    if (!linkedProjectXQuery || !authToken) return [];
+    if (!authToken) return [];
+
     const project = (selectedOpportunityProject ?? "").toString().trim();
+    if (!project) return [];
+    if (!entityNames?.length) return [];
 
-    const linked = await searchIdmItemsByXQueryJson(authToken, cloudEnvironment, linkedProjectXQuery, 0, 200, "de-DE");
+    const escaped = project.replace(/"/g, "\\\"");
+    const unionXQuery =
+      `${entityNames
+        .map((name) => `/${name}[Projekt_Verlinkung/@Value = "${escaped}"]`)
+        .join(" UNION ")} SORTBY(@LASTCHANGEDTS DESCENDING)`;
 
-    return linked.map((d) => ({
-      ...d,
-      linkedViaProject: true,
-      linkedProjectValue: project,
-    }));
-  }, [linkedProjectXQuery, authToken, cloudEnvironment, selectedOpportunityProject]);
+    try {
+      const linked = await searchIdmItemsByXQueryJson(
+        authToken,
+        cloudEnvironment,
+        unionXQuery,
+        0,
+        200,
+        "de-DE"
+      );
+
+      return linked.map((d) => ({
+        ...d,
+        linkedViaProject: true,
+        linkedProjectValue: project,
+      }));
+    } catch {
+      // Fallback: run per-entity queries so one unsupported document type doesn't break everything.
+      const results = await Promise.allSettled(
+        entityNames.map((name) =>
+          searchIdmItemsByXQueryJson(
+            authToken,
+            cloudEnvironment,
+            `/${name}[Projekt_Verlinkung/@Value = "${escaped}"] SORTBY(@LASTCHANGEDTS DESCENDING)`,
+            0,
+            200,
+            "de-DE"
+          )
+        )
+      );
+
+      const merged: IdmDocPreview[] = [];
+      results.forEach((r) => {
+        if (r.status === "fulfilled" && Array.isArray(r.value)) {
+          merged.push(...r.value);
+        }
+      });
+
+      return merged.map((d) => ({
+        ...d,
+        linkedViaProject: true,
+        linkedProjectValue: project,
+      }));
+    }
+  }, [authToken, cloudEnvironment, selectedOpportunityProject, entityNames]);
 
   const fetchMigratedProjectDocs = React.useCallback(async (): Promise<IdmDocPreview[]> => {
     if (!migratedProjectXQuery || !authToken) return [];
