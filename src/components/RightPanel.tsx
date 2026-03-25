@@ -199,13 +199,18 @@ const RightPanel: React.FC<RightPanelProps> = ({
   const linkedProjectXQuery = React.useMemo(() => {
     const project = (selectedOpportunityProject ?? "").toString().trim();
     if (!project) return null;
+    if (!entityNames?.length) return null;
 
-    return (
-      `/Anfrage_Kunde[Projekt_Verlinkung/@Value = "${project}"] ` +
-      `UNION /_Anfrage__Lieferant_[Projekt_Verlinkung/@Value = "${project}"] ` +
-      `SORTBY(@LASTCHANGEDTS DESCENDING)`
+    const escaped = project
+      .replace(/\\/g, "\\\\")
+      .replace(/\"/g, "\\\"");
+
+    const segments = entityNames.map(
+      (name) => `/${name}[Projekt_Verlinkung/@Value = "${escaped}"]`
     );
-  }, [selectedOpportunityProject]);
+
+    return `${segments.join(" UNION ")} SORTBY(@LASTCHANGEDTS DESCENDING)`;
+  }, [selectedOpportunityProject, entityNames]);
 
   const mergeDocs = React.useCallback(
     (primary: IdmDocPreview[], linked: IdmDocPreview[], migrated: IdmDocPreview[]) => {
