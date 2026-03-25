@@ -43,6 +43,8 @@ interface RightPanelProps {
   entityOptions?: { name: string; desc: string }[];
   selectedOpportunityProject?: string; // New optional prop
   selectedOpportunityArticle?: string; // New optional prop
+  selectedOpportunityCustomer?: string; // NEW
+  selectedOpportunityDescription?: string; // NEW (Bezeichnung)
 }
 
 const RightPanel: React.FC<RightPanelProps> = ({
@@ -54,6 +56,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
   entityOptions,
   selectedOpportunityProject, // New optional prop
   selectedOpportunityArticle, // New optional prop
+  selectedOpportunityCustomer, // NEW
+  selectedOpportunityDescription, // NEW
 }) => {
   const [searchParams] = useSearchParams();
 
@@ -934,6 +938,30 @@ const RightPanel: React.FC<RightPanelProps> = ({
                       <span className="text-muted-foreground/60">·</span>
                       <span className="max-w-[420px] truncate" title={articleText}>
                         Artikel: {articleText}
+                      </span>
+                    </>
+                  );
+                })()}
+                {(() => {
+                  const customerText = (selectedOpportunityCustomer ?? "").toString();
+                  if (!customerText.trim()) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span className="max-w-[420px] truncate" title={customerText}>
+                        Kunde: {customerText}
+                      </span>
+                    </>
+                  );
+                })()}
+                {(() => {
+                  const descText = (selectedOpportunityDescription ?? "").toString();
+                  if (!descText.trim()) return null;
+                  return (
+                    <>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span className="max-w-[520px] truncate" title={descText}>
+                        Bezeichnung: {descText}
                       </span>
                     </>
                   );

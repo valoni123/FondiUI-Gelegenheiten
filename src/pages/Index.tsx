@@ -77,7 +77,7 @@ const Index: React.FC<IndexProps> = ({
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(effectiveOpportunityId);
-  const [selectedOpportunityMeta, setSelectedOpportunityMeta] = useState<{ project?: string; artikel?: string } | null>(null);
+  const [selectedOpportunityMeta, setSelectedOpportunityMeta] = useState<{ project?: string; artikel?: string; customer?: string; description?: string } | null>(null);
   const [idmEntityNames, setIdmEntityNames] = useState<string[]>([]);
   // NEW: store name+desc for dropdown display
   const [idmEntityOptions, setIdmEntityOptions] = useState<{ name: string; desc: string }[]>([]);
@@ -101,9 +101,16 @@ const Index: React.FC<IndexProps> = ({
     const fromList = opportunities.find((i) => i.id === selectedOpportunityId);
     const projectFromList = (fromList?.Project ?? "").toString().trim();
     const artikelFromList = (fromList?.Artikel ?? "").toString().trim();
+    const customerFromList = ((fromList as any)?.Customer ?? "").toString().trim();
+    const descriptionFromList = (fromList?.description ?? "").toString().trim();
 
-    if (projectFromList || artikelFromList) {
-      setSelectedOpportunityMeta({ project: fromList?.Project, artikel: fromList?.Artikel });
+    if (projectFromList || artikelFromList || customerFromList || descriptionFromList) {
+      setSelectedOpportunityMeta({
+        project: fromList?.Project,
+        artikel: fromList?.Artikel,
+        customer: (fromList as any)?.Customer,
+        description: fromList?.description,
+      });
       return;
     }
 
@@ -117,9 +124,11 @@ const Index: React.FC<IndexProps> = ({
         setSelectedOpportunityMeta({
           project: (full as any)?.Project != null ? String((full as any).Project) : undefined,
           artikel: (full as any)?.Artikel != null ? String((full as any).Artikel) : undefined,
+          customer: (full as any)?.Customer != null ? String((full as any).Customer) : undefined,
+          description: full?.description != null ? String(full.description) : undefined,
         });
       } catch {
-        if (!cancelled) setSelectedOpportunityMeta({ project: undefined, artikel: undefined });
+        if (!cancelled) setSelectedOpportunityMeta({ project: undefined, artikel: undefined, customer: undefined, description: undefined });
       }
     })();
 
@@ -564,6 +573,12 @@ const Index: React.FC<IndexProps> = ({
                 }
                 selectedOpportunityArticle={
                   opportunities.find((i) => i.id === selectedOpportunityId)?.Artikel ?? selectedOpportunityMeta?.artikel
+                }
+                selectedOpportunityCustomer={
+                  (opportunities.find((i) => i.id === selectedOpportunityId) as any)?.Customer ?? selectedOpportunityMeta?.customer
+                }
+                selectedOpportunityDescription={
+                  opportunities.find((i) => i.id === selectedOpportunityId)?.description ?? selectedOpportunityMeta?.description
                 }
               />
             </ResizablePanel>
