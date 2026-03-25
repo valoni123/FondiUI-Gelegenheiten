@@ -57,6 +57,10 @@ type Props = {
    * (e.g. switching to another opportunity), not on silent background refreshes.
    */
   contextKey?: string;
+  /** The currently opened opportunity id (used for small UI hints like showing the document's origin when opened via Projekt_Verlinkung). */
+  contextOpportunityId?: string;
+  /** The currently opened project (used for small UI hints like showing the document's origin when opened via Projekt_Verlinkung). */
+  contextProject?: string;
   /**
    * Optional max width (in px) for each data column in the grid.
    * Useful for the document list where column widths should be fixed.
@@ -149,6 +153,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   scrollMode = "max60vh",
   maxScrollHeightVh = 60,
   contextKey,
+  contextOpportunityId,
+  contextProject,
   maxDataColumnWidthPx,
   highlightedDocKeys,
   onOpenFullPreview,
@@ -1355,9 +1361,34 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           onClick={() => runWithUnsavedGuard(() => void openProjectLinksEditor(idx))}
                           title={(() => {
                             if (!doc.pid) return "PID fehlt";
+
                             const links = getProjectLinksForDoc(doc);
-                            if (!links.length) return "Keine Projekt-Verknüpfung";
-                            return `Projekt-Verknüpfungen: ${links.join(", ")}`;
+                            const originProject = getAttrValue(doc, ["Projekt"]);
+                            const originOpp = getAttrValue(doc, ["Gelegenheit"]);
+
+                            const ctxProject = (contextProject ?? "").toString().trim();
+                            const ctxOpp = (contextOpportunityId ?? "").toString().trim();
+
+                            const originParts: string[] = [];
+                            if (doc.linkedViaProject) {
+                              if (originOpp && ctxOpp && originOpp !== ctxOpp) {
+                                originParts.push(`Ausgangs-Gelegenheit: ${originOpp}`);
+                              }
+                              if (originProject && ctxProject && originProject !== ctxProject) {
+                                originParts.push(`Hauptprojekt: ${originProject}`);
+                              }
+                            }
+
+                            if (!links.length) {
+                              return originParts.length
+                                ? `${originParts.join(" · ")} · Keine Projekt-Verknüpfung`
+                                : "Keine Projekt-Verknüpfung";
+                            }
+
+                            const linkText = `Projekt-Verknüpfungen: ${links.join(", ")}`;
+                            return originParts.length
+                              ? `${originParts.join(" · ")} · ${linkText}`
+                              : linkText;
                           })()}
                           aria-label="Projekt-Verknüpfungen bearbeiten"
                         >
@@ -2007,6 +2038,23 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             <DialogTitle>Projekt-Verknüpfungen</DialogTitle>
             <DialogDescription>
               Verwalten Sie die Werte in <span className="font-mono">Projekt_Verlinkung</span>.
+              {(() => {
+                if (projectLinksRow == null) return null;
+                const d = docs[projectLinksRow];
+                if (!d?.linkedViaProject) return null;
+
+                const originProject = getAttrValue(d, ["Projekt"]);
+                const originOpp = getAttrValue(d, ["Gelegenheit"]);
+                const ctxProject = (contextProject ?? "").toString().trim();
+                const ctxOpp = (contextOpportunityId ?? "").toString().trim();
+
+                const parts: string[] = [];
+                if (originOpp && ctxOpp && originOpp !== ctxOpp) parts.push(`Ausgangs-Gelegenheit: ${originOpp}`);
+                if (originProject && ctxProject && originProject !== ctxProject) parts.push(`Hauptprojekt: ${originProject}`);
+                if (!parts.length) return null;
+
+                return <div className="mt-2 text-xs text-muted-foreground">{parts.join(" · ")}</div>;
+              })()}
             </DialogDescription>
           </DialogHeader>
 
