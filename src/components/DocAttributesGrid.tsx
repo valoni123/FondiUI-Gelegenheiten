@@ -209,14 +209,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   const [editedDocTypes, setEditedDocTypes] = React.useState<Record<number, string>>(initialDocTypes);
   React.useEffect(() => setEditedDocTypes(initialDocTypes), [initialDocTypes]);
 
-  const entitySelectOptions = React.useMemo(() => {
-    if (!entityOptions?.length) return [];
-    return entityOptions
-      .filter((o) => (o.desc || "").trim().startsWith("*"))
-      .map((o) => ({ name: o.name, label: (o.desc || o.name).replace(/^\*/, "").trim() }))
-      .sort((a, b) => a.label.localeCompare(b.label, "de"));
-  }, [entityOptions]);
-
   const getEntityLabel = React.useCallback(
     (entityName: string) => {
       const opt = entityOptions?.find((o) => o.name === entityName);
@@ -1011,6 +1003,10 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           createdAt: 160,
           changedAt: 160,
           ort: 100,
+          // Geometriedaten small fields (values are typically 2–3 chars)
+          lfd_nr: 80,
+          s_k_version: 110,
+          v_k_version: 110,
         };
         const w = compact[c.id] ?? maxDataColumnWidthPx;
         return `minmax(0px, ${w}px)`;
@@ -1020,6 +1016,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
       if (c.id === "status") return `${statusColumnWidthPx}px`;
       if (c.id === "belegdatum") return `${belegdatumColumnWidthPx}px`;
+      if (c.id === "lfd_nr") return "80px";
+      if (c.id === "s_k_version") return "110px";
+      if (c.id === "v_k_version") return "110px";
       return "minmax(120px, 1fr)";
     });
     const tail = "30px"; // delete
@@ -1680,21 +1679,21 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                         };
 
                         const getGeometriedatenGeometrieartStyle = (label: string) => {
-                          const first = (label || "").trim().charAt(0).toUpperCase();
-                          if (first === "H") {
+                          const first = (label ?? "").toString().trim().charAt(0).toUpperCase();
+                          if (first === "R") {
                             return {
                               triggerClass:
-                                "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                                "bg-[#F7E0E0] text-black border-[#F7E0E0] hover:bg-[#F7E0E0]",
                               itemClass:
-                                "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                                "bg-[#F7E0E0] text-black data-[highlighted]:bg-[#F7E0E0] data-[highlighted]:text-black data-[state=checked]:bg-[#F7E0E0] data-[state=checked]:text-black",
                             };
                           }
-                          if (first === "D") {
+                          if (first === "L") {
                             return {
                               triggerClass:
-                                "bg-[#80C6FF] text-black border-[#80C6FF] hover:bg-[#80C6FF]",
+                                "bg-[#C7D6FC] text-black border-[#C7D6FC] hover:bg-[#C7D6FC]",
                               itemClass:
-                                "bg-[#80C6FF] text-black data-[highlighted]:bg-[#80C6FF] data-[highlighted]:text-black data-[state=checked]:bg-[#80C6FF] data-[state=checked]:text-black",
+                                "bg-[#C7D6FC] text-black data-[highlighted]:bg-[#C7D6FC] data-[highlighted]:text-black data-[state=checked]:bg-[#C7D6FC] data-[state=checked]:text-black",
                             };
                           }
                           if (first === "Z") {
@@ -1715,11 +1714,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                           }
                           return undefined;
                         };
-
-                        const geometrieartStyle =
-                          isGeometriedatenFilter && isGeometrieartCol
-                            ? getGeometriedatenGeometrieartStyle(geometrieartLabel)
-                            : undefined;
 
                         const isNonGeoStatusCol = isStatusCol && !useGeometriedatenColors;
 
