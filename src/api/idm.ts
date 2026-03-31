@@ -394,6 +394,32 @@ export const searchIdmItemsByEntityJson = async (
       else attributes.push({ name: "Projekt_Verlinkung", value: joined });
     }
 
+    // NEW: Also extract Dokument_Verlinkung from collections (colls) and expose it as a synthetic attribute.
+    const dokumentVerlinkungGroup = colls.find((c) => (c?.name ?? c?.["name"]) === "Dokument_Verlinkung");
+    const dokumentEntriesRaw = (dokumentVerlinkungGroup?.coll ?? dokumentVerlinkungGroup?.item ?? []) as any;
+    const dokumentEntries: any[] = Array.isArray(dokumentEntriesRaw)
+      ? dokumentEntriesRaw
+      : dokumentEntriesRaw
+        ? [dokumentEntriesRaw]
+        : [];
+
+    const dokumentVerlinkungValues: string[] = [];
+    for (const entry of dokumentEntries) {
+      const entryAttrsRaw = (entry?.attrs?.attr ?? entry?.attrs ?? []) as any;
+      const entryAttrs: any[] = Array.isArray(entryAttrsRaw) ? entryAttrsRaw : entryAttrsRaw ? [entryAttrsRaw] : [];
+      const valueAttr = entryAttrs.find((a) => (a?.name ?? a?.n ?? a?.key) === "Value");
+      const value = valueAttr?.value ?? valueAttr?.val ?? valueAttr?.v ?? valueAttr?._;
+      if (value) dokumentVerlinkungValues.push(String(value));
+    }
+
+    const uniqDokumentVerlinkungValues = Array.from(new Set(dokumentVerlinkungValues.filter(Boolean)));
+    if (uniqDokumentVerlinkungValues.length) {
+      const existingIdx = attributes.findIndex((a) => a.name === "Dokument_Verlinkung");
+      const joined = uniqDokumentVerlinkungValues.join(";");
+      if (existingIdx >= 0) attributes[existingIdx] = { name: "Dokument_Verlinkung", value: joined };
+      else attributes.push({ name: "Dokument_Verlinkung", value: joined });
+    }
+
     // NEW: top-level created/changed fields (keep case-insensitive fallbacks for robustness)
     const createdByName: string | undefined =
       item?.createdByName ?? item?.CreatedByName ?? item?.createdBy ?? item?.CreatedBy;
