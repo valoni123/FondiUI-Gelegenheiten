@@ -20,12 +20,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Loader2, Save, Copy, Upload, Link2, X } from "lucide-react";
+import { Loader2, Copy, Upload, Link2, X } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { type CloudEnvironment } from "@/authorization/configLoader";
 import { getIdmEntityAttributes, createIdmItem, type IdmAttribute } from "@/api/idm";
 import { existsIdmItemByEntityFilenameOpportunity } from "@/api/idm";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverContent } from "@/components/ui/popover";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parse, isValid } from "date-fns";
@@ -34,6 +34,14 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { CalendarDays } from "lucide-react";
 
@@ -81,6 +89,17 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 }) => {
   const [rows, setRows] = React.useState<RowState[]>([]);
   const [bulkSaving, setBulkSaving] = React.useState(false);
+
+  const norm = React.useCallback(
+    (s: string) =>
+      (s ?? "")
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ""),
+    []
+  );
+
+  const [hiddenAttrNorms, setHiddenAttrNorms] = React.useState<Set<string>>(() => new Set());
 
   // Same date input behavior as in DocAttributesGrid (detail table):
   // - text input (TT.MM.JJJJ) with cursor
@@ -485,12 +504,6 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     const hasGeometriedaten = rows.some((r) => (r.entityName ?? "").toLowerCase().includes("geometriedaten"));
     if (!hasGeometriedaten) return ordered;
 
-    const norm = (s: string) =>
-      (s ?? "")
-        .toString()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "");
-
     const desired = [
       "Geometrieart",
       "Lfd_Nr",
@@ -511,9 +524,38 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     const insertAt = titelIdx >= 0 ? titelIdx : 0;
 
     return [...without.slice(0, insertAt), ...group, ...without.slice(insertAt)];
-  }, [rows]);
+  }, [rows, norm]);
 
-  const attrColumnsCount = attrColumns.length;
+  const resolveAttrKey = React.useCallback(
+    (synonyms: string[]) => {
+      const byNorm = new Map(attrColumns.map((k) => [norm(k), k] as const));
+      for (const s of synonyms) {
+        const k = byNorm.get(norm(s));
+        if (k) return k;
+      }
+      return undefined;
+    },
+    [attrColumns, norm]
+  );
+
+  const columnToggles = React.useMemo(() => {
+    const kundeKey = resolveAttrKey(["Kunde", "Customer", "SoldtoBusinessPartner"]);
+    const gelegenheitKey = resolveAttrKey(["Gelegenheit", "Opportunity"]);
+    const letzterUserKey = resolveAttrKey(["letzter User", "Letzter_User", "LetzterUser", "Last User", "LastUser"]);
+
+    return [
+      kundeKey ? { key: kundeKey, label: "Kunde" } : null,
+      gelegenheitKey ? { key: gelegenheitKey, label: "Gelegenheit" } : null,
+      letzterUserKey ? { key: letzterUserKey, label: "letzter User" } : null,
+    ].filter((v): v is { key: string; label: string } => !!v);
+  }, [resolveAttrKey]);
+
+  const displayAttrColumns = React.useMemo(() => {
+    if (!hiddenAttrNorms.size) return attrColumns;
+    return attrColumns.filter((k) => !hiddenAttrNorms.has(norm(k)));
+  }, [attrColumns, hiddenAttrNorms, norm]);
+
+  const attrColumnsCount = displayAttrColumns.length;
   const gridTemplate = React.useMemo(() => {
     const baseCols = ["200px", "160px"]; // Entity select, filename
     const attrCols = Array.from({ length: attrColumnsCount }).map(() => "160px");
@@ -689,10 +731,10 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
 
         {/* Action row: left 'apply to all' and right 'upload all' */}
         {(rows.length > 1 || rows.length > 0) && (
-          <div className="flex items-center justify-between mb-2">
-            {/* Left-side action to apply attributes from first row to all rows */}
-            {rows.length > 1 ? (
-              <div className="flex">
+          <div className="flex items-center justify-between mb-2 gap-2">
+            {/* Left-side actions */}
+            <div className="flex items-center gap-2">
+              {rows.length > 1 ? (
                 <Button
                   variant={canApplyToAll ? "default" : "outline"}
                   size="sm"
@@ -704,12 +746,45 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                   <Copy className="mr-2 h-4 w-4" />
                   Attribute für alle Dokumente übernehmen
                 </Button>
-              </div>
-            ) : (
-              <div />
-            )}
+              ) : null}
+
+              {columnToggles.length > 0 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Spalten
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuLabel>Ein-/ausblenden</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {columnToggles.map((t) => {
+                      const checked = !hiddenAttrNorms.has(norm(t.key));
+                      return (
+                        <DropdownMenuCheckboxItem
+                          key={t.key}
+                          checked={checked}
+                          onCheckedChange={(next) => {
+                            setHiddenAttrNorms((prev) => {
+                              const copy = new Set(prev);
+                              const n = norm(t.key);
+                              if (next) copy.delete(n);
+                              else copy.add(n);
+                              return copy;
+                            });
+                          }}
+                        >
+                          {t.label}
+                        </DropdownMenuCheckboxItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
+            </div>
+
             {/* Right-side bulk upload button */}
-            {rows.length > 1 && (
+            {rows.length > 1 ? (
               <div className="flex">
                 <Button
                   variant="default"
@@ -727,6 +802,8 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                   Alle Dokumente hochladen
                 </Button>
               </div>
+            ) : (
+              <div />
             )}
           </div>
         )}
@@ -816,7 +893,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                       </div>
 
                       {/* Dynamic attribute inputs */}
-                      {attrColumns.map((attrName, idx) => {
+                      {displayAttrColumns.map((attrName, idx) => {
                         const attr = row.attrs.find((a) => a.name === attrName);
                         return (
                           <div key={`${row.key}-attr-${idx}`} className="px-2">
@@ -1065,7 +1142,7 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                         </div>
 
                         {/* Attribute cells: only Projekt editable, rest inherited */}
-                        {attrColumns.map((attrName, idx) => {
+                        {displayAttrColumns.map((attrName, idx) => {
                           const attr = row.attrs.find((a) => a.name === attrName);
                           return (
                             <div key={`${row.key}-link-${linkIdx}-attr-${idx}`} className="px-2">
