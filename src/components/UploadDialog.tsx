@@ -34,14 +34,6 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { CalendarDays } from "lucide-react";
 
@@ -98,8 +90,6 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
         .replace(/[^a-z0-9]+/g, ""),
     []
   );
-
-  const [hiddenAttrNorms, setHiddenAttrNorms] = React.useState<Set<string>>(() => new Set());
 
   // Same date input behavior as in DocAttributesGrid (detail table):
   // - text input (TT.MM.JJJJ) with cursor
@@ -526,34 +516,25 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
     return [...without.slice(0, insertAt), ...group, ...without.slice(insertAt)];
   }, [rows, norm]);
 
-  const resolveAttrKey = React.useCallback(
-    (synonyms: string[]) => {
-      const byNorm = new Map(attrColumns.map((k) => [norm(k), k] as const));
-      for (const s of synonyms) {
-        const k = byNorm.get(norm(s));
-        if (k) return k;
-      }
-      return undefined;
-    },
-    [attrColumns, norm]
-  );
-
-  const columnToggles = React.useMemo(() => {
-    const kundeKey = resolveAttrKey(["Kunde", "Customer", "SoldtoBusinessPartner"]);
-    const gelegenheitKey = resolveAttrKey(["Gelegenheit", "Opportunity"]);
-    const letzterUserKey = resolveAttrKey(["letzter User", "Letzter_User", "LetzterUser", "Last User", "LastUser"]);
-
-    return [
-      kundeKey ? { key: kundeKey, label: "Kunde" } : null,
-      gelegenheitKey ? { key: gelegenheitKey, label: "Gelegenheit" } : null,
-      letzterUserKey ? { key: letzterUserKey, label: "letzter User" } : null,
-    ].filter((v): v is { key: string; label: string } => !!v);
-  }, [resolveAttrKey]);
-
   const displayAttrColumns = React.useMemo(() => {
-    if (!hiddenAttrNorms.size) return attrColumns;
-    return attrColumns.filter((k) => !hiddenAttrNorms.has(norm(k)));
-  }, [attrColumns, hiddenAttrNorms, norm]);
+    // Always hide these columns in the upload grid.
+    const hiddenSynonyms = new Set(
+      [
+        "Kunde",
+        "Customer",
+        "SoldtoBusinessPartner",
+        "Gelegenheit",
+        "Opportunity",
+        "letzter User",
+        "Letzter_User",
+        "LetzterUser",
+        "Last User",
+        "LastUser",
+      ].map(norm)
+    );
+
+    return attrColumns.filter((k) => !hiddenSynonyms.has(norm(k)));
+  }, [attrColumns, norm]);
 
   const attrColumnsCount = displayAttrColumns.length;
   const gridTemplate = React.useMemo(() => {
@@ -746,40 +727,6 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
                   <Copy className="mr-2 h-4 w-4" />
                   Attribute für alle Dokumente übernehmen
                 </Button>
-              ) : null}
-
-              {columnToggles.length > 0 ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Spalten
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
-                    <DropdownMenuLabel>Ein-/ausblenden</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {columnToggles.map((t) => {
-                      const checked = !hiddenAttrNorms.has(norm(t.key));
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={t.key}
-                          checked={checked}
-                          onCheckedChange={(next) => {
-                            setHiddenAttrNorms((prev) => {
-                              const copy = new Set(prev);
-                              const n = norm(t.key);
-                              if (next) copy.delete(n);
-                              else copy.add(n);
-                              return copy;
-                            });
-                          }}
-                        >
-                          {t.label}
-                        </DropdownMenuCheckboxItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
               ) : null}
             </div>
 
