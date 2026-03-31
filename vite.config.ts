@@ -22,6 +22,13 @@ export default defineConfig(() => ({
         rewrite: (path) => path.replace(/^\/ionapi/, ""), // Remove the /ionapi prefix when forwarding
         secure: true, // Ensure SSL certificates are validated
       },
+      // Proxy IDM resource downloads (these URLs often don't allow browser CORS, so ZIP downloads need a proxy)
+      "/idm-ca": {
+        target: "https://idm.eu1.inforcloudsuite.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/idm-ca/, ""),
+        secure: true,
+      },
     },
   },
   plugins: [dyadComponentTagger(), react()],

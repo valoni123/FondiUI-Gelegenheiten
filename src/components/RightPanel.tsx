@@ -165,6 +165,21 @@ const RightPanel: React.FC<RightPanelProps> = ({
         .replace(/[\\/?:%*|"<>]/g, "_")
         .slice(0, 180);
 
+    const toSameOriginFetchUrl = (rawUrl?: string) => {
+      if (!rawUrl) return null;
+      try {
+        const u = new URL(rawUrl);
+        // IDM resource URLs (ca/api/resources/...) do not provide CORS headers.
+        // Fetch them through a local proxy so we can read the blob (needed for ZIP).
+        if (u.origin === "https://idm.eu1.inforcloudsuite.com") {
+          return `/idm-ca${u.pathname}${u.search}`;
+        }
+        return rawUrl;
+      } catch {
+        return rawUrl;
+      }
+    };
+
     setDownloadingSelected(true);
     try {
       if (docsToDownload.length === 1) {
@@ -182,7 +197,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
       const addToZip = async (doc: IdmDocPreview) => {
         const pid = String(doc.pid);
         const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
-        const url = info?.resourceUrl;
+        const url = toSameOriginFetchUrl(info?.resourceUrl);
         if (!url) return;
 
         const res = await fetch(url);

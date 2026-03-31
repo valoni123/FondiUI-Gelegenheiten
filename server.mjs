@@ -78,6 +78,19 @@ app.use(
   })
 );
 
+// Proxy for IDM resource downloads (resource URLs often don't allow browser CORS)
+app.use(
+  "/idm-ca",
+  createProxyMiddleware({
+    target: "https://idm.eu1.inforcloudsuite.com",
+    changeOrigin: true,
+    secure: true,
+    pathRewrite: {
+      "^/idm-ca": "",
+    },
+  })
+);
+
 // 2) Statische Dateien aus dist
 app.use(express.static(path.join(__dirname, "dist")));
 
