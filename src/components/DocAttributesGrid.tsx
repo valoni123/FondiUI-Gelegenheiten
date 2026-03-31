@@ -1004,9 +1004,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
           changedAt: 160,
           ort: 100,
           // Geometriedaten small fields (values are typically 2–3 chars)
-          lfd_nr: 80,
-          s_k_version: 110,
-          v_k_version: 110,
+          lfd_nr: 60,
+          s_k_version: 90,
+          v_k_version: 90,
         };
         const w = compact[c.id] ?? maxDataColumnWidthPx;
         return `minmax(0px, ${w}px)`;
@@ -1016,9 +1016,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
       if (c.id === "projekt") return "minmax(140px, 1.2fr)";
       if (c.id === "status") return `${statusColumnWidthPx}px`;
       if (c.id === "belegdatum") return `${belegdatumColumnWidthPx}px`;
-      if (c.id === "lfd_nr") return "80px";
-      if (c.id === "s_k_version") return "110px";
-      if (c.id === "v_k_version") return "110px";
+      if (c.id === "lfd_nr") return "60px";
+      if (c.id === "s_k_version") return "90px";
+      if (c.id === "v_k_version") return "90px";
       return "minmax(120px, 1fr)";
     });
     const tail = "30px"; // delete
