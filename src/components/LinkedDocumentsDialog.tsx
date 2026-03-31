@@ -239,14 +239,18 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                                 {it.filename ?? "Dateiname unbekannt"}
                               </button>
                             </div>
-                            <div className="text-xs text-muted-foreground break-words" title={it.pid}>
-                              {it.pid}
+                            <div
+                              className="text-xs text-muted-foreground break-words"
+                              title={it.project ? `${it.pid} • Projekt: ${it.project}` : it.pid}
+                            >
+                              <span>{it.pid}</span>
+                              {it.project ? (
+                                <>
+                                  <span className="mx-1">•</span>
+                                  <span>Projekt: {it.project}</span>
+                                </>
+                              ) : null}
                             </div>
-                            {it.project ? (
-                              <div className="text-xs text-muted-foreground break-words">
-                                Projekt: {it.project}
-                              </div>
-                            ) : null}
                           </div>
                         </div>
                         <div className="flex items-center">
