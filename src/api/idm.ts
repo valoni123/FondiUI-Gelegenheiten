@@ -1332,6 +1332,8 @@ export const getIdmItemByPid = async (
   aclName?: string;
   /** Stable UUID across versions (from attribute MDS_ID), if available. */
   mdsId?: string;
+  /** Project number/name (from attribute Projekt), if available. */
+  project?: string;
 }> => {
   const base = buildIdmBase(environment);
   const url = `${base}/api/items/${encodeURIComponent(pid)}?%24language=${encodeURIComponent(language)}`;
@@ -1371,10 +1373,19 @@ export const getIdmItemByPid = async (
 
   const attrsRaw = item?.attrs?.attr ?? item?.attrs ?? item?.attr ?? [];
   const attrsList: any[] = Array.isArray(attrsRaw) ? attrsRaw : attrsRaw ? [attrsRaw] : [];
-  const mdsAttr = attrsList.find((a) => (a?.name ?? a?.n ?? a?.key) === "MDS_ID");
-  const mdsId = (mdsAttr?.value ?? mdsAttr?.val ?? mdsAttr?.v ?? mdsAttr?._) ? String(mdsAttr?.value ?? mdsAttr?.val ?? mdsAttr?.v ?? mdsAttr?._) : undefined;
 
-  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName, mdsId };
+  const getAttrValue = (name: string) => {
+    const a = attrsList.find((x) => (x?.name ?? x?.n ?? x?.key) === name);
+    const v = a?.value ?? a?.val ?? a?.v ?? a?._;
+    if (v == null) return undefined;
+    const s = String(v);
+    return s.length ? s : undefined;
+  };
+
+  const mdsId = getAttrValue("MDS_ID");
+  const project = getAttrValue("Projekt");
+
+  return { pid, filename, entityName, drillbackurl, resourceUrl, previewUrl, aclName, mdsId, project };
 };
 
 /**

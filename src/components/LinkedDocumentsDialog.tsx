@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Link as LinkIcon, ExternalLink, Download, Check, X, Link2Off } from "lucide-react";
+import { Loader2, Link as LinkIcon, ExternalLink, Download, Link2Off } from "lucide-react";
 import { getExistingLinkedPids, getIdmItemByPid } from "@/api/idm";
 import { unlinkIdmItemDocumentBidirectional, unlinkIdmItemDocumentsBidirectional } from "@/api/idm";
 import { toast } from "@/components/ui/use-toast";
@@ -29,7 +29,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
-type LinkedItem = { pid: string; filename?: string; drillbackurl?: string; resourceUrl?: string; previewUrl?: string };
+type LinkedItem = {
+  pid: string;
+  filename?: string;
+  drillbackurl?: string;
+  resourceUrl?: string;
+  previewUrl?: string;
+  project?: string;
+};
 
 type LinkedDialogTrigger = (args: { open: boolean; setOpen: (v: boolean) => void }) => React.ReactNode;
 
@@ -100,6 +107,7 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
               drillbackurl: info.drillbackurl,
               resourceUrl: info.resourceUrl,
               previewUrl: info.previewUrl,
+              project: info.project,
             };
           } catch {
             return { pid };
@@ -234,6 +242,11 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                             <div className="text-xs text-muted-foreground break-words" title={it.pid}>
                               {it.pid}
                             </div>
+                            {it.project ? (
+                              <div className="text-xs text-muted-foreground break-words">
+                                Projekt: {it.project}
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex items-center">
@@ -322,24 +335,14 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                   setDeleting(true);
                   await unlinkIdmItemDocumentBidirectional(authToken, cloudEnvironment, mainPid, pendingDelete.pid);
                   toast({
-                    title: (
-                      <span className="inline-flex items-center gap-2">
-                        <Check className="h-4 w-4" />
-                        Verlinkung entfernt
-                      </span>
-                    ),
+                    title: "Verlinkung entfernt",
                     variant: "success",
                   });
                   setPendingDelete(null);
                   await loadLinked();
                 } catch (err: any) {
                   toast({
-                    title: (
-                      <span className="inline-flex items-center gap-2">
-                        <X className="h-4 w-4 text-white" />
-                        Entfernen fehlgeschlagen
-                      </span>
-                    ),
+                    title: "Entfernen fehlgeschlagen",
                     description: String(err?.message ?? err ?? "Unbekannter Fehler"),
                     variant: "destructive",
                   });
@@ -379,24 +382,14 @@ const LinkedDocumentsDialog: React.FC<LinkedDocumentsDialogProps> = ({
                   setDeleting(true);
                   await unlinkIdmItemDocumentsBidirectional(authToken, cloudEnvironment, mainPid, toRemove);
                   toast({
-                    title: (
-                      <span className="inline-flex items-center gap-2">
-                        <Check className="h-4 w-4" />
-                        Verlinkungen entfernt
-                      </span>
-                    ),
+                    title: "Verlinkungen entfernt",
                     variant: "success",
                   });
                   setPendingBulk(false);
                   await loadLinked();
                 } catch (err: any) {
                   toast({
-                    title: (
-                      <span className="inline-flex items-center gap-2">
-                        <X className="h-4 w-4 text-white" />
-                        Entfernen fehlgeschlagen
-                      </span>
-                    ),
+                    title: "Entfernen fehlgeschlagen",
                     description: String(err?.message ?? err ?? "Unbekannter Fehler"),
                     variant: "destructive",
                   });
