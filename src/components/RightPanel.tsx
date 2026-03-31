@@ -1021,10 +1021,10 @@ const RightPanel: React.FC<RightPanelProps> = ({
                   "noopener,noreferrer"
                 );
               }}
-              title="Zu SharePoint"
+              title="E02 Workflow starten"
             >
               <ExternalLink className="mr-2 h-4 w-4" />
-              Zu SharePoint
+              E02 Workflow starten
             </Button>
             <Button
               variant="outline"
