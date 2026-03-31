@@ -61,6 +61,8 @@ type Props = {
   contextOpportunityId?: string;
   /** The currently opened project (used for small UI hints like showing the document's origin when opened via Projekt_Verlinkung). */
   contextProject?: string;
+  /** Notifies parent when the checkbox selection changes (only docs with PID). */
+  onSelectionChange?: (selected: IdmDocPreview[]) => void;
   /**
    * Optional max width (in px) for each data column in the grid.
    * Useful for the document list where column widths should be fixed.
@@ -155,6 +157,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   contextKey,
   contextOpportunityId,
   contextProject,
+  onSelectionChange,
   maxDataColumnWidthPx,
   highlightedDocKeys,
   onOpenFullPreview,
@@ -810,6 +813,18 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
     setSelectedRows(new Set());
   }, [contextKey]);
 
+  const selectedDocs = React.useMemo(
+    () =>
+      Array.from(selectedRows)
+        .map((i) => docs[i])
+        .filter((d): d is IdmDocPreview => !!d?.pid),
+    [selectedRows, docs]
+  );
+
+  React.useEffect(() => {
+    onSelectionChange?.(selectedDocs);
+  }, [onSelectionChange, selectedDocs]);
+
   const toggleRowSelected = (idx: number) => {
     setSelectedRows((prev) => {
       const next = new Set(prev);
@@ -829,12 +844,9 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
         setEditedDocTypes(initialDocTypes);
         setSyncWithInitial(new Set());
       },
-      getSelectedDocs: () =>
-        Array.from(selectedRows)
-          .map((i) => docs[i])
-          .filter((d): d is IdmDocPreview => !!d?.pid),
+      getSelectedDocs: () => selectedDocs,
     }),
-    [enableSaveAllButton, handleSaveAllChanges, initial, initialDocTypes, docs, selectedRows]
+    [enableSaveAllButton, handleSaveAllChanges, initial, initialDocTypes, selectedDocs]
   );
 
   // Unsaved-changes guard (used when user tries other actions while "Alle Änderungen speichern" is active)
