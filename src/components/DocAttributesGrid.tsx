@@ -19,6 +19,7 @@ import {
   CalendarDays,
   Plus,
   X,
+  Download,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,10 @@ type Props = {
   contextProject?: string;
   /** Notifies parent when the checkbox selection changes (only docs with PID). */
   onSelectionChange?: (selected: IdmDocPreview[]) => void;
+  /** Triggered when user clicks "Download" (receives currently selected docs). */
+  onDownloadSelected?: (selected: IdmDocPreview[]) => void;
+  /** Loading state for the download action button. */
+  downloadSelectedLoading?: boolean;
   /**
    * Optional max width (in px) for each data column in the grid.
    * Useful for the document list where column widths should be fixed.
@@ -158,6 +163,8 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
   contextOpportunityId,
   contextProject,
   onSelectionChange,
+  onDownloadSelected,
+  downloadSelectedLoading,
   maxDataColumnWidthPx,
   highlightedDocKeys,
   onOpenFullPreview,
@@ -1082,10 +1089,43 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
             <div />
           )}
 
-          {!hideSaveAllButton && (
+          {(!hideSaveAllButton || (onDownloadSelected && selectedDocs.length > 0)) && (
             <div className="flex items-center gap-2">
-              {/* Batch delete appears only when more than one row is selected */}
-              {selectedRows.size > 1 && (
+              {onDownloadSelected && selectedDocs.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => onDownloadSelected(selectedDocs)}
+                  disabled={!!downloadSelectedLoading}
+                  title={selectedDocs.length === 1 ? "Dokument herunterladen" : "Dokumente als ZIP herunterladen"}
+                >
+                  {downloadSelectedLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Download
+                </Button>
+              )}
+
+              {!hideSaveAllButton && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={cn(
+                    "h-8",
+                    enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
+                  )}
+                  disabled={!enableSaveAllButton}
+                  onClick={handleSaveAllChanges}
+                >
+                  <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
+                </Button>
+              )}
+
+              {/* Batch delete for selected rows */}
+              {!hideSaveAllButton && selectedRows.size > 0 && (
                 <Button
                   variant="destructive"
                   size="sm"
@@ -1096,18 +1136,6 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                   <Trash2 className="mr-2 h-4 w-4" /> Ausgewählte Dokumente löschen
                 </Button>
               )}
-              <Button
-                variant="default"
-                size="sm"
-                className={cn(
-                  "h-8",
-                  enableSaveAllButton && "bg-orange-500 hover:bg-orange-600 text-white"
-                )}
-                disabled={!enableSaveAllButton}
-                onClick={handleSaveAllChanges}
-              >
-                <Save className="mr-2 h-4 w-4" /> Alle Änderungen speichern
-              </Button>
             </div>
           )}
         </div>

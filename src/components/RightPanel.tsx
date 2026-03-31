@@ -152,91 +152,93 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   const [highlightedDocKeys, setHighlightedDocKeys] = React.useState<string[]>([]);
 
-  const [selectedDocs, setSelectedDocs] = React.useState<IdmDocPreview[]>([]);
   const [downloadingSelected, setDownloadingSelected] = React.useState(false);
 
-  const downloadSelected = React.useCallback(async () => {
-    const docsToDownload = (selectedDocs ?? []).filter((d) => d?.pid);
-    if (!docsToDownload.length) return;
+  const downloadSelected = React.useCallback(
+    async (docs: IdmDocPreview[]) => {
+      const docsToDownload = (docs ?? []).filter((d) => d?.pid);
+      if (!docsToDownload.length) return;
 
-    const safeName = (s: string) =>
-      (s || "download")
-        .trim()
-        .replace(/[\\/?:%*|"<>]/g, "_")
-        .slice(0, 180);
+      const safeName = (s: string) =>
+        (s || "download")
+          .trim()
+          .replace(/[\\/?:%*|"<>]/g, "_")
+          .slice(0, 180);
 
-    const toSameOriginFetchUrl = (rawUrl?: string) => {
-      if (!rawUrl) return null;
-      try {
-        const u = new URL(rawUrl);
-        // IDM resource URLs (ca/api/resources/...) do not provide CORS headers.
-        // Fetch them through a local proxy so we can read the blob (needed for ZIP).
-        if (u.origin === "https://idm.eu1.inforcloudsuite.com") {
-          return `/idm-ca${u.pathname}${u.search}`;
+      const toSameOriginFetchUrl = (rawUrl?: string) => {
+        if (!rawUrl) return null;
+        try {
+          const u = new URL(rawUrl);
+          // IDM resource URLs (ca/api/resources/...) do not provide CORS headers.
+          // Fetch them through a local proxy so we can read the blob (needed for ZIP).
+          if (u.origin === "https://idm.eu1.inforcloudsuite.com") {
+            return `/idm-ca${u.pathname}${u.search}`;
+          }
+          return rawUrl;
+        } catch {
+          return rawUrl;
         }
-        return rawUrl;
-      } catch {
-        return rawUrl;
-      }
-    };
-
-    setDownloadingSelected(true);
-    try {
-      if (docsToDownload.length === 1) {
-        const doc = docsToDownload[0];
-        const info = await getIdmItemByPid(authToken, cloudEnvironment, String(doc.pid), "de-DE");
-        if (info?.resourceUrl) {
-          await forceDownload(info.resourceUrl, info.filename || doc.filename || String(doc.pid));
-        }
-        return;
-      }
-
-      const zip = new JSZip();
-      const usedNames = new Map<string, number>();
-
-      const addToZip = async (doc: IdmDocPreview) => {
-        const pid = String(doc.pid);
-        const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
-        const url = toSameOriginFetchUrl(info?.resourceUrl);
-        if (!url) return;
-
-        const res = await fetch(url);
-        if (!res.ok) return;
-        const blob = await res.blob();
-
-        const base = safeName(info.filename || doc.filename || pid);
-        const count = usedNames.get(base) ?? 0;
-        usedNames.set(base, count + 1);
-
-        let name = base;
-        if (count > 0) {
-          const dot = base.lastIndexOf(".");
-          name = dot > 0 ? `${base.slice(0, dot)} (${count + 1})${base.slice(dot)}` : `${base} (${count + 1})`;
-        }
-
-        zip.file(name, blob);
       };
 
-      // Fetch sequentially to avoid stressing IDM with too many parallel downloads.
-      for (const d of docsToDownload) {
-        // eslint-disable-next-line no-await-in-loop
-        await addToZip(d);
-      }
+      setDownloadingSelected(true);
+      try {
+        if (docsToDownload.length === 1) {
+          const doc = docsToDownload[0];
+          const info = await getIdmItemByPid(authToken, cloudEnvironment, String(doc.pid), "de-DE");
+          if (info?.resourceUrl) {
+            await forceDownload(info.resourceUrl, info.filename || doc.filename || String(doc.pid));
+          }
+          return;
+        }
 
-      const blob = await zip.generateAsync({ type: "blob" });
-      const fileName = safeName(`Dokumente_${selectedOpportunityId}_${new Date().toISOString()}.zip`);
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(objectUrl);
-    } finally {
-      setDownloadingSelected(false);
-    }
-  }, [selectedDocs, authToken, cloudEnvironment, forceDownload, selectedOpportunityId]);
+        const zip = new JSZip();
+        const usedNames = new Map<string, number>();
+
+        const addToZip = async (doc: IdmDocPreview) => {
+          const pid = String(doc.pid);
+          const info = await getIdmItemByPid(authToken, cloudEnvironment, pid, "de-DE");
+          const url = toSameOriginFetchUrl(info?.resourceUrl);
+          if (!url) return;
+
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const blob = await res.blob();
+
+          const base = safeName(info.filename || doc.filename || pid);
+          const count = usedNames.get(base) ?? 0;
+          usedNames.set(base, count + 1);
+
+          let name = base;
+          if (count > 0) {
+            const dot = base.lastIndexOf(".");
+            name = dot > 0 ? `${base.slice(0, dot)} (${count + 1})${base.slice(dot)}` : `${base} (${count + 1})`;
+          }
+
+          zip.file(name, blob);
+        };
+
+        // Fetch sequentially to avoid stressing IDM with too many parallel downloads.
+        for (const d of docsToDownload) {
+          // eslint-disable-next-line no-await-in-loop
+          await addToZip(d);
+        }
+
+        const blob = await zip.generateAsync({ type: "blob" });
+        const fileName = safeName(`Dokumente_${selectedOpportunityId}_${new Date().toISOString()}.zip`);
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+      } finally {
+        setDownloadingSelected(false);
+      }
+    },
+    [authToken, cloudEnvironment, forceDownload, selectedOpportunityId]
+  );
 
   const handleBackToOverview = React.useCallback(() => {
     const hasUnsavedList = !!docListGridRef.current?.hasUnsavedChanges();
@@ -1208,29 +1210,6 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
           {/* Dokumentenliste: max. 50vh, bei wenig Inhalt nur so hoch wie nötig. */}
           <div className="mb-4">
-            {selectedDocs.length > 0 && (
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-xs text-muted-foreground">
-                  Markiert: <span className="font-medium text-foreground">{selectedDocs.length}</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8"
-                  onClick={downloadSelected}
-                  disabled={downloadingSelected}
-                  title={selectedDocs.length === 1 ? "Dokument herunterladen" : "Dokumente als ZIP herunterladen"}
-                >
-                  {downloadingSelected ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  {selectedDocs.length === 1 ? "Download" : "Download (ZIP)"}
-                </Button>
-              </div>
-            )}
-
             <DocAttributesGrid
               ref={docListGridRef}
               title="Dokumentenliste"
@@ -1240,7 +1219,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
               contextKey={selectedOpportunityId}
               contextOpportunityId={selectedOpportunityId}
               contextProject={(selectedOpportunityProject ?? "").toString()}
-              onSelectionChange={setSelectedDocs}
+              onDownloadSelected={downloadSelected}
+              downloadSelectedLoading={downloadingSelected}
               maxDataColumnWidthPx={200}
               highlightedDocKeys={highlightedDocKeys}
               onOpenFullPreview={openFullPreview}
