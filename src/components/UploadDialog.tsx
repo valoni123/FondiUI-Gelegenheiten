@@ -480,7 +480,37 @@ const UploadDialog: React.FC<UploadDialogProps> = ({
       }
     }
 
-    return ordered;
+    // Special ordering for Geometriedaten: keep geometry-specific attributes next to each other
+    // and move them before "Titel" (swap Titel <-> Geometrieart position).
+    const hasGeometriedaten = rows.some((r) => (r.entityName ?? "").toLowerCase().includes("geometriedaten"));
+    if (!hasGeometriedaten) return ordered;
+
+    const norm = (s: string) =>
+      (s ?? "")
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "");
+
+    const desired = [
+      "Geometrieart",
+      "Lfd_Nr",
+      "Serienstatus",
+      "S_K_Version",
+      "Versuchsstatus",
+      "V_K_Version",
+    ];
+
+    const byNorm = new Map(ordered.map((k) => [norm(k), k] as const));
+    const group = desired.map((d) => byNorm.get(norm(d))).filter((v): v is string => !!v);
+    if (group.length === 0) return ordered;
+
+    const without = ordered.filter((k) => !group.includes(k));
+
+    const titelKey = byNorm.get(norm("Titel"));
+    const titelIdx = titelKey ? without.indexOf(titelKey) : -1;
+    const insertAt = titelIdx >= 0 ? titelIdx : 0;
+
+    return [...without.slice(0, insertAt), ...group, ...without.slice(insertAt)];
   }, [rows]);
 
   const attrColumnsCount = attrColumns.length;
