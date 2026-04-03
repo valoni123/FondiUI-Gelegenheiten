@@ -1712,6 +1712,23 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 "bg-[#C3F8F9] text-black data-[highlighted]:bg-[#C3F8F9] data-[highlighted]:text-black data-[state=checked]:bg-[#C3F8F9] data-[state=checked]:text-black",
                             };
                           }
+                          if (first === "H") {
+                            // HIN Hinweise
+                            return {
+                              triggerClass:
+                                "bg-[#FFEBC0] text-black border-[#FFEBC0] hover:bg-[#FFEBC0]",
+                              itemClass:
+                                "bg-[#FFEBC0] text-black data-[highlighted]:bg-[#FFEBC0] data-[highlighted]:text-black data-[state=checked]:bg-[#FFEBC0] data-[state=checked]:text-black",
+                            };
+                          }
+                          if (first === "D") {
+                            return {
+                              triggerClass:
+                                "bg-[#80C6FF] text-black border-[#80C6FF] hover:bg-[#80C6FF]",
+                              itemClass:
+                                "bg-[#80C6FF] text-black data-[highlighted]:bg-[#80C6FF] data-[highlighted]:text-black data-[state=checked]:bg-[#80C6FF] data-[state=checked]:text-black",
+                            };
+                          }
                           return undefined;
                         };
 
