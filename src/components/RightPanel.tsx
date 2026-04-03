@@ -882,14 +882,22 @@ const RightPanel: React.FC<RightPanelProps> = ({
     const newEntityName = options?.entityName?.trim();
     const aclName = doc.acl?.name;
 
+    // For some IDM value-set fields, sending an empty string causes validation errors.
+    // Use null to explicitly clear these values.
+    const clearToNull = new Set(["Serienstatus", "Versuchsstatus"]);
+    const normalizedUpdates = updates.map((u) => ({
+      name: u.name,
+      value: clearToNull.has(u.name) && (u.value ?? "") === "" ? null : u.value,
+    }));
+
     try {
       if (newEntityName && newEntityName.length > 0 && newEntityName !== (doc.entityName ?? "")) {
-        await changeIdmItemDocumentType(authToken, cloudEnvironment, doc.pid, newEntityName, updates, {
+        await changeIdmItemDocumentType(authToken, cloudEnvironment, doc.pid, newEntityName, normalizedUpdates, {
           language: "de-DE",
           aclName,
         });
       } else {
-        await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, updates, {
+        await updateIdmItemAttributes(authToken, cloudEnvironment, doc.pid, normalizedUpdates, {
           language: "de-DE",
           aclName,
         });

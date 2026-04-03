@@ -469,7 +469,7 @@ export const updateIdmItemAttributes = async (
   token: string,
   environment: CloudEnvironment,
   pid: string,
-  updates: { name: string; value: string }[],
+  updates: { name: string; value: string | null }[],
   options?: { aclName?: string; language?: string }
 ): Promise<void> => {
   const language = options?.language ?? "de-DE";
@@ -481,7 +481,7 @@ export const updateIdmItemAttributes = async (
   const body: any = {
     item: {
       attrs: {
-        attr: updates.map((u) => ({ name: u.name, value: u.value })),
+        attr: updates.map((u) => (u.value === null ? { name: u.name } : { name: u.name, value: u.value })),
       },
     },
   };
@@ -517,7 +517,7 @@ export const changeIdmItemDocumentType = async (
   environment: CloudEnvironment,
   pid: string,
   newEntityName: string,
-  attrs: { name: string; value: string }[] = [],
+  attrs: { name: string; value: string | null }[] = [],
   options?: { aclName?: string; language?: string }
 ): Promise<void> => {
   const language = options?.language ?? "de-DE";
@@ -546,7 +546,7 @@ export const changeIdmItemDocumentType = async (
   // Sending an empty attr array can lead to "Attribute name: null" errors in some IDM setups.
   if (filtered.length > 0) {
     body.item.attrs = {
-      attr: filtered.map((a) => ({ name: a.name, value: a.value })),
+      attr: filtered.map((a) => (a.value === null ? { name: a.name } : { name: a.name, value: a.value })),
     };
   }
 
@@ -562,9 +562,7 @@ export const changeIdmItemDocumentType = async (
 
   if (!res.ok) {
     const errorText = await res.text();
-    throw new Error(
-      `[IDM] change document type failed for PID '${pid}' -> '${newEntityName}': ${res.status} ${res.statusText} - ${errorText}`
-    );
+    throw new Error(`[IDM] change type failed for PID '${pid}': ${res.status} ${res.statusText} - ${errorText}`);
   }
 };
 
