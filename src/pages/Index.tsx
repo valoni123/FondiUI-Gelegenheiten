@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import GridList from "@/components/GridList";
 import DetailDialog from "@/components/DetailDialog";
 import { Item } from "@/types";
@@ -37,20 +37,6 @@ const Index: React.FC<IndexProps> = ({
   const initInFlightRef = useRef(false);
   const initDoneRef = useRef(false);
   const needsOverviewReloadRef = useRef(false);
-
-  const appHeaderRef = useRef<HTMLDivElement | null>(null);
-  const [appHeaderHeight, setAppHeaderHeight] = useState(0);
-
-  useLayoutEffect(() => {
-    const el = appHeaderRef.current;
-    if (!el) return;
-
-    const measure = () => setAppHeaderHeight(el.offsetHeight);
-    measure();
-
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, []);
 
   const [searchParams] = useSearchParams();
   const { opportunityId: paramOpportunityId } = useParams();
@@ -338,6 +324,44 @@ const Index: React.FC<IndexProps> = ({
     };
   }, [authToken, effectiveOpportunityId, companyNumber, cloudEnvironment, loadOpportunities, navigate, opportunityOdataFilter, opportunityOrderBy]);
 
+  // Keep OAuth access token fresh even while the user stays in detail view.
+  // Previously, token refresh was only checked in the overview auto-refresh loop.
+  useEffect(() => {
+    if (!authToken || !companyNumber || !cloudEnvironment) return;
+
+    const refreshInterval = setInterval(async () => {
+      const expiresAt = Number(localStorage.getItem("oauthExpiresAt") || 0);
+      const hasRefresh = !!localStorage.getItem("oauthRefreshToken");
+
+      if (expiresAt && Date.now() >= expiresAt) {
+        if (!hasRefresh) {
+          clearAuth();
+          const target = `${window.location.pathname}${window.location.search || ""}`;
+          navigate(
+            `/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`,
+            { replace: true }
+          );
+          return;
+        }
+
+        try {
+          const token = await refreshAccessToken(cloudEnvironment);
+          setAuthToken(token);
+        } catch (e) {
+          console.warn("[Auth] Silent refresh failed.", e);
+          clearAuth();
+          const target = `${window.location.pathname}${window.location.search || ""}`;
+          navigate(
+            `/login?redirect=${encodeURIComponent(target)}&error=${encodeURIComponent("Token abgelaufen.")}`,
+            { replace: true }
+          );
+        }
+      }
+    }, 10000);
+
+    return () => clearInterval(refreshInterval);
+  }, [authToken, companyNumber, cloudEnvironment, navigate]);
+
   useEffect(() => {
     if (authToken && companyNumber && cloudEnvironment && !effectiveOpportunityId) {
       const refreshInterval = setInterval(async () => {
@@ -509,10 +533,7 @@ const Index: React.FC<IndexProps> = ({
   return (
     <div className="h-screen overflow-hidden flex flex-col items-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50">
       <div className="w-full px-4 flex flex-col flex-grow min-h-0 overflow-hidden">
-        <div
-          ref={appHeaderRef}
-          className={!selectedOpportunityId ? "sticky top-0 z-50" : undefined}
-        >
+        <div className={!selectedOpportunityId ? "sticky top-0 z-50" : undefined}>
           <AppHeader
             rightContent={
               <>
@@ -550,7 +571,7 @@ const Index: React.FC<IndexProps> = ({
         <ResizablePanelGroup direction="horizontal" className="flex-1 mt-0 min-h-0">
           {selectedOpportunityId ? (
             <ResizablePanel
-              size={rightPanelSize}
+              defaultSize={rightPanelSize}
               minSize={0}
               collapsible={true}
               collapsedSize={0}
@@ -583,7 +604,7 @@ const Index: React.FC<IndexProps> = ({
               />
             </ResizablePanel>
           ) : (
-            <ResizablePanel size={leftPanelSize} minSize={10} className="min-h-0">
+            <ResizablePanel defaultSize={leftPanelSize} minSize={10} className="min-h-0">
               <GridList
                 items={effectiveOpportunityId ? [] : opportunities}
                 onUpdateItem={handleUpdateItem}
