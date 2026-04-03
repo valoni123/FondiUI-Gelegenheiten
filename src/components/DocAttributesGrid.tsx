@@ -1743,7 +1743,7 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                 onValueChange={(val) =>
                                   setEdited((prev) => {
                                     const row = { ...(prev[idx] ?? {}) };
-                                    row[attrName] = val;
+                                    row[attrName] = val === "__clear__" ? "" : val;
                                     return { ...prev, [idx]: row };
                                   })
                                 }
@@ -1793,32 +1793,43 @@ const DocAttributesGrid = React.forwardRef<DocAttributesGridHandle, Props>(({
                                         ? [currentVs, ...baseValueset]
                                         : baseValueset;
 
-                                    return effectiveValueset.map((vs) => {
-                                      const label = (vs.desc || vs.name || "").trim();
+                                    const canClear = isSerienstatusCol || isVersuchsstatusCol;
 
-                                      const itemStyle =
-                                        useGeometriedatenColors && isStatusCol
-                                          ? geometriedatenStatusStyles[label]
-                                          : isNonGeoStatusCol && nonGeoStatusAllowedLabels.has(label)
-                                            ? nonGeoStatusStyles[label]
-                                            : useGeometriedatenColors && isSerienstatusCol
-                                              ? geometriedatenSerienstatusStyles[label]
-                                              : useGeometriedatenColors && isVersuchsstatusCol
-                                                ? geometriedatenVersuchsstatusStyles[label]
-                                                : useGeometriedatenColors && isGeometrieartCol
-                                                  ? getGeometriedatenGeometrieartStyle(label)
-                                                  : undefined;
+                                    return (
+                                      <>
+                                        {canClear ? (
+                                          <SelectItem value="__clear__" className="whitespace-nowrap rounded-none text-muted-foreground">
+                                            Wählen…
+                                          </SelectItem>
+                                        ) : null}
+                                        {effectiveValueset.map((vs) => {
+                                          const label = (vs.desc || vs.name || "").trim();
 
-                                      return (
-                                        <SelectItem
-                                          key={vs.name}
-                                          value={vs.name}
-                                          className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
-                                        >
-                                          {label}
-                                        </SelectItem>
-                                      );
-                                    });
+                                          const itemStyle =
+                                            useGeometriedatenColors && isStatusCol
+                                              ? geometriedatenStatusStyles[label]
+                                              : isNonGeoStatusCol && nonGeoStatusAllowedLabels.has(label)
+                                                ? nonGeoStatusStyles[label]
+                                                : useGeometriedatenColors && isSerienstatusCol
+                                                  ? geometriedatenSerienstatusStyles[label]
+                                                  : useGeometriedatenColors && isVersuchsstatusCol
+                                                    ? geometriedatenVersuchsstatusStyles[label]
+                                                    : useGeometriedatenColors && isGeometrieartCol
+                                                      ? getGeometriedatenGeometrieartStyle(label)
+                                                      : undefined;
+
+                                          return (
+                                            <SelectItem
+                                              key={vs.name}
+                                              value={vs.name}
+                                              className={cn(itemStyle?.itemClass, "whitespace-nowrap rounded-none")}
+                                            >
+                                              {label}
+                                            </SelectItem>
+                                          );
+                                        })}
+                                      </>
+                                    );
                                   })()}
                                 </SelectContent>
                               </Select>
