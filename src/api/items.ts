@@ -278,8 +278,23 @@ export const getOpportunitiesWithCount = async (
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to fetch opportunities: ${response.statusText}`);
+        const raw = await response.text();
+        let msg = `Failed to fetch opportunities: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = JSON.parse(raw);
+          msg = (errorData as any)?.message || (errorData as any)?.error?.message || msg;
+        } catch {
+          // keep msg
+        }
+
+        console.error("[LN] Opportunities request failed", {
+          url,
+          status: response.status,
+          statusText: response.statusText,
+          body: raw?.slice(0, 2000),
+        });
+
+        throw new Error(msg);
       }
 
       const odataResponse = await response.json();
