@@ -1,8 +1,9 @@
 import gacDemConfig from './GAC_DEM.json';
 import fonTrnConfig from './FONDIUM_TRN.json';
+import fonPrdConfig from './FONDIUM_PRD.json';
 import ionapiConfig from './ionapi.json'; // Default config, will be replaced by selected one
 
-export type CloudEnvironment = 'GAC_DEM' | 'FONDIUM_TRN';
+export type CloudEnvironment = 'GAC_DEM' | 'FONDIUM_TRN' | 'FONDIUM_PRD';
 
 interface IonApiConfig {
   ti: string;
@@ -25,6 +26,7 @@ interface IonApiConfig {
 const configs: Record<CloudEnvironment, IonApiConfig> = {
   'GAC_DEM': gacDemConfig as IonApiConfig,
   'FONDIUM_TRN': fonTrnConfig as IonApiConfig,
+  'FONDIUM_PRD': fonPrdConfig as IonApiConfig,
 };
 
 export const getIonApiConfig = (environment: CloudEnvironment): IonApiConfig => {

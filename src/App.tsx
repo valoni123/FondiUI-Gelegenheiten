@@ -46,8 +46,12 @@ const App = () => {
     localStorage.getItem("companyNumber") || "7000" // Default to "7000"
   );
 
-  // Initialize cloud environment from localStorage or a default
-  const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>("FONDIUM_TRN");
+  // Initialize cloud environment from localStorage (migrate TRN -> PRD by default) or a default
+  const [cloudEnvironment, setCloudEnvironment] = useState<CloudEnvironment>(() => {
+    const saved = localStorage.getItem("cloudEnvironment") as CloudEnvironment | null;
+    if (saved === "FONDIUM_TRN") return "FONDIUM_PRD";
+    return saved || "FONDIUM_PRD";
+  });
 
   // Save company number to localStorage whenever it changes
   useEffect(() => {
