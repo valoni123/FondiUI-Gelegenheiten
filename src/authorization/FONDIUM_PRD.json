@@ -1,7 +1,7 @@
 {
-  "ci": "FONDIUM_PRD~Gd6Nrbn28oGtVb342vgiyaAMlWOPVZ-BK8N7hLGeh7k",
-  "cn": "LN_Studio_Fondium_PRD",
-  "cs": "Vvq6AFlGk-9r9fDQ_MX04cejjWxJJgLpWWLWTWdfOiC89ci2WiyRV6vTvG0vmxs43jPnX-LOMSHV6tslmQG0mA",
+  "ci": "FONDIUM_PRD~U9gbVUPf9XP2YTSuD9Gqd-1aZGaCd_huw8odnoblJuU",
+  "cn": "Fondium_Web_App",
+  "cs": "yQZjs6PA43q8FbUelmHlzBrqJ3RdFbHNZhWzzrozWRYFOZlypBWzF8cRTwta-_Vv4otURnCo5SDGfNUFhr78gw",
   "dt": "11",
   "ev": "V1480769020",
   "iu": "https://mingle-ionapi.eu1.inforcloudsuite.com",
@@ -9,7 +9,7 @@
   "or": "revoke_token.oauth2",
   "ot": "token.oauth2",
   "pu": "https://mingle-sso.eu1.inforcloudsuite.com:443/FONDIUM_PRD/as/",
-  "ru": "oob://localhost/lnstudio",
+  "ru": "https://10.60.40.146/callback",
   "sc": [],
   "ti": "FONDIUM_PRD",
   "v": "1.1"

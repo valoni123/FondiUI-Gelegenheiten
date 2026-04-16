@@ -28,8 +28,6 @@ const OAuthCallback: React.FC = () => {
           hashParams.get("access_token") || queryParams.get("access_token");
         let expiresInSec = Number(hashParams.get("expires_in") || queryParams.get("expires_in") || 3600);
 
-        const redirectUri = getRedirectUri(env);
-
         if (!accessToken && code) {
           // Build body for token exchange
           const cfg = getIonApiConfig(env);
